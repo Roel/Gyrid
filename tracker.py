@@ -5,10 +5,14 @@ import sys
 import bluetooth
 import time
 
-LOGFILE = '/home/roel/Desktop/bluetooth.log'
+import daemon
 
-class Main(object):
-    def __init__(self, logfile):
+LOGFILE = '/home/roel/Desktop/bluetooth.log'
+LOCKFILE = '/home/roel/Desktop/lock'
+
+class Main(daemon.Daemon):
+    def __init__(self, lockfile, logfile):
+        daemon.Daemon.__init__(self, lockfile)
         self.logfile = open(logfile, 'a')
 
     def write(self, timestamp, mac_address, device_class):
@@ -16,6 +20,13 @@ class Main(object):
                                      str(mac_address),
                                      str(device_class)]))
         self.logfile.write("\n")
+
+    def run(self):
+        discoverer = Discoverer(main)
+        discoverer.find_devices(flush_cache=True, lookup_names=False, duration=20)
+
+        while not discoverer.done:
+            discoverer.process_event()
 
 class Discoverer(bluetooth.DeviceDiscoverer):
     """ Subclassing DeviceDiscoverer to implement action after discovering
@@ -38,9 +49,18 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         self.find_devices(flush_cache=True, lookup_names=False, duration=20)
 
 if __name__ == '__main__':
-    main = Main(LOGFILE)
-    discoverer = Discoverer(main)
-    discoverer.find_devices(flush_cache=True, lookup_names=False, duration=20)
-
-    while not discoverer.done:
-        discoverer.process_event()
+    main = Main(LOCKFILE, LOGFILE)
+    if len(sys.argv) == 2:
+        if 'start' == sys.argv[1]:
+            main.start()
+        elif 'stop' == sys.argv[1]:
+            main.stop()
+        elif 'restart' == sys.argv[1]:
+            main.restart()
+        else:
+            print "Unknown command"
+            sys.exit(2)
+        sys.exit(0)
+    else:
+        print "usage: %s start|stop|restart" % sys.argv[0]
+        sys.exit(2)    
