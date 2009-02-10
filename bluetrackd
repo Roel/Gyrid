@@ -24,8 +24,8 @@ import sys
 
 from bluetracker import bluetracker
 
-LOGFILE = '/home/roel/Desktop/bluetooth.log'
-LOCKFILE = '/home/roel/Desktop/lock'
+LOGFILE = '/var/log/bluetracker.log'
+LOCKFILE = '/var/run/bluetracker.pid'
 
 if __name__ == '__main__':
     main = bluetracker.Main(LOCKFILE, LOGFILE)
