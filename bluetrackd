@@ -22,7 +22,7 @@
 
 import sys
 
-import bluetracker
+from bluetracker import bluetracker
 
 LOGFILE = '/home/roel/Desktop/bluetooth.log'
 LOCKFILE = '/home/roel/Desktop/lock'
