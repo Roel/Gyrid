@@ -78,6 +78,7 @@ class Main(daemon.Daemon):
         Called when the daemon gets the stop command. Cleanly close the
         logfile and then stop the daemon.
         """
+        self.logfile.write("Clean shutdown.\n")
         self.logfile.close()
         del(self.logfile)
         daemon.Daemon.stop(self)
@@ -104,8 +105,10 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         """
         self.find_devices(flush_cache=True, lookup_names=False, duration=8)
 
-    #FIXME: is this really necessary?
     def pre_inquiry(self):
+        """
+        Set the 'done' flag to False when starting the scan.
+        """
         self.done = False
 
     def device_discovered(self, address, device_class, name):
