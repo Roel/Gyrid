@@ -79,9 +79,10 @@ class Daemon:
         try:
             pf = file(self.pidfile,'r')
             pid = int(pf.read().strip())
-            pf.close()
-        except IOError, ValueError:
+        except (IOError, ValueError):
             pid = None
+        finally:
+            pf.close()
     
         if pid:
             message = "pidfile %s already exist. Daemon already running?\n"
@@ -100,9 +101,10 @@ class Daemon:
         try:
             pf = file(self.pidfile,'r')
             pid = int(pf.read().strip())
-            pf.close()
-        except IOError, ValueError:
+        except (IOError, ValueError):
             pid = None
+        finally:
+            pf.close()
     
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"
