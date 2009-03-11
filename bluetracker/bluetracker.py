@@ -61,17 +61,13 @@ class Main(daemon.Daemon):
         Open the logfile if it's not already open (necessary to be able to
         restart the daemon), and start the Bluetooth discoverer.
         """
-        #discoverer = Discoverer(main)
-
-        #while not discoverer.done:
-        #    discoverer.process_event()
         if 'logfile' not in self.__dict__:
             self.logfile = open(self.logfile_url, 'a')
 
-        while True:
-            tijd = str(time.time())
-            self.write(tijd[:tijd.find('.')], '11:22:33:44:55:66', 52400)
-            time.sleep(5)
+        discoverer = Discoverer(main)
+
+        while not discoverer.done:
+            discoverer.process_event()
 
     def stop(self):
         """
