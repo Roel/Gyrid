@@ -21,7 +21,11 @@
 import os
 import sys
 import bluetooth
+import dbus
+import dbus.mainloop.glib
 import time
+import gobject
+import threading
 
 import daemon
 
@@ -37,9 +41,22 @@ class Main(daemon.Daemon):
         @param  lockfile   URL of the lockfile.
         @param  logfile    URL of the logfile.
         """
-        daemon.Daemon.__init__(self, lockfile)
+        daemon.Daemon.__init__(self, lockfile, stdout='/dev/stdout',
+                               stderr='/dev/stderr')
         self.logfile_url = logfile
         self.logfile = open(self.logfile_url, 'a')
+
+        self.main_loop = gobject.MainLoop()
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        self._dbus_systembus = dbus.SystemBus()
+        hal_obj = self._dbus_systembus.get_object('org.freedesktop.Hal', '/org/freedesktop/Hal/Manager')
+        self._dbus_hal = dbus.Interface(hal_obj, 'org.freedesktop.Hal.Manager')
+
+    def threaded(f):
+        def wrapper(*args):
+            t = threading.Thread(target=f, args=args)
+            t.start()
+        return wrapper
 
     def write(self, timestamp, mac_address, device_class):
         """
@@ -55,26 +72,73 @@ class Main(daemon.Daemon):
         self.logfile.write("\n")
         self.logfile.flush()
 
+    def write_info(self, info):
+        tijd = str(time.time())
+        self.logfile.write(",".join([tijd[:tijd.find('.')], info]))
+        self.logfile.write("\n")
+        self.logfile.flush()
+
     def run(self):
         """
         Called after the daemon gets the (re)start command
         Open the logfile if it's not already open (necessary to be able to
         restart the daemon), and start the Bluetooth discoverer.
         """
+        #Check for Bluetooth device.
+        #if len(self._dbus_hal.FindDeviceByCapability('bluetooth_hci')) < 1:
+            #sys.stderr.write("Error: no Bluetooth device found.\n")
+            #sys.exit(1)
+
         if 'logfile' not in self.__dict__:
             self.logfile = open(self.logfile_url, 'a')
+            self.write_info("I: Restarted")
+        else:
+            self.write_info("I: Started")
 
-        discoverer = Discoverer(main)
+        self._dbus_systembus.add_signal_receiver(self._bluetooth_device_added,
+            "DeviceAdded",
+            "org.freedesktop.Hal.Manager",
+            "org.freedesktop.Hal",
+            "/org/freedesktop/Hal/Manager")
 
-        while not discoverer.done:
-            discoverer.process_event()
+        gobject.threads_init()
+        self.start_discover()
+        self.main_loop.run()
 
-    def stop(self):
+    @threaded
+    def start_discover(self):
+        try:
+            self.discoverer = Discoverer(self)
+        except bluetooth.BluetoothError:
+            return
+    
+        while not self.discoverer.done :
+            try:
+                self.discoverer.process_event()
+            except bluetooth._bluetooth.error, e:
+                if e[0] == 32:
+                    self.write_info("E: Bluetooth receiver lost")
+                    self.discoverer.done = True
+        del(self.discoverer)
+
+    def _bluetooth_device_added(self, sender=None):
+        device_obj = self._dbus_systembus.get_object("org.freedesktop.Hal", sender)
+        device = dbus.Interface(device_obj, "org.freedesktop.Hal.Device")
+        try:
+            if ('bluetooth_hci' in device.GetProperty('info.capabilities')) and \
+               (not 'discoverer' in self.__dict__):
+                self.write_info("I: Bluetooth receiver found")
+                self.start_discover()
+        except dbus.DBusException:
+            pass
+
+    def stop(self, restart=False):
         """
         Called when the daemon gets the stop command. Cleanly close the
         logfile and then stop the daemon.
         """
-        self.logfile.write("Clean shutdown.\n")
+        if not restart:
+            self.write_info("I: Stopped")
         self.logfile.close()
         del(self.logfile)
         daemon.Daemon.stop(self)

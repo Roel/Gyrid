@@ -33,36 +33,37 @@ import os
 
 try:
     from bluetracker import bluetracker
-except:
+except ImportError:
     sys.stderr.write("Error: bluetracker not installed.\n")
     sys.exit(1)
 
-LOGFILE = '/var/log/bluetracker/bluetracker.log'
-LOCKFILE = '/var/run/bluetracker.pid'
+LOGFILE = '/home/roel/Desktop/bluetracker.log'
+LOCKFILE = '/home/roel/Desktop/bluetracker.pid'
 
 if __name__ == '__main__':
     try:
         for file in [LOGFILE, LOCKFILE]:
-            f = open(file, 'a')
-            f.close()
+            pass
+            #f = open(file, 'a')
+            #f.close()
     except:
         sys.stderr.write("This daemon needs write access to %s and %s\n" %
             (LOGFILE, LOCKFILE))
         sys.exit(1)
 
     main = bluetracker.Main(LOCKFILE, LOGFILE)
-    
+
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
             main.start()
         elif 'stop' == sys.argv[1]:
             main.stop()
-        elif 'restart' or 'force-reload' == sys.argv[1]:
+        elif 'restart' == sys.argv[1] or 'force-reload' == sys.argv[1]:
             main.restart()
         else:
-            print "Unknown command"
+            print "Error: Unknown command"
             sys.exit(2)
         sys.exit(0)
     else:
         print "usage: %s start|stop|restart|force-reload" % sys.argv[0]
-        sys.exit(2)    
+        sys.exit(2)
