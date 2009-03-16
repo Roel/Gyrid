@@ -27,6 +27,7 @@ import time
 import gobject
 import threading
 
+import discoverer
 import daemon
 
 class Main(daemon.Daemon):
@@ -125,7 +126,7 @@ class Main(daemon.Daemon):
         Bluetooth device (anymore).
         """
         try:
-            self.discoverer = Discoverer(self)
+            self.discoverer = discoverer.Discoverer(self)
         except bluetooth.BluetoothError:
             #No Bluetooth receiver found, return to end the function.
             #We will automatically start again after a Bluetooth device
@@ -173,53 +174,3 @@ class Main(daemon.Daemon):
         self.logfile.close()
         del(self.logfile)
         daemon.Daemon.stop(self)
-
-class Discoverer(bluetooth.DeviceDiscoverer):
-    """
-    Bluetooth discover, this is the device scanner. A few modification have
-    been made from the original DeviceDiscoverer.
-    """
-    def __init__(self, main):
-        """
-        Initialisation of the DeviceDiscoverer. Store the reference to main and
-        start scanning.
-
-        @param  main  Reference to a Main instance.
-        """
-        bluetooth.DeviceDiscoverer.__init__(self)
-        self.main = main
-        self.find()
-
-    def find(self):
-        """
-        Start scanning.
-        """
-        self.find_devices(flush_cache=True, lookup_names=False, duration=8)
-
-    def pre_inquiry(self):
-        """
-        Set the 'done' flag to False when starting the scan.
-        """
-        self.done = False
-
-    def device_discovered(self, address, device_class, name):
-        """
-        Called when discovered a new device. Get a UNIX timestamp and call
-        the write method of Main to write the timestamp, the address and
-        the device_class of the device to the logfile.
-
-        @param  address        Hardware address of the Bluetooth device.
-        @param  device_class   Device class of the Bluetooth device.
-        @param  name           The name of the Bluetooth device. Since we don't
-                                query names, this value will be None.
-        """
-        tijd = str(time.time())
-        self.main.write(tijd[:tijd.find('.')], address, device_class)
-
-    def inquiry_complete(self):
-        """
-        Called after the inquiry is complete; restart scanning by calling
-        find(). We create an endless loop here to continuously scan for
-        devices.
-        """
-        self.find()
