@@ -49,10 +49,16 @@ class Main(daemon.Daemon):
         self.main_loop = gobject.MainLoop()
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()
-        hal_obj = self._dbus_systembus.get_object('org.freedesktop.Hal', '/org/freedesktop/Hal/Manager')
+        hal_obj = self._dbus_systembus.get_object(
+            'org.freedesktop.Hal', '/org/freedesktop/Hal/Manager')
         self._dbus_hal = dbus.Interface(hal_obj, 'org.freedesktop.Hal.Manager')
 
     def threaded(f):
+        """
+        Wrapper to start a function within a new thread.
+
+        @param  f   The function to run inside the thread.
+        """
         def wrapper(*args):
             t = threading.Thread(target=f, args=args)
             t.start()
@@ -73,6 +79,12 @@ class Main(daemon.Daemon):
         self.logfile.flush()
 
     def write_info(self, info):
+        """
+        Append a timestamp and the information to the logfile on a new line
+        and flush the file.
+
+        @param  info   The information to write.
+        """
         tijd = str(time.time())
         self.logfile.write(",".join([tijd[:tijd.find('.')], info]))
         self.logfile.write("\n")
@@ -107,21 +119,39 @@ class Main(daemon.Daemon):
 
     @threaded
     def start_discover(self):
+        """
+        Start the Discoverer and start scanning. This function is decorated
+        to start in a new thread automatically. The scan ends if there is no
+        Bluetooth device (anymore).
+        """
         try:
             self.discoverer = Discoverer(self)
         except bluetooth.BluetoothError:
+            #No Bluetooth receiver found, return to end the function.
+            #We will automatically start again after a Bluetooth device
+            #has been plugged in thanks to HAL signal receiver.
             return
-    
-        while not self.discoverer.done :
+
+        while not self.discoverer.done:
             try:
                 self.discoverer.process_event()
             except bluetooth._bluetooth.error, e:
                 if e[0] == 32:
+                    #The Bluetooth receiver has been plugged out, end the loop.
+                    #We will automatically start again after a Bluetooth device
+                    #has been plugged in thanks to HAL signal receiver.
                     self.write_info("E: Bluetooth receiver lost")
                     self.discoverer.done = True
         del(self.discoverer)
 
     def _bluetooth_device_added(self, sender=None):
+        """
+        Callback function for HAL signal. This method is automatically called
+        after a new hardware device has been plugged in. We check if is has
+        Bluetooth capabilities, and start scanning if it does.
+
+        @param  sender   The device that has been plugged in.
+        """
         device_obj = self._dbus_systembus.get_object("org.freedesktop.Hal", sender)
         device = dbus.Interface(device_obj, "org.freedesktop.Hal.Device")
         try:
@@ -130,6 +160,7 @@ class Main(daemon.Daemon):
                 self.write_info("I: Bluetooth receiver found")
                 self.start_discover()
         except dbus.DBusException:
+            #Raised when no such property exists.
             pass
 
     def stop(self, restart=False):
