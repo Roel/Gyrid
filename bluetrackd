@@ -41,18 +41,22 @@ LOGFILE = '/home/roel/Desktop/bluetracker.log'
 LOCKFILE = '/home/roel/Desktop/bluetracker.pid'
 
 if __name__ == '__main__':
-    try:
-        for file in [LOGFILE, LOCKFILE]:
-            pass
-            #f = open(file, 'a')
-            #f.close()
-    except:
-        sys.stderr.write("This daemon needs write access to %s and %s\n" %
-            (LOGFILE, LOCKFILE))
+    #Check for write access to LOGFILE and LOCKFILE.
+    access = True
+    for file in [LOGFILE, LOCKFILE]:
+        if os.path.exists(file) and os.access(file, os.W_OK) == False:
+            sys.stderr.write("Error: Needs write access to %s\n" % file)
+            access = False
+        elif not os.path.exists(file) and os.access(os.path.dirname(file), os.W_OK) == False:
+            sys.stderr.write("Error: Needs write access to %s\n" % file)
+            access = False
+    if not access:
         sys.exit(1)
 
+    #Create main bluetracker instance.
     main = bluetracker.Main(LOCKFILE, LOGFILE)
 
+    #Start, stop or restart the daemon.
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
             main.start()
