@@ -28,6 +28,7 @@ import gobject
 import threading
 
 import discoverer
+import logger
 import daemon
 
 class Main(daemon.Daemon):
@@ -44,9 +45,9 @@ class Main(daemon.Daemon):
         """
         daemon.Daemon.__init__(self, lockfile, stdout='/dev/stdout',
                                stderr='/dev/stderr')
-        self.logfile_url = logfile
-        self.logfile = open(self.logfile_url, 'a')
-
+                               
+        gobject.threads_init()
+        self.logger = logger.Logger(logfile)
         self.main_loop = gobject.MainLoop()
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()
@@ -54,7 +55,7 @@ class Main(daemon.Daemon):
             'org.freedesktop.Hal', '/org/freedesktop/Hal/Manager')
         self._dbus_hal = dbus.Interface(hal_obj, 'org.freedesktop.Hal.Manager')
 
-    def threaded(f):
+    def _threaded(f):
         """
         Wrapper to start a function within a new thread.
 
@@ -65,48 +66,16 @@ class Main(daemon.Daemon):
             t.start()
         return wrapper
 
-    def write(self, timestamp, mac_address, device_class):
-        """
-        Append the parameters to the logfile on a new line and flush the file.
-
-        @param  timestamp      UNIX timestamp.
-        @param  mac_address    Hardware address of the Bluetooth device.
-        @param  device_class   Device class of the Bluetooth device.
-        """
-        self.logfile.write(",".join([str(timestamp),
-                                     str(mac_address),
-                                     str(device_class)]))
-        self.logfile.write("\n")
-        self.logfile.flush()
-
-    def write_info(self, info):
-        """
-        Append a timestamp and the information to the logfile on a new line
-        and flush the file.
-
-        @param  info   The information to write.
-        """
-        tijd = str(time.time())
-        self.logfile.write(",".join([tijd[:tijd.find('.')], info]))
-        self.logfile.write("\n")
-        self.logfile.flush()
-
     def run(self):
         """
         Called after the daemon gets the (re)start command
         Open the logfile if it's not already open (necessary to be able to
         restart the daemon), and start the Bluetooth discoverer.
         """
-        #Check for Bluetooth device.
-        #if len(self._dbus_hal.FindDeviceByCapability('bluetooth_hci')) < 1:
-            #sys.stderr.write("Error: no Bluetooth device found.\n")
-            #sys.exit(1)
-
-        if 'logfile' not in self.__dict__:
-            self.logfile = open(self.logfile_url, 'a')
-            self.write_info("I: Restarted")
-        else:
-            self.write_info("I: Started")
+        #    self.logger = logger.Logger(logfile)
+        #    self.logger.write_info("I: Restarted")
+        #else:
+        #    self.logger.write_info("I: Started")
 
         self._dbus_systembus.add_signal_receiver(self._bluetooth_device_added,
             "DeviceAdded",
@@ -114,25 +83,25 @@ class Main(daemon.Daemon):
             "org.freedesktop.Hal",
             "/org/freedesktop/Hal/Manager")
 
-        gobject.threads_init()
-        self.start_discover()
+        self._start_discover()
         self.main_loop.run()
 
-    @threaded
-    def start_discover(self):
+    @_threaded
+    def _start_discover(self):
         """
         Start the Discoverer and start scanning. This function is decorated
         to start in a new thread automatically. The scan ends if there is no
         Bluetooth device (anymore).
         """
         try:
-            self.discoverer = discoverer.Discoverer(self)
+            self.discoverer = discoverer.Discoverer(self.logger)
         except bluetooth.BluetoothError:
             #No Bluetooth receiver found, return to end the function.
             #We will automatically start again after a Bluetooth device
             #has been plugged in thanks to HAL signal receiver.
             return
 
+        self.logger.start()
         while not self.discoverer.done:
             try:
                 self.discoverer.process_event()
@@ -141,7 +110,8 @@ class Main(daemon.Daemon):
                     #The Bluetooth receiver has been plugged out, end the loop.
                     #We will automatically start again after a Bluetooth device
                     #has been plugged in thanks to HAL signal receiver.
-                    self.write_info("E: Bluetooth receiver lost")
+                    self.logger.write_info("E: Bluetooth receiver lost")
+                    self.logger.stop()
                     self.discoverer.done = True
         del(self.discoverer)
 
@@ -158,8 +128,9 @@ class Main(daemon.Daemon):
         try:
             if ('bluetooth_hci' in device.GetProperty('info.capabilities')) and \
                (not 'discoverer' in self.__dict__):
-                self.write_info("I: Bluetooth receiver found")
-                self.start_discover()
+                self.logger.write_info("I: Bluetooth receiver found")
+                #self.logger.start()
+                self._start_discover()
         except dbus.DBusException:
             #Raised when no such property exists.
             pass
@@ -170,7 +141,8 @@ class Main(daemon.Daemon):
         logfile and then stop the daemon.
         """
         if not restart:
-            self.write_info("I: Stopped")
-        self.logfile.close()
-        del(self.logfile)
+            self.logger.write_info("I: Stopped")
+            self.logger.close()
+        else:
+            self.logger.stop()
         daemon.Daemon.stop(self)

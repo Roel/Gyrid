@@ -26,15 +26,15 @@ class Discoverer(bluetooth.DeviceDiscoverer):
     Bluetooth discover, this is the device scanner. A few modification have
     been made from the original DeviceDiscoverer.
     """
-    def __init__(self, main):
+    def __init__(self, logger):
         """
-        Initialisation of the DeviceDiscoverer. Store the reference to main and
+        Initialisation of the DeviceDiscoverer. Store the reference to logger and
         start scanning.
 
-        @param  main  Reference to a Main instance.
+        @param  logger  Reference to a Logger instance.
         """
         bluetooth.DeviceDiscoverer.__init__(self)
-        self.main = main
+        self.logger = logger
         self.find()
 
     def find(self):
@@ -52,7 +52,7 @@ class Discoverer(bluetooth.DeviceDiscoverer):
     def device_discovered(self, address, device_class, name):
         """
         Called when discovered a new device. Get a UNIX timestamp and call
-        the write method of Main to write the timestamp, the address and
+        the update method of Logger to write the timestamp, the address and
         the device_class of the device to the logfile.
 
         @param  address        Hardware address of the Bluetooth device.
@@ -60,8 +60,7 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         @param  name           The name of the Bluetooth device. Since we don't
                                 query names, this value will be None.
         """
-        tijd = str(time.time())
-        self.main.write(tijd[:tijd.find('.')], address, device_class)
+        self.logger.update_device(int(time.time()), address, device_class)
 
     def inquiry_complete(self):
         """
