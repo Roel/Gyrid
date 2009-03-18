@@ -23,24 +23,22 @@ import threading
 import time
 
 class Logger(object):
+    """
+    The Logger class handles all writing to the logfile and stores a pool
+    of recently seen devices, in order to only write incoming and outgoing
+    devices to the logfile.
+    """
     def __init__(self, logfile):
+        """
+        Initialisation of the logfile, pool and poolchecker.
+        
+        @param  logfile   URL of the logfile to write to.
+        """
         self.logfile = open(logfile, 'a')
         self.started = False
         
-        #self._run_check = False
         self.pool = {}
         self.poolchecker = PoolChecker(self)
-        
-    def _threaded(f):
-        """
-        Wrapper to start a function within a new thread.
-
-        @param  f   The function to run inside the thread.
-        """
-        def wrapper(*args):
-            t = threading.Thread(target=f, args=args)
-            t.start()
-        return wrapper
         
     def write(self, timestamp, mac_address, device_class, moving):
         """
@@ -49,6 +47,7 @@ class Logger(object):
         @param  timestamp      UNIX timestamp.
         @param  mac_address    Hardware address of the Bluetooth device.
         @param  device_class   Device class of the Bluetooth device.
+        @param  moving         Whether the device is moving 'in' or 'out'.
         """
         self.logfile.write(",".join([str(timestamp),
                                      str(mac_address),
@@ -69,55 +68,67 @@ class Logger(object):
         self.logfile.flush()
 
     def update_device(self, timestamp, mac_address, device_class):
+        """
+        Update the device with specified mac_address in the pool.
+        
+        @param  timestamp      UNIX timestamp.
+        @param  mac_address    Hardware address of the Bluetooth device.
+        @param  device_class   Device class of the Bluetooth device.
+        """
         if mac_address not in self.pool:
             self.write(timestamp, mac_address, device_class, 'in')
             
         self.pool[mac_address] = [timestamp, device_class]
-
-    #@_threaded
-    #def _check_pool(self):
-    #    while self._run_check:
-    #        tijd = int(time.time())
-    #        print tijd, ", checked"
-    #        to_delete = []
-    #        for device in self._pool:
-    #            if tijd - self._pool[device][0] > 120:
-    #                self.write(self._pool[device][0],
-    #                           device,
-    #                           self._pool[device][1],
-    #                           'out')
-    #                to_delete.append(device)
-    #        for device in to_delete:
-    #            del(self._pool[device])
-    #        time.sleep(300)
                     
     def start(self):
-        #self._run_check = True
-        #self._check_pool()
+        """
+        Start the poolchecker, which checks at regular intervals the pool for
+        deviced that have disappeared.
+        """
         if not 'poolchecker' in self.__dict__:
             self.poolchecker = PoolChecker(self)
         self.poolchecker.start()
         
     def stop(self):
-        #self._run_check = False
+        """
+        Stop the poolchecker.
+        """
         self.poolchecker.stop()
         del(self.poolchecker)
         
     def close(self):
+        """
+        Stop the poolchecker and close the logfile.
+        """
         self.stop()
         self.logfile.close()
         
 class PoolChecker(threading.Thread):
+    """
+    The PoolChecker checks the device_pool at regular intervals to delete
+    devices that have not been seen for x amount of time from the pool.
+    It is a subclass of threading.Thread to start in a new thread automatically.
+    """
     def __init__(self, logger):
+        """
+        Initialisation of the thread.
+        
+        @param   logger   Reference to Logger instance.
+        """
         threading.Thread.__init__(self)
         self.logger = logger
         self.buffer = 120
         self._running = True
         
     def run(self):
+        """
+        Start the thread. Loop over the device pool at a regular interval and
+        delete devices that have not been seen since x amount of time. Write
+        them to the logfile as being moved 'out'.
+        """
         while self._running:
             tijd = int(time.time())
-            print tijd, ", checked"
+            #print tijd, ", checked"
             to_delete = []
             for device in self.logger.pool:
                 if tijd - self.logger.pool[device][0] > self.buffer:
@@ -131,4 +142,7 @@ class PoolChecker(threading.Thread):
             time.sleep(self.buffer)
             
     def stop(self):
+        """
+        Stop the thread.
+        """
         self._running = False

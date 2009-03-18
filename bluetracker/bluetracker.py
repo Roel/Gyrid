@@ -38,7 +38,7 @@ class Main(daemon.Daemon):
     """
     def __init__(self, lockfile, logfile):
         """
-        Initialistation of the daemon and opening of the logfile.
+        Initialistation of the daemon, threading, logging and DBus connection.
 
         @param  lockfile   URL of the lockfile.
         @param  logfile    URL of the logfile.
@@ -68,9 +68,9 @@ class Main(daemon.Daemon):
 
     def run(self, restart=False):
         """
-        Called after the daemon gets the (re)start command
-        Open the logfile if it's not already open (necessary to be able to
-        restart the daemon), and start the Bluetooth discoverer.
+        Called after the daemon gets the (re)start command.
+        Connect the DeviceAdded signal (DBus/HAL) to its handler and start
+        the Bluetooth discoverer.
         """
         if not restart:
             self.logger.write_info("I: Started")
@@ -89,9 +89,10 @@ class Main(daemon.Daemon):
     @_threaded
     def _start_discover(self):
         """
-        Start the Discoverer and start scanning. This function is decorated
-        to start in a new thread automatically. The scan ends if there is no
-        Bluetooth device (anymore).
+        Start the Discoverer and start scanning. Start the logger in order to
+        get the pool_checker running. This function is decorated to start in
+        a new thread automatically. The scan ends if there is no Bluetooth
+        device (anymore).
         """
         try:
             self.discoverer = discoverer.Discoverer(self.logger)
@@ -136,8 +137,10 @@ class Main(daemon.Daemon):
 
     def stop(self, restart=False):
         """
-        Called when the daemon gets the stop command. Cleanly close the
-        logfile and then stop the daemon.
+        Called when the daemon gets the stop command. Stop the logger, cleanly
+        close the logfile if restart=False and then stop the daemon.
+        
+        @param  restart   If this call to stop() is part of a restart operation.
         """
         if not restart:
             self.logger.write_info("I: Stopped")

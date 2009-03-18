@@ -28,8 +28,8 @@ class Discoverer(bluetooth.DeviceDiscoverer):
     """
     def __init__(self, logger):
         """
-        Initialisation of the DeviceDiscoverer. Store the reference to logger and
-        start scanning.
+        Initialisation of the DeviceDiscoverer. Store the reference to logger
+        and start scanning.
 
         @param  logger  Reference to a Logger instance.
         """
@@ -51,9 +51,9 @@ class Discoverer(bluetooth.DeviceDiscoverer):
 
     def device_discovered(self, address, device_class, name):
         """
-        Called when discovered a new device. Get a UNIX timestamp and call
-        the update method of Logger to write the timestamp, the address and
-        the device_class of the device to the logfile.
+        Called when discovered a device. Get a UNIX timestamp and call the
+        update method of Logger to update the timestamp, the address and
+        the device_class of the device in the pool.
 
         @param  address        Hardware address of the Bluetooth device.
         @param  device_class   Device class of the Bluetooth device.
