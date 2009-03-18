@@ -2,7 +2,10 @@
 #
 # Source: http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
 
-import sys, os, time, atexit
+import sys
+import os
+import time
+import atexit
 from signal import SIGTERM
 
 class Daemon:
