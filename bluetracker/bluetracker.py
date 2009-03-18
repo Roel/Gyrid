@@ -45,7 +45,7 @@ class Main(daemon.Daemon):
         """
         daemon.Daemon.__init__(self, lockfile, stdout='/dev/stdout',
                                stderr='/dev/stderr')
-                               
+                              
         gobject.threads_init()
         self.logger = logger.Logger(logfile)
         self.main_loop = gobject.MainLoop()
@@ -66,16 +66,16 @@ class Main(daemon.Daemon):
             t.start()
         return wrapper
 
-    def run(self):
+    def run(self, restart=False):
         """
         Called after the daemon gets the (re)start command
         Open the logfile if it's not already open (necessary to be able to
         restart the daemon), and start the Bluetooth discoverer.
         """
-        #    self.logger = logger.Logger(logfile)
-        #    self.logger.write_info("I: Restarted")
-        #else:
-        #    self.logger.write_info("I: Started")
+        if not restart:
+            self.logger.write_info("I: Started")
+        else:
+            self.logger.write_info("I: Restarted")
 
         self._dbus_systembus.add_signal_receiver(self._bluetooth_device_added,
             "DeviceAdded",
@@ -129,7 +129,6 @@ class Main(daemon.Daemon):
             if ('bluetooth_hci' in device.GetProperty('info.capabilities')) and \
                (not 'discoverer' in self.__dict__):
                 self.logger.write_info("I: Bluetooth receiver found")
-                #self.logger.start()
                 self._start_discover()
         except dbus.DBusException:
             #Raised when no such property exists.

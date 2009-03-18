@@ -25,11 +25,11 @@ import time
 class Logger(object):
     def __init__(self, logfile):
         self.logfile = open(logfile, 'a')
-    
-        self._run_check = False
-        self._pool = {}
+        self.started = False
         
-        #gobject.threads_init()
+        #self._run_check = False
+        self.pool = {}
+        self.poolchecker = PoolChecker(self)
         
     def _threaded(f):
         """
@@ -42,7 +42,7 @@ class Logger(object):
             t.start()
         return wrapper
         
-    def _write(self, timestamp, mac_address, device_class, moving):
+    def write(self, timestamp, mac_address, device_class, moving):
         """
         Append the parameters to the logfile on a new line and flush the file.
 
@@ -70,31 +70,65 @@ class Logger(object):
 
     def update_device(self, timestamp, mac_address, device_class):
         if mac_address not in self.pool:
-            self._write(timestamp, mac_address, deviceclass, 'in')
+            self.write(timestamp, mac_address, device_class, 'in')
             
-        self._pool[mac_address] = [timestamp, device_class]
+        self.pool[mac_address] = [timestamp, device_class]
 
-    @_threaded
-    def _check_pool(self):
-        while self._run_check:
-            tijd = int(time.time())
-            print tijd, ", checked"
-            for device in self._pool:
-                if tijd - self._pool[device][0] <= 120:
-                    self._write(self._pool[device][0],
-                                device,
-                                self._pool[device][1],
-                                'out')
-                    del(self._pool[device])
-            time.sleep(300)
-            
-    def stop(self):
-        self._run_check = False
-        
+    #@_threaded
+    #def _check_pool(self):
+    #    while self._run_check:
+    #        tijd = int(time.time())
+    #        print tijd, ", checked"
+    #        to_delete = []
+    #        for device in self._pool:
+    #            if tijd - self._pool[device][0] > 120:
+    #                self.write(self._pool[device][0],
+    #                           device,
+    #                           self._pool[device][1],
+    #                           'out')
+    #                to_delete.append(device)
+    #        for device in to_delete:
+    #            del(self._pool[device])
+    #        time.sleep(300)
+                    
     def start(self):
-        self._run_check = True
-        self._check_pool()
+        #self._run_check = True
+        #self._check_pool()
+        if not 'poolchecker' in self.__dict__:
+            self.poolchecker = PoolChecker(self)
+        self.poolchecker.start()
+        
+    def stop(self):
+        #self._run_check = False
+        self.poolchecker.stop()
+        del(self.poolchecker)
         
     def close(self):
         self.stop()
         self.logfile.close()
+        
+class PoolChecker(threading.Thread):
+    def __init__(self, logger):
+        threading.Thread.__init__(self)
+        self.logger = logger
+        self.buffer = 120
+        self._running = True
+        
+    def run(self):
+        while self._running:
+            tijd = int(time.time())
+            print tijd, ", checked"
+            to_delete = []
+            for device in self.logger.pool:
+                if tijd - self.logger.pool[device][0] > self.buffer:
+                    self.logger.write(self.logger.pool[device][0],
+                                      device,
+                                      self.logger.pool[device][1],
+                                      'out')
+                    to_delete.append(device)
+            for device in to_delete:
+                del(self.logger.pool[device])
+            time.sleep(self.buffer)
+            
+    def stop(self):
+        self._running = False

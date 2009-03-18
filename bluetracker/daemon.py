@@ -68,7 +68,7 @@ class Daemon:
     def delpid(self):
         os.remove(self.pidfile)
 
-    def start(self):
+    def start(self, restart=False):
         """
         Start the daemon
         """
@@ -87,9 +87,9 @@ class Daemon:
 
         # Start the daemon
         self.daemonize()
-        self.run()
+        self.run(restart)
 
-    def stop(self):
+    def stop(self, restart=False):
         """
         Stop the daemon
         """
@@ -104,7 +104,10 @@ class Daemon:
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"
             sys.stderr.write(message % self.pidfile)
-            return # not an error in a restart
+            if restart:
+                return # not an error in a restart
+            else:
+                sys.exit(1)
 
         # Try killing the daemon process
         try:
@@ -125,7 +128,7 @@ class Daemon:
         Restart the daemon
         """
         self.stop(restart=True)
-        self.start()
+        self.start(restart=True)
 
     def run(self):
         """
