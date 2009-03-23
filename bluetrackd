@@ -37,8 +37,8 @@ except ImportError:
     sys.stderr.write("Error: bluetracker not installed.\n")
     sys.exit(1)
 
-LOGFILE = '/home/roel/Desktop/bluetracker.log'
-LOCKFILE = '/home/roel/Desktop/bluetracker.pid'
+LOGFILE = '/var/log/bluetracker/bluetracker.log'
+LOCKFILE = '/var/run/bluetracker.pid'
 
 if __name__ == '__main__':
     #Check for write access to LOGFILE and LOCKFILE.
