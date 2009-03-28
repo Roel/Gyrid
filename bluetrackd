@@ -37,13 +37,13 @@ except ImportError:
     sys.stderr.write("Error: bluetracker not installed.\n")
     sys.exit(1)
 
-LOGFILE = '/var/log/bluetracker/bluetracker.log'
-LOCKFILE = '/var/run/bluetracker.pid'
+LOGDIR = '/home/roel/Desktop/bluetracker'
+LOCKFILE = '/home/roel/Desktop/bluetracker.pid'
 
 if __name__ == '__main__':
-    #Check for write access to LOGFILE and LOCKFILE.
+    #Check for write access to LOGDIR and LOCKFILE.
     access = True
-    for file in [LOGFILE, LOCKFILE]:
+    for file in [LOGDIR, LOCKFILE]:
         if os.path.exists(file) and os.access(file, os.W_OK) == False:
             sys.stderr.write("Error: Needs write access to %s\n" % file)
             access = False
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     #Create main bluetracker instance.
-    main = bluetracker.Main(LOCKFILE, LOGFILE)
+    main = bluetracker.Main(LOCKFILE, LOGDIR)
 
     #Start, stop or restart the daemon.
     if len(sys.argv) == 2:

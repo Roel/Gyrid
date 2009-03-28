@@ -25,43 +25,42 @@ import gobject
 import threading
 
 import discoverer
-import logger
+#import logger
 import daemon
+import scandevice
 
 class Main(daemon.Daemon):
     """
     Main class of the Bluetooth tracker; subclass of daemon for easy
     daemonising.
     """
-    def __init__(self, lockfile, logfile):
+    def __init__(self, lockfile, logdir):
         """
         Initialistation of the daemon, threading, logging and DBus connection.
 
         @param  lockfile   URL of the lockfile.
-        @param  logfile    URL of the logfile.
+        @param  logdir     URL of the logfile directory.
         """
         daemon.Daemon.__init__(self, lockfile, stdout='/dev/stdout',
                                stderr='/dev/stderr')
-                              
+         
         gobject.threads_init()
-        self.logger = logger.Logger(logfile)
+        self.logdir = logdir
         self.main_loop = gobject.MainLoop()
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        self._dbus_systembus = dbus.SystemBus()
-        hal_obj = self._dbus_systembus.get_object(
+        self.dbus_systembus = dbus.SystemBus()
+        hal_obj = self.dbus_systembus.get_object(
             'org.freedesktop.Hal', '/org/freedesktop/Hal/Manager')
         self._dbus_hal = dbus.Interface(hal_obj, 'org.freedesktop.Hal.Manager')
 
-    def _threaded(f):
-        """
-        Wrapper to start a function within a new thread.
-
-        @param  f   The function to run inside the thread.
-        """
-        def wrapper(*args):
-            t = threading.Thread(target=f, args=args)
-            t.start()
-        return wrapper
+        #Build list of Bluetooth devices
+        self.bluetooth_scanners = {}
+        for item in self._dbus_hal.FindDeviceByCapability('bluetooth_hci'):
+            device_obj = self.dbus_systembus.get_object("org.freedesktop.Hal", item)
+            device = scandevice.ScanDevice(dbus.Interface(
+                device_obj, "org.freedesktop.Hal.Device"), self)
+            
+            self.bluetooth_scanners[device.mac_address] = device
 
     def run(self, restart=False):
         """
@@ -69,49 +68,16 @@ class Main(daemon.Daemon):
         Connect the DeviceAdded signal (DBus/HAL) to its handler and start
         the Bluetooth discoverer.
         """
-        if not restart:
-            self.logger.write_info("I: Started")
-        else:
-            self.logger.write_info("I: Restarted")
+        for scanner in self.bluetooth_scanners.values():
+            scanner.run(restart)
 
-        self._dbus_systembus.add_signal_receiver(self._bluetooth_device_added,
+        self.dbus_systembus.add_signal_receiver(self._bluetooth_device_added,
             "DeviceAdded",
             "org.freedesktop.Hal.Manager",
             "org.freedesktop.Hal",
             "/org/freedesktop/Hal/Manager")
 
-        self._start_discover()
         self.main_loop.run()
-
-    @_threaded
-    def _start_discover(self):
-        """
-        Start the Discoverer and start scanning. Start the logger in order to
-        get the pool_checker running. This function is decorated to start in
-        a new thread automatically. The scan ends if there is no Bluetooth
-        device (anymore).
-        """
-        try:
-            self.discoverer = discoverer.Discoverer(self.logger)
-        except bluetooth.BluetoothError:
-            #No Bluetooth receiver found, return to end the function.
-            #We will automatically start again after a Bluetooth device
-            #has been plugged in thanks to HAL signal receiver.
-            return
-
-        self.logger.start()
-        while not self.discoverer.done:
-            try:
-                self.discoverer.process_event()
-            except bluetooth._bluetooth.error, e:
-                if e[0] == 32:
-                    #The Bluetooth receiver has been plugged out, end the loop.
-                    #We will automatically start again after a Bluetooth device
-                    #has been plugged in thanks to HAL signal receiver.
-                    self.logger.write_info("E: Bluetooth receiver lost")
-                    self.logger.stop()
-                    self.discoverer.done = True
-        del(self.discoverer)
 
     def _bluetooth_device_added(self, sender=None):
         """
@@ -121,13 +87,18 @@ class Main(daemon.Daemon):
 
         @param  sender   The device that has been plugged in.
         """
-        device_obj = self._dbus_systembus.get_object("org.freedesktop.Hal", sender)
+        device_obj = self.dbus_systembus.get_object("org.freedesktop.Hal", sender)
         device = dbus.Interface(device_obj, "org.freedesktop.Hal.Device")
         try:
-            if ('bluetooth_hci' in device.GetProperty('info.capabilities')) and \
-               (not 'discoverer' in self.__dict__):
-                self.logger.write_info("I: Bluetooth receiver found")
-                self._start_discover()
+            if 'bluetooth_hci' in device.GetProperty('info.capabilities'):
+                mac =  ":".join([("%012x" % int(device.GetProperty('bluetooth_hci.address'))) \
+                    [a:a+2] for a in range(0, 12, 2)])
+                if not mac in self.bluetooth_scanners:
+                    scanner = scandevice.ScanDevice(device, self)
+                    self.bluetooth_scanners[mac] = scanner
+                    scanner.run()
+                else:
+                    self.bluetooth_scanners[mac].resume()
         except dbus.DBusException:
             #Raised when no such property exists.
             pass
@@ -139,9 +110,6 @@ class Main(daemon.Daemon):
         
         @param  restart   If this call to stop() is part of a restart operation.
         """
-        if not restart:
-            self.logger.write_info("I: Stopped")
-            self.logger.close()
-        else:
-            self.logger.stop()
+        for scanner in self.bluetooth_scanners.values():
+            scanner.stop(restart)
         daemon.Daemon.stop(self)
