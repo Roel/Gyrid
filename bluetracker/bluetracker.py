@@ -33,18 +33,19 @@ class Main(daemon.Daemon):
     Main class of the Bluetooth tracker; subclass of daemon for easy
     daemonising.
     """
-    def __init__(self, lockfile, logfile):
+    def __init__(self, lockfile, logfile, configfile):
         """
         Initialistation of the daemon, threading, logging and DBus connection.
 
-        @param  lockfile   URL of the lockfile.
-        @param  logfile    URL of the logfile.
+        @param  lockfile      URL of the lockfile.
+        @param  logfile       URL of the logfile.
+        @param  configfile    URL of the configfile.
         """
         daemon.Daemon.__init__(self, lockfile, stdout='/dev/stdout',
                                stderr='/dev/stderr')
                               
         gobject.threads_init()
-        self.logger = logger.Logger(logfile)
+        self.logger = logger.Logger(logfile, configfile)
         self.main_loop = gobject.MainLoop()
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()

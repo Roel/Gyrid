@@ -21,19 +21,23 @@
 import threading
 import time
 
+import configuration
+
 class Logger(object):
     """
     The Logger class handles all writing to the logfile and stores a pool
     of recently seen devices, in order to only write incoming and outgoing
     devices to the logfile.
     """
-    def __init__(self, logfile):
+    def __init__(self, logfile, configfile):
         """
         Initialisation of the logfile, pool and poolchecker.
         
-        @param  logfile   URL of the logfile to write to.
+        @param  logfile      URL of the logfile to write to.
+        @param  configfile   URL of the configfile to write to.
         """
         self.logfile = open(logfile, 'a')
+        self.config = configuration.Configuration(configfile)
         self.started = False
         
         self.pool = {}
@@ -116,7 +120,7 @@ class PoolChecker(threading.Thread):
         """
         threading.Thread.__init__(self)
         self.logger = logger
-        self.buffer = 120
+        self.buffer = self.logger.config.get_value('buffer_size')
         self._running = True
         
     def run(self):
