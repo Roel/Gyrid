@@ -74,7 +74,13 @@ class Configuration(object):
                 'time a device may disappear and appear again without it being ' +
                 'noticed.')
 
-        self.options.extend([buffer_length])
+        alix_led_support = _Option(name = 'alix_led_support',
+            type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
+            default = False,
+            description = 'Support for flashing LEDs on ALIX boards.',
+            domain = {True: 'Enable support.', False: 'Disable support.'})
+
+        self.options.extend([buffer_length, alix_led_support])
 
     def _get_option_by_name(self, name):
         """
@@ -162,7 +168,7 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
         """
         default = '#Bluetracker configuration file\n[Bluetracker]\n\n'
         for option in self.configuration.options:
-            default += "#%s [%s]" % (option.description, option.type)
+            default += "#%s" % option.description
             if option.domain:
                 default += '\n#Options:'
                 for key in option.domain.items():
@@ -172,11 +178,7 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
                         defaultValue = ''
                     default += '\n#%s - %s%s' % \
                         (key[0], defaultValue, key[1])
-            if not option.default:
-                default += '\n#'
-            else:
-                default += '\n'
-            default += '%s = %s\n\n' % (option.name, option.default)
+            default += '\n%s = %s\n\n' % (option.name, option.default)
         return default.rstrip('\n')
 
     def get_value(self, option):

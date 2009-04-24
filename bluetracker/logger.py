@@ -131,8 +131,19 @@ class PoolChecker(threading.Thread):
         them to the logfile as being moved 'out'.
         """
         while self._running:
+            if self.logger.config.get_value('alix_led_support'):
+                swap = {0: 1, 1: 0}
+
+                file = open('/sys/class/leds/alix:2/brightness', 'r')
+                current_state = int(file.read()[0])
+                file.close()
+
+                file = open('/sys/class/leds/alix:2/brightness', 'w')
+                file.write(str(swap[current_state]) + '\n\x00')
+                file.close()
+
             tijd = int(time.time())
-            #print tijd, ", checked"
+
             to_delete = []
             for device in self.logger.pool:
                 if tijd - self.logger.pool[device][0] > self.buffer:
