@@ -29,15 +29,16 @@ class Logger(object):
     of recently seen devices, in order to only write incoming and outgoing
     devices to the logfile.
     """
-    def __init__(self, logfile, configfile):
+    def __init__(self, main, logfile, configfile):
         """
         Initialisation of the logfile, pool and poolchecker.
         
         @param  logfile      URL of the logfile to write to.
         @param  configfile   URL of the configfile to write to.
         """
+        self.main = main
         self.logfile = open(logfile, 'a')
-        self.config = configuration.Configuration(configfile)
+        self.config = configuration.Configuration(self.main, configfile)
         self.started = False
         
         self.pool = {}

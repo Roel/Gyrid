@@ -18,11 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 import bluetooth
 import dbus
 import dbus.mainloop.glib
 import gobject
 import threading
+import logging
+import logging.handlers
+import traceback
 
 import discoverer
 import logger
@@ -33,25 +37,45 @@ class Main(daemon.Daemon):
     Main class of the Bluetooth tracker; subclass of daemon for easy
     daemonising.
     """
-    def __init__(self, lockfile, logfile, configfile):
+    def __init__(self, lockfile, logfile, configfile, errorlogfile):
         """
         Initialistation of the daemon, threading, logging and DBus connection.
 
-        @param  lockfile      URL of the lockfile.
-        @param  logfile       URL of the logfile.
-        @param  configfile    URL of the configfile.
+        @param  lockfile        URL of the lockfile.
+        @param  logfile         URL of the logfile.
+        @param  configfile      URL of the configfile.
+        @param  errorlogfile    URL of the errorlogfile.
         """
+        self.errorlogger = logging.getLogger('BluetrackerLogger')
+        self.errorlogger.setLevel(logging.ERROR)
+
+        handler = logging.handlers.RotatingFileHandler(errorlogfile,
+            maxBytes=204800, backupCount=5) #200 kiB
+        handler.setFormatter(logging.Formatter("%(asctime)s: %(message)s"))
+
+        self.errorlogger.addHandler(handler)
+
+        sys.excepthook = self._handle_exception
+
         daemon.Daemon.__init__(self, lockfile, stdout='/dev/stdout',
                                stderr='/dev/stderr')
                               
         gobject.threads_init()
-        self.logger = logger.Logger(logfile, configfile)
+        self.logger = logger.Logger(self, logfile, configfile)
         self.main_loop = gobject.MainLoop()
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()
         hal_obj = self._dbus_systembus.get_object(
             'org.freedesktop.Hal', '/org/freedesktop/Hal/Manager')
         self._dbus_hal = dbus.Interface(hal_obj, 'org.freedesktop.Hal.Manager')
+
+    def _handle_exception(self, etype, evalue, etraceback):
+        """
+        Handle the exception by writing information to the error log.
+        """
+        exc = ' '.join(traceback.format_exception(etype, evalue, etraceback)).replace('\n', '')
+        self.errorlogger.error(exc)
+        sys.exit("Error: exiting on unhandled exception: %s, %s" % (etype.__name__, evalue))
 
     def _threaded(f):
         """

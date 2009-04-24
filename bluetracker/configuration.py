@@ -50,13 +50,14 @@ class Configuration(object):
         options       (list)                The list of all available Options.
         configparser  (_ConfigurationParser)   The parser for the configfile.
     """
-    def __init__(self, configfile):
+    def __init__(self, main, configfile):
         """
         Initialisation. Construct an empty list of options, and fill it
         with all the Options.
 
         @param  configfile   URL of the configfile to write to.
         """
+        self.main = main
         self.options = []
         self.configfile = configfile
         self._define_options()
@@ -101,15 +102,15 @@ class Configuration(object):
         try:
             config = eval(optionObj.type % self.configparser.get_value(option))
         except:
-            print "Error in '%s' option: " % option + str(sys.exc_info()[1]) + \
-                " [Using default value: %s]" % optionObj.default
+            self.main.errorlogger.error("Error in '%s' option: " % option + str(sys.exc_info()[1]) + \
+                " [Using default value: %s]" % optionObj.default)
             config = None
         
         if config != None and optionObj.domain_has_key(config):
             return config
         elif config != None:
-            print "Wrong value for option %(option)s: '%(value)s'." % \
-                {'option': optionObj.name, 'value': config}
+            self.main.errorlogger.error("Wrong value for option %(option)s: '%(value)s'." % \
+                {'option': optionObj.name, 'value': config})
 
         return optionObj.default
 

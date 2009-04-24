@@ -21,7 +21,8 @@ class Daemon:
 
     Usage: subclass the Daemon class and override the run() method
     """
-    def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+    def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null',
+                 stderr='/dev/null'):
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
@@ -39,7 +40,7 @@ class Daemon:
                 # exit first parent
                 sys.exit(0)
         except OSError, e:
-            sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
+            self.errorlogger.error("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
             sys.exit(1)
 
         # decouple from parent environment
@@ -54,7 +55,7 @@ class Daemon:
                 # exit from second parent
                 sys.exit(0)
         except OSError, e:
-            sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
+            self.errorlogger.error("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
             sys.exit(1)
 
         # redirect standard file descriptors
@@ -92,7 +93,7 @@ class Daemon:
 
         if pid:
             message = "pidfile %s already exist. Daemon already running?\n"
-            sys.stderr.write(message % self.pidfile)
+            self.errorlogger.error(message % self.pidfile)
             sys.exit(1)
 
         # Start the daemon
@@ -113,7 +114,7 @@ class Daemon:
 
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"
-            sys.stderr.write(message % self.pidfile)
+            self.errorlogger.error(message % self.pidfile)
             if restart:
                 return # not an error in a restart
             else:
