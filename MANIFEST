@@ -3,11 +3,12 @@ bluetracker/__init__.py
 bluetracker/bluetracker.py
 bluetracker/daemon.py
 bluetracker/logger.py
+bluetracker/configuration.py
 bluetracker/discoverer.py
+bluetracker/tools/deviceclass.py
+bluetracker/tools/macvendor.py
+bluetracker/tools/oui.txt
 bluetrackd
-tools/deviceclass.py
-tools/macvendor.py
-tools/oui.txt
 ChangeLog
 README
 COPYING

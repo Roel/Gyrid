@@ -1,13 +1,24 @@
+bluetracker 0.0.3
+
+    * Added tools to get more information from the deviceclass and the hardware
+    address.
+    * Added configuration file, the buffer size is now configurable.
+    * Use the Python logging module to log errors and tracebacks of unhandled
+    exception to an error log.
+    * Added experimental support for ALIX LEDs.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 24 Apr 2009 16:36:18 +0200
+
 bluetracker 0.0.2
 
-	* Added automatic starting/stopping of scan based on presence of Bluetooth
-	device (through DBus and HAL).
-	* Added dynamic movement (in/out) detection of devices with device pool.
+    * Added automatic starting/stopping of scan based on presence of Bluetooth
+    device (through DBus and HAL).
+    * Added dynamic movement (in/out) detection of devices with device pool.
 
 -- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 19 Mar 2009 11:03:38 +0100
 
 bluetracker 0.0.1
 
-	* Initial testing release.
+    * Initial testing release.
 
 -- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 11 Mar 2009 21:22:41 +0100
