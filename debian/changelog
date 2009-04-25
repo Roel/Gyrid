@@ -1,0 +1,18 @@
+bluetracker (0.0.3-0ugent1) experimental; urgency=low
+
+  * New upstream release.
+  * Adapted Depends and Build-Depends to allow building and installing in Voyage Lenny.
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 24 Apr 2009 16:41:05 +0200
+
+bluetracker (0.0.2-0ugent1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 19 Mar 2009 11:03:38 +0100
+
+bluetracker (0.0.1-0ugent1) experimental; urgency=low
+
+  * Initial release.
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 11 Mar 2009 21:25:41 +0100

@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ -f /var/run/bluetracker.pid ]; then
+    echo "Stopping bluetrackd."
+    /etc/init.d/bluetrackd stop > /dev/null
+fi
+
+update-rc.d -f bluetrackd remove > /dev/null
+
+#DEBHELPER#
+
+exit 0

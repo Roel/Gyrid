@@ -1,0 +1,5 @@
+#!/bin/sh
+
+#DEBHELPER#
+
+update-rc.d bluetrackd defaults 98 02 > /dev/null
