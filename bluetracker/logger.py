@@ -79,6 +79,8 @@ class Logger(object):
         @param  mac_address    Hardware address of the Bluetooth device.
         @param  device_class   Device class of the Bluetooth device.
         """
+        self.switch_led(3)
+
         if mac_address not in self.pool:
             self.write(timestamp, mac_address, device_class, 'in')
             
@@ -106,6 +108,21 @@ class Logger(object):
         """
         self.stop()
         self.logfile.close()
+
+    def switch_led(self, id):
+        """
+        Switch the state of the LED (on/off) with the specified id.
+        """
+        if self.config.get_value('alix_led_support'):
+            swap = {0: 1, 1: 0}
+
+            file = open('/sys/class/leds/alix:%i/brightness' % id, 'r')
+            current_state = int(file.read()[0])
+            file.close()
+
+            file = open('/sys/class/leds/alix:%i/brightness' % id, 'w')
+            file.write(str(swap[current_state]))
+            file.close()
         
 class PoolChecker(threading.Thread):
     """
@@ -131,16 +148,7 @@ class PoolChecker(threading.Thread):
         them to the logfile as being moved 'out'.
         """
         while self._running:
-            if self.logger.config.get_value('alix_led_support'):
-                swap = {0: 1, 1: 0}
-
-                file = open('/sys/class/leds/alix:2/brightness', 'r')
-                current_state = int(file.read()[0])
-                file.close()
-
-                file = open('/sys/class/leds/alix:2/brightness', 'w')
-                file.write(str(swap[current_state]) + '\n\x00')
-                file.close()
+            self.logger.switch_led(2)
 
             tijd = int(time.time())
 
