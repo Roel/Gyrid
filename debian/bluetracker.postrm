@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+#DEBHELPER#
+
+if [ "$1" = purge ]; then
+    update-rc.d -f bluetracker remove
+fi

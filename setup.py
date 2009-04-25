@@ -64,11 +64,11 @@ class InstallData(install_data):
         return data_files
 
 setup(name = "bluetracker",
-      version = "0.0.3",
+      version = "0.0.4",
       description = "Bluetooth device scanner daemon.",
       author = "Roel Huybrechts",
       author_email = "roel.huybrechts@ugent.be",
       license = "GPLv3",
       packages = ["bluetracker"],
-      data_files = [("/etc/init.d", ['bluetrackd'])],
+      data_files = [("/etc/init.d", ['init/bluetracker'])],
       cmdclass = {'install_data': InstallData})

@@ -1,7 +1,21 @@
+bluetracker (0.0.4-0ugent1) experimental; urgency=low
+
+  * New upstream release.
+      - i.a. renamed init script to bluetracker to comply Debian Policy Manual
+  * Fixed Lintian complaints:
+      - Moved update-rc.d to bluetracker.postrm
+      - Added set -e to scripts.
+      - Use invoke-rc.d in bluetracker.prerm when available.
+      - Adjusted single line synopsis in debian/control.
+      - Wrap lines at 80 characters in debian/changelog.
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Sat, 25 Apr 2009 17:41:52 +0200
+
 bluetracker (0.0.3-0ugent1) experimental; urgency=low
 
   * New upstream release.
-  * Adapted Depends and Build-Depends to allow building and installing in Voyage Lenny.
+  * Adapted Depends and Build-Depends to allow building and installing in
+    Voyage Lenny.
 
  -- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 24 Apr 2009 16:41:05 +0200
 

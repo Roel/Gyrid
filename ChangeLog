@@ -1,3 +1,11 @@
+bluetracker 0.0.4
+
+    * Fixed and extended support for ALIX LEDs.
+    * Wrap configuration file at 80 characters.
+    * Renamed init script to bluetracker to comply Debian Policy Manual.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Sat, 25 Apr 2009 17:40:27 +0200
+
 bluetracker 0.0.3
 
     * Added tools to get more information from the deviceclass and the hardware

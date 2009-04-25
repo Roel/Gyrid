@@ -8,7 +8,7 @@ bluetracker/discoverer.py
 bluetracker/tools/deviceclass.py
 bluetracker/tools/macvendor.py
 bluetracker/tools/oui.txt
-bluetrackd
+init/bluetracker
 ChangeLog
 README
 COPYING

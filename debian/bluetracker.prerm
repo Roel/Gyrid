@@ -1,11 +1,16 @@
 #!/bin/sh
 
-if [ -f /var/run/bluetracker.pid ]; then
-    echo "Stopping bluetrackd."
-    /etc/init.d/bluetrackd stop > /dev/null
-fi
+set -e
 
-update-rc.d -f bluetrackd remove > /dev/null
+if [ -f /var/run/bluetracker.pid ]; then
+    echo "Stopping bluetracker."
+
+    if which invoke-rc.d >/dev/null 2>&1; then
+        invoke-rc.d bluetracker stop
+    else
+        /etc/init.d/bluetracker stop
+    fi
+fi
 
 #DEBHELPER#
 
