@@ -30,7 +30,6 @@ Classes:
 
 import os
 import sys
-import optparse
 import textwrap
 
 import ConfigParser
@@ -168,7 +167,7 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
         """
         default = '#Bluetracker configuration file\n[Bluetracker]\n\n'
         for option in self.configuration.options:
-            default += "#%s" % option.description
+            default += "\n#".join(textwrap.wrap("#%s" % option.description, 80))
             if option.domain:
                 default += '\n#Options:'
                 for key in option.domain.items():
