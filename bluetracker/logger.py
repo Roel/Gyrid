@@ -89,7 +89,7 @@ class Logger(object):
     def start(self):
         """
         Start the poolchecker, which checks at regular intervals the pool for
-        deviced that have disappeared.
+        devices that have disappeared.
         """
         if not 'poolchecker' in self.__dict__:
             self.poolchecker = PoolChecker(self)

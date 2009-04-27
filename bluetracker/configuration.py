@@ -68,7 +68,7 @@ class Configuration(object):
         """
         buffer_length = _Option(name = 'buffer_size',
             type = 'int("%s")',
-            default = 4,
+            default = 10,
             description = 'The buffer length in seconds. This is the amount of ' +
                 'time a device may disappear and appear again without it being ' +
                 'noticed.')
