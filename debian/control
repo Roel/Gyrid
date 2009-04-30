@@ -11,6 +11,6 @@ Package: bluetracker
 Architecture: all
 XB-Python-Version: ${python:Versions}
 Depends: ${misc:Depends}, ${python:Depends}, python-bluez (>= 0.15), python-dbus (>= 0.82), python-gobject (>= 2.14) | python-gtk2 (>= 2.12), hal (>= 0.5.11)
-Description: is a Bluetooth device scanner and logger daemon
+Description: a Bluetooth device scanner and logger daemon
  Bluetracker scans the neighbourhood for Bluetooth devices and
  logs all hardware addresses and device classes found.
