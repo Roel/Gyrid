@@ -93,6 +93,8 @@ class Main(daemon.Daemon):
         Called after the daemon gets the (re)start command.
         Connect the DeviceAdded signal (DBus/HAL) to its handler and start
         the Bluetooth discoverer.
+
+        @param  restart  If this call is part of a restart operation.
         """
         if not restart:
             self.logger.write_info("I: Started")
@@ -162,7 +164,7 @@ class Main(daemon.Daemon):
         Called when the daemon gets the stop command. Stop the logger, cleanly
         close the logfile if restart=False and then stop the daemon.
         
-        @param  restart   If this call to stop() is part of a restart operation.
+        @param  restart   If this call is part of a restart operation.
         """
         if not restart:
             self.logger.write_info("I: Stopped")

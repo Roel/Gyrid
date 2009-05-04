@@ -37,23 +37,14 @@ import ConfigParser
 class Configuration(object):
     """
     Store all the configuration options and retrieve the value of
-    a certain option with the the ConfigurationParser.
-
-    Methods:
-        __init__: Initalisation.
-        init_parsers: Initalisation of the parsers.
-        add_UI_option: Add the user_interface option.
-        get_value: Get the value of a certain option.
-
-    Instance variables:
-        options       (list)                The list of all available Options.
-        configparser  (_ConfigurationParser)   The parser for the configfile.
+    a certain option with the ConfigurationParser.
     """
     def __init__(self, main, configfile):
         """
         Initialisation. Construct an empty list of options, and fill it
         with all the Options.
 
+        @param  main         Reference to Main instance.
         @param  configfile   URL of the configfile to write to.
         """
         self.main = main
@@ -123,15 +114,6 @@ class Configuration(object):
 class _ConfigurationParser(ConfigParser.ConfigParser, object):
     """
     Handles interaction with the configuration file.
-
-    Methods:
-        __init__: Initialisation.
-        config_file_location: Get the location of the configuration file.
-        update_config_file: Copy a new default file if none exists.
-        get_value: Get the value of a certain Option in the config file.
-
-    Instance variables:
-        configuration: Configuration instance.
     """
     def __init__(self, configuration):
         """
@@ -196,16 +178,6 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
 class _Option(object):
     """
     Class for an option.
-
-    Methods:
-        __init__: Initialisation.
-        domain_has_key: Check if the domain of the option has the given key.
-
-    Instance variables:
-        name           (str)     Option name.
-        default        (str)     Default value.
-        description    (str)     Descriptive documentation string.
-        domain         (dict)    Accepted values, with description.
     """
     def __init__(self, name, description, default=None, domain=None, type='str("%s")'):
         """
