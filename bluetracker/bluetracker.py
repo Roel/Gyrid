@@ -27,6 +27,7 @@ import threading
 import logging
 import logging.handlers
 import traceback
+import time
 
 import discoverer
 import logger
@@ -98,14 +99,17 @@ class Main(daemon.Daemon):
         """
         if not restart:
             self.logger.write_info("I: Started")
+            self.debug("Started")
         else:
             self.logger.write_info("I: Restarted")
+            self.debug("Restarted")
 
         self._dbus_systembus.add_signal_receiver(self._bluetooth_device_added,
             "DeviceAdded",
             "org.freedesktop.Hal.Manager",
             "org.freedesktop.Hal",
             "/org/freedesktop/Hal/Manager")
+        self.debug("Connected to HAL DeviceAdded D-Bus signal")
 
         self._start_discover()
         self.main_loop.run()
@@ -119,13 +123,14 @@ class Main(daemon.Daemon):
         device (anymore).
         """
         try:
-            self.discoverer = discoverer.Discoverer(self.logger)
+            self.discoverer = discoverer.Discoverer(self, self.logger)
         except bluetooth.BluetoothError:
             #No Bluetooth receiver found, return to end the function.
             #We will automatically start again after a Bluetooth device
             #has been plugged in thanks to HAL signal receiver.
             return
 
+        self.debug("Started scanning")
         self.logger.start()
         while not self.discoverer.done:
             try:
@@ -135,9 +140,11 @@ class Main(daemon.Daemon):
                     #The Bluetooth receiver has been plugged out, end the loop.
                     #We will automatically start again after a Bluetooth device
                     #has been plugged in thanks to HAL signal receiver.
+                    self.debug("Bluetooth receiver lost")
                     self.logger.write_info("E: Bluetooth receiver lost")
                     self.logger.stop()
                     self.discoverer.done = True
+        self.debug("Stopped scanning")
         del(self.discoverer)
 
     def _bluetooth_device_added(self, sender=None):
@@ -154,12 +161,13 @@ class Main(daemon.Daemon):
             if ('bluetooth_hci' in device.GetProperty('info.capabilities')) and \
                (not 'discoverer' in self.__dict__):
                 self.logger.write_info("I: Bluetooth receiver found")
+                self.debug("Bluetooth receiver found")
                 self._start_discover()
         except dbus.DBusException:
             #Raised when no such property exists.
             pass
 
-    def stop(self, restart=False):
+    def stop(self, debug=False, restart=False):
         """
         Called when the daemon gets the stop command. Stop the logger, cleanly
         close the logfile if restart=False and then stop the daemon.
@@ -167,8 +175,19 @@ class Main(daemon.Daemon):
         @param  restart   If this call is part of a restart operation.
         """
         if not restart:
+            self.debug_mode = debug
             self.logger.write_info("I: Stopped")
+            self.debug("Stopped")
             self.logger.close()
         else:
             self.logger.stop()
         daemon.Daemon.stop(self)
+        
+    def debug(self, text):
+        """
+        Write text to stderr if debug mode is enabled.
+        
+        @param  text   The text to print.
+        """
+        if ('debug_mode' in self.__dict__) and self.debug_mode:
+            sys.stderr.write("%s Bluetracker: %s.\n" % (time.strftime('%H:%M:%S'), text))

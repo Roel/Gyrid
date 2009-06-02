@@ -59,17 +59,17 @@ if __name__ == '__main__':
     main = bluetracker.Main(LOCKFILE, LOGFILE, CONFIGFILE, ERRORLOGFILE)
 
     #Start, stop or restart the daemon.
-    if len(sys.argv) == 2:
+    if len(sys.argv) in [2, 3]:
         if 'start' == sys.argv[1]:
-            main.start()
+            main.start('debug' in sys.argv)
         elif 'stop' == sys.argv[1]:
-            main.stop()
+            main.stop('debug' in sys.argv)
         elif 'restart' == sys.argv[1] or 'force-reload' == sys.argv[1]:
-            main.restart()
+            main.restart('debug' in sys.argv)
         else:
             print "Error: Unknown command"
             sys.exit(2)
         sys.exit(0)
     else:
-        print "usage: %s start|stop|restart|force-reload" % sys.argv[0]
+        print "usage: %s start|stop|restart|force-reload {debug}" % sys.argv[0]
         sys.exit(2)

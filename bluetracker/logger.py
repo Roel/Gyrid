@@ -42,7 +42,7 @@ class Logger(object):
         self.started = False
         
         self.pool = {}
-        self.poolchecker = PoolChecker(self)
+        self.poolchecker = PoolChecker(self.main, self)
         
     def write(self, timestamp, mac_address, device_class, moving):
         """
@@ -80,7 +80,7 @@ class Logger(object):
         @param  device_class   Device class of the Bluetooth device.
         """
         self.switch_led(3)
-
+        
         if mac_address not in self.pool:
             self.write(timestamp, mac_address, device_class, 'in')
             
@@ -93,6 +93,7 @@ class Logger(object):
         """
         if not 'poolchecker' in self.__dict__:
             self.poolchecker = PoolChecker(self)
+        self.main.debug("Started pool checker")
         self.poolchecker.start()
         
     def stop(self):
@@ -130,13 +131,14 @@ class PoolChecker(threading.Thread):
     devices that have not been seen for x amount of time from the pool.
     It is a subclass of threading.Thread to start in a new thread automatically.
     """
-    def __init__(self, logger):
+    def __init__(self, main, logger):
         """
         Initialisation of the thread.
         
         @param   logger   Reference to Logger instance.
         """
         threading.Thread.__init__(self)
+        self.main = main
         self.logger = logger
         self.buffer = self.logger.config.get_value('buffer_size')
         self._running = True
@@ -162,6 +164,9 @@ class PoolChecker(threading.Thread):
                     to_delete.append(device)
             for device in to_delete:
                 del(self.logger.pool[device])
+                
+            self.main.debug("Device pool checked: %i devices; %i disappeared" %
+                (len(self.logger.pool), len(to_delete)))
             time.sleep(self.buffer)
             
     def stop(self):
@@ -169,3 +174,4 @@ class PoolChecker(threading.Thread):
         Stop the thread.
         """
         self._running = False
+        self.main.debug("Stopped pool checker")

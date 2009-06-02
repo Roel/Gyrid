@@ -79,11 +79,12 @@ class Daemon:
     def delpid(self):
         os.remove(self.pidfile)
 
-    def start(self, restart=False):
+    def start(self, debug=False, restart=False):
         """
         Start the daemon
         """
         # Check for a pidfile to see if the daemon already runs
+        self.debug_mode = debug
         try:
             pf = file(self.pidfile,'r')
             pid = int(pf.read().strip())
@@ -134,12 +135,12 @@ class Daemon:
                 print str(err)
                 sys.exit(1)
 
-    def restart(self):
+    def restart(self, debug=False):
         """
         Restart the daemon
         """
         self.stop(restart=True)
-        self.start(restart=True)
+        self.start(debug, restart=True)
 
     def run(self):
         """
