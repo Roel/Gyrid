@@ -71,8 +71,8 @@ class Discoverer(bluetooth.DeviceDiscoverer):
             import tools.deviceclass
             import tools.macvendor
 
-            device = ', '.join([tools.deviceclass.get_major_class(device_class),
-                     tools.deviceclass.get_minor_class(device_class)])
+            device = ', '.join([str(tools.deviceclass.get_major_class(device_class)),
+                     str(tools.deviceclass.get_minor_class(device_class))])
             vendor = tools.macvendor.get_vendor(address)
         
             self.main.debug("Found device %(mac)s [%(dc)s (%(vendor)s)] at %(time)s" %
