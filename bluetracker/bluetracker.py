@@ -47,7 +47,7 @@ class Main(daemon.Daemon):
         @param  configfile      URL of the configfile.
         @param  errorlogfile    URL of the errorlogfile.
         """
-        self.errorlogger = logging.getLogger('BluetrackerLogger')
+        self.errorlogger = logging.getLogger('BluetrackerErrorLogger')
         self.errorlogger.setLevel(logging.ERROR)
 
         handler = logging.handlers.RotatingFileHandler(errorlogfile,

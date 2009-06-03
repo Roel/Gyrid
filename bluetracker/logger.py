@@ -18,10 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
+import logging.handlers
 import threading
 import time
 
 import configuration
+import zippingfilehandler
 
 class Logger(object):
     """
@@ -37,7 +40,14 @@ class Logger(object):
         @param  configfile   URL of the configfile to write to.
         """
         self.main = main
-        self.logfile = open(logfile, 'a')
+        
+        self.scanlogger = logging.getLogger('BluetrackerScanLogger')
+        self.scanlogger.setLevel(logging.INFO)
+        handler = zippingfilehandler.TimedCompressedRotatingFileHandler(
+            self.main, logfile)
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        self.scanlogger.addHandler(handler)
+        
         self.config = configuration.Configuration(self.main, configfile)
         self.started = False
         
@@ -53,13 +63,10 @@ class Logger(object):
         @param  device_class   Device class of the Bluetooth device.
         @param  moving         Whether the device is moving 'in' or 'out'.
         """
-        self.logfile.write(",".join([str(timestamp),
+        self.scanlogger.info(",".join([str(timestamp),
                                      str(mac_address),
                                      str(device_class),
                                      str(moving)]))
-        self.logfile.write("\n")
-        self.logfile.flush()
-
     def write_info(self, info):
         """
         Append a timestamp and the information to the logfile on a new line
@@ -67,9 +74,7 @@ class Logger(object):
 
         @param  info   The information to write.
         """
-        self.logfile.write(",".join([str(int(time.time())), info]))
-        self.logfile.write("\n")
-        self.logfile.flush()
+        self.scanlogger.info(",".join([str(int(time.time())), info]))
 
     def update_device(self, timestamp, mac_address, device_class):
         """
@@ -92,7 +97,7 @@ class Logger(object):
         devices that have disappeared.
         """
         if not 'poolchecker' in self.__dict__:
-            self.poolchecker = PoolChecker(self)
+            self.poolchecker = PoolChecker(self.main, self)
         self.main.debug("Started pool checker")
         self.poolchecker.start()
         
@@ -108,7 +113,6 @@ class Logger(object):
         Stop the poolchecker and close the logfile.
         """
         self.stop()
-        self.logfile.close()
 
     def switch_led(self, id):
         """
