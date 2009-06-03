@@ -21,8 +21,6 @@
 import bluetooth
 import time
 
-import tools.deviceclass
-
 class Discoverer(bluetooth.DeviceDiscoverer):
     """
     Bluetooth discover, this is the device scanner. A few modification have
@@ -66,11 +64,15 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         timestamp = time.time()
         
         if self.main.debug_mode:
+            import tools.deviceclass
+            import tools.macvendor
+
             device = ', '.join([tools.deviceclass.get_major_class(device_class),
                      tools.deviceclass.get_minor_class(device_class)])
+            vendor = tools.macvendor.get_vendor(address)
         
-            self.main.debug("Found device %(mac)s [%(dc)s] at %(time)s" %
-                {'mac': address, 'dc': device, 'time': str(timestamp)})
+            self.main.debug("Found device %(mac)s [%(dc)s (%(vendor)s)] at %(time)s" %
+                {'mac': address, 'dc': device, 'vendor': vendor ,'time': str(timestamp)})
         
         self.logger.update_device(int(timestamp), address, device_class)
 
