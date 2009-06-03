@@ -5,6 +5,7 @@ bluetracker/daemon.py
 bluetracker/logger.py
 bluetracker/configuration.py
 bluetracker/discoverer.py
+bluetracker/zippingfilehandler.py
 bluetracker/tools/__init__.py
 bluetracker/tools/deviceclass.py
 bluetracker/tools/macvendor.py

@@ -52,4 +52,7 @@ def get_vendor(mac_address):
         return None
         
 #Parse the oui file on importing
-_parse_oui('oui.txt')
+try:
+    _parse_oui('oui.txt')
+except IOError:
+    _parse_oui('/usr/share/bluetracker/oui.txt')

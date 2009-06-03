@@ -1,3 +1,10 @@
+bluetracker (0.0.5-0ugent1) experimental; urgency=low
+
+  * New upstream release. 
+  * Updated single line synopsis in debian/control.
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 03 Jun 2009 09:40:30 +0200
+
 bluetracker (0.0.4-0ugent1) experimental; urgency=low
 
   * New upstream release.
