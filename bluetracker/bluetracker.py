@@ -113,29 +113,41 @@ class Main(daemon.Daemon):
             adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
             adap_iface.SetProperty('Discoverable', False)
             adap_iface.SetProperty('Pairable', False)
-            self.debug("Found Bluetooth adapter with address %s" %
-                adap_iface.GetProperties()['Address'])
-
-        self._start_discover()
-        self.main_loop.run()
+            self.debug("Found Bluetooth adapter with address %s (%s)" %
+                (adap_iface.GetProperties()['Address'],
+                 str(adapter).split('/')[-1]))
+        try:         
+            default_adapter = self._dbus_bluez.DefaultAdapter()
+            device_obj = self._dbus_systembus.get_object("org.bluez",
+                default_adapter)
+            device = dbus.Interface(device_obj, "org.bluez.Adapter")
+        except DBusException:
+            #No adapter found
+            pass
+        else:
+            self._start_discover(device,
+                int(str(default_adapter).split('/')[-1].strip('hci')))
+        finally:
+            self.main_loop.run()
 
     @_threaded
-    def _start_discover(self):
+    def _start_discover(self, device, device_id):
         """
         Start the Discoverer and start scanning. Start the logger in order to
         get the pool_checker running. This function is decorated to start in
         a new thread automatically. The scan ends if there is no Bluetooth
         device (anymore).
+        
+        @param  device_id   The device to use for scanning.
         """
-        try:
-            self.discoverer = discoverer.Discoverer(self, self.logger)
-        except bluetooth.BluetoothError:
-            #No Bluetooth adapter found, return to end the function.
-            #We will automatically start again after a Bluetooth adapter
-            #has been plugged in thanks to BlueZ signal receiver.
-            return
+        self.discoverer = discoverer.Discoverer(self, self.logger,
+            device_id)
+            
+        address = device.GetProperties()['Address']
 
-        self.debug("Started scanning")
+        self.debug("Started scanning with adapter %s (%s)" %
+            (address, 'hci%i' % device_id))
+        self.logger.write_info('I: Started scanning with %s' % address)
         self.logger.start()
         while not self.discoverer.done:
             try:
@@ -145,8 +157,10 @@ class Main(daemon.Daemon):
                     #The Bluetooth adapter has been plugged out, end the loop.
                     #We will automatically start again after a Bluetooth adapter
                     #has been plugged in thanks to BlueZ signal receiver.
-                    self.debug("Bluetooth adapter lost")
-                    self.logger.write_info("E: Bluetooth adapter lost")
+                    self.debug("Bluetooth adapter %s (%s) lost" %
+                        (address, 'hci%i' % device_id))
+                    self.logger.write_info("E: Bluetooth adapter %s lost" %
+                        address)
                     self.logger.stop()
                     self.discoverer.done = True
         self.debug("Stopped scanning")
@@ -161,11 +175,18 @@ class Main(daemon.Daemon):
         """
         device_obj = self._dbus_systembus.get_object("org.bluez", path)
         device = dbus.Interface(device_obj, "org.bluez.Adapter")
+        
+        device.SetProperty('Discoverable', False)
+        device.SetProperty('Pairable', False)
 
         if not 'discoverer' in self.__dict__:
-            self.logger.write_info("I: Bluetooth adapter found")
-            self.debug("Bluetooth adapter found")
-            self._start_discover()
+            self.logger.write_info("I: Bluetooth adapter found with address %s" %
+                device.GetProperties()['Address'])
+            self.debug("Found Bluetooth adapter with address %s (%s)" %
+                (device.GetProperties()['Address'],
+                 str(path).split('/')[-1]))
+            self._start_discover(device,
+                int(str(path).split('/')[-1].strip('hci')))
 
     def stop(self, debug=False, restart=False):
         """

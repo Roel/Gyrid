@@ -26,14 +26,18 @@ class Discoverer(bluetooth.DeviceDiscoverer):
     Bluetooth discover, this is the device scanner. A few modification have
     been made from the original DeviceDiscoverer.
     """
-    def __init__(self, main, logger):
+    def __init__(self, main, logger, device_id):
         """
         Initialisation of the DeviceDiscoverer. Store the reference to logger
         and start scanning.
 
         @param  logger  Reference to a Logger instance.
         """
-        bluetooth.DeviceDiscoverer.__init__(self)
+        # We need a patched version of Pybluez where one can specify a 
+        # device_id when initialising a DeviceDiscoverer. Patch is available
+        # at Pybluez's code.google.com as issue 18.
+        bluetooth.DeviceDiscoverer.__init__(self, device_id)
+        
         self.main = main
         self.logger = logger
         self.find()
