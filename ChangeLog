@@ -1,3 +1,11 @@
+bluetracker 0.0.6
+
+   * Updated oui.txt data based on new IEEE data.
+   * Show device vendor in debug output.
+   * Switched from DBus/HAL to DBus/BlueZ.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Sun, 07 Jun 2009 16:51:49 +0200
+
 bluetracker 0.0.5
 
     * Added init module to 'tools' package.

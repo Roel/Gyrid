@@ -1,3 +1,13 @@
+bluetracker (0.0.6-0ugent1) experimental; urgency=low
+
+  * New upstream release.
+  * Updated debian/control:
+      - depend on python-bluez version 0.15-1.1ugent1 as that one is patched.
+      - removed dependency on hal
+      - added dependency on bluez | bluez-utils
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Sun, 07 Jun 2009 16:52:35 +0200
+
 bluetracker (0.0.5-0ugent1) experimental; urgency=low
 
   * New upstream release. 

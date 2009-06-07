@@ -64,7 +64,7 @@ class InstallData(install_data):
         return data_files
 
 setup(name = "bluetracker",
-      version = "0.0.5",
+      version = "0.0.6",
       description = "Bluetooth device scanner daemon.",
       author = "Roel Huybrechts",
       author_email = "roel.huybrechts@ugent.be",
