@@ -71,5 +71,5 @@ setup(name = "bluetracker",
       license = "GPLv3",
       packages = ["bluetracker", "bluetracker/tools"],
       data_files = [("/etc/init.d", ['init/bluetracker']),
-                    ("/usr/share/bluetracker", ['bluetracker/tools/oui.txt'])],
+                    ("/usr/share/bluetracker", ['bluetracker/tools/oui.txt.bz2'])],
       cmdclass = {'install_data': InstallData})

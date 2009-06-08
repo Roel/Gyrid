@@ -27,6 +27,8 @@ Source of information (oui.txt):
     http://standards.ieee.org/regauth/oui/oui.txt
 """
 
+import bz2
+
 VENDOR_MAC = {}
 
 def _parse_oui(url):
@@ -35,7 +37,7 @@ def _parse_oui(url):
     
     @param  url   URL of the file to parse.
     """
-    for line in open(url, 'r'):
+    for line in bz2.BZ2File(url, 'r'):
         if '(hex)' in line:
             VENDOR_MAC [line[:8].replace('-', ':')] = line.split(
                 '\t\t')[-1].strip(' \r\n')
@@ -53,6 +55,6 @@ def get_vendor(mac_address):
         
 #Parse the oui file on importing
 try:
-    _parse_oui('oui.txt')
+    _parse_oui('oui.txt.bz2')
 except IOError:
-    _parse_oui('/usr/share/bluetracker/oui.txt')
+    _parse_oui('/usr/share/bluetracker/oui.txt.bz2')
