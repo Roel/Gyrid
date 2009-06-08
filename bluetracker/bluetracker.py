@@ -111,7 +111,7 @@ class Main(daemon.Daemon):
         for adapter in self._dbus_bluez.ListAdapters():
             adap_obj = self._dbus_systembus.get_object('org.bluez', adapter)
             adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
-            adap_iface.SetProperty('Mode', 'off')
+            adap_iface.SetProperty('Discoverable', False)
             self.debug("Found Bluetooth adapter with address %s (%s)" %
                 (adap_iface.GetProperties()['Address'],
                  str(adapter).split('/')[-1]))
@@ -175,7 +175,7 @@ class Main(daemon.Daemon):
         device_obj = self._dbus_systembus.get_object("org.bluez", path)
         device = dbus.Interface(device_obj, "org.bluez.Adapter")
         
-        device.SetProperty('Mode', 'off')
+        device.SetProperty('Discoverable', False)
 
         if not 'discoverer' in self.__dict__:
             self.logger.write_info("I: Bluetooth adapter found with address %s" %
