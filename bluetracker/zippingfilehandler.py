@@ -63,8 +63,7 @@ class TimedCompressedRotatingFileHandler(logging.handlers.TimedRotatingFileHandl
         """
         Do the rollover, this includes processing and bzipping.
         """
-        if self.stream:
-            self.stream.close()
+        self.stream.close()
         # get the time that this sequence started at and make it a TimeTuple
         t = self.rolloverAt - self.interval
         timeTuple = time.localtime(t)
@@ -81,7 +80,10 @@ class TimedCompressedRotatingFileHandler(logging.handlers.TimedRotatingFileHandl
         self.main.debug("Rotated scanlog, created %s.bz2" % dfn)
         
         self.mode = 'w'
-        self.stream = self._open()
+        if self.encoding:
+            self.stream = codecs.open(self.baseFilename, 'w', self.encoding)
+        else:
+            self.stream = open(self.baseFilename, 'w')
         newRolloverAt = self.rolloverAt + self.interval
         currentTime = int(time.time())
         while newRolloverAt <= currentTime:
