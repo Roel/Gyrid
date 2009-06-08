@@ -99,6 +99,7 @@ class Main(daemon.Daemon):
         if not restart:
             self.logger.write_info("I: Started")
             self.debug("Started")
+            print "Starting bluetracker."
         else:
             self.logger.write_info("I: Restarted")
             self.debug("Restarted")
@@ -197,6 +198,7 @@ class Main(daemon.Daemon):
             self.debug_mode = debug
             self.logger.write_info("I: Stopped")
             self.debug("Stopped")
+            print "Stopping bluetracker."
             self.logger.close()
         else:
             self.logger.stop()

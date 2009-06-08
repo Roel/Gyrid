@@ -47,10 +47,10 @@ if __name__ == '__main__':
     access = True
     for file in [LOGFILE, ERRORLOGFILE, LOCKFILE, CONFIGFILE]:
         if os.path.exists(file) and os.access(file, os.W_OK) == False:
-            sys.stderr.write("Error: Needs write access to %s\n" % file)
+            sys.stderr.write("Bluetracker: Error: Needs write access to %s\n" % file)
             access = False
         elif not os.path.exists(file) and os.access(os.path.dirname(file), os.W_OK) == False:
-            sys.stderr.write("Error: Needs write access to %s\n" % file)
+            sys.stderr.write("Bluetracker: Error: Needs write access to %s\n" % file)
             access = False
     if not access:
         sys.exit(1)
