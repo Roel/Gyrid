@@ -1,3 +1,12 @@
+bluetracker 0.0.7
+
+   * Modified zippingfilehandler to Python 2.5.x
+   * Changed time suffix of rotated logfiles to include time offset from UTC.
+   * Updated processing of logfiles to use less memory.
+   * Compressed oui.txt with bz2 to reduce package size.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Mon, 08 Jun 2009 16:49:22 +0200
+
 bluetracker 0.0.6
 
    * Updated oui.txt data based on new IEEE data.

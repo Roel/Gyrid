@@ -1,3 +1,12 @@
+bluetracker (0.0.7-0ugent1) experimental; urgency=low
+
+  * New upstream release.
+  * Updated debian/control:
+      - minor change in single line synopsis
+      - bump dependency on bluez-utils to version >= 4.32
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Mon, 08 Jun 2009 16:50:44 +0200
+
 bluetracker (0.0.6-0ugent1) experimental; urgency=low
 
   * New upstream release.
