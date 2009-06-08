@@ -45,7 +45,7 @@ class TimedCompressedRotatingFileHandler(logging.handlers.TimedRotatingFileHandl
         currentTime = int(time.time())
 
         self.interval = 60 * 60 # one hour
-        self.suffix = "%Y-%m-%d_%H"
+        self.suffix = "%Y%m%d-%H%z"
         self.extMatch = r"^\d{4}-\d{2}-\d{2}_\d{2}$"
 
         self.extMatch = re.compile(self.extMatch)
