@@ -73,7 +73,7 @@ class TimedCompressedRotatingFileHandler(logging.handlers.TimedRotatingFileHandl
         os.rename(self.baseFilename, dfn)
         output = bz2.BZ2File(dfn + '.bz2', 'w')
         input = open(dfn, 'r')
-        output.write(self._process_passing_movement(input))
+        self._process_passing_movement(input, output)
         output.close()
         input.close()
         os.remove(dfn)
@@ -90,27 +90,25 @@ class TimedCompressedRotatingFileHandler(logging.handlers.TimedRotatingFileHandl
             newRolloverAt = newRolloverAt + self.interval
         self.rolloverAt = newRolloverAt
         
-    def _process_passing_movement(self, file):
+    def _process_passing_movement(self, input_file, output_file):
         """
         Return an updated file where all 'pass' movements are shown as such.
         """
-        stringlist = []
         macs = {}
-        for line in file.readlines():
+        for line in input_file:
             linelist = line.split(',')
             if len(linelist) > 2:
                 time = line.split(',')[0]
                 mac = line.split(',')[1]
                 dc = line.split(',')[2]
                 if (mac in macs) and (macs[mac] == time):
-                    stringlist.append(','.join([time, mac, dc, 'pass']))
+                    output_file.write(','.join([time, mac, dc, 'pass']) + '\n')
                     del(macs[mac])
                 elif mac in macs:
-                    stringlist.append(','.join([macs[mac], mac, dc, 'in']))
-                    stringlist.append(','.join([time, mac, dc, 'out']))
+                    output_file.write(','.join([macs[mac], mac, dc, 'in']) + '\n')
+                    output_file.write(','.join([time, mac, dc, 'out']) + '\n')
                     del(macs[mac])
                 else:
                     macs[mac] = time
             else:
-                stringlist.append(line.strip('\n'))
-        return '\n'.join(stringlist)
+                output_file.write(line.strip('\n') + '\n')
