@@ -1,3 +1,13 @@
+bluetracker (0.0.8-0ugent1) experimental; urgency=low
+
+  * New upstream release.
+  * debian/patches:
+      - added patch to enable ALIX led support by default.
+  * debian/rules:
+      - include simple-patchsys.mk to add patch support.
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 09 Jun 2009 13:55:39 +0200
+
 bluetracker (0.0.7-0ugent1) experimental; urgency=low
 
   * New upstream release.

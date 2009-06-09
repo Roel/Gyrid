@@ -1,3 +1,11 @@
+bluetracker 0.0.8
+
+   * Added startup and shutdown messages.
+   * Updated error messages.
+   * Only try switching ALIX LED's if the necessary files exist.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 09 Jun 2009 13:54:02 +0200
+
 bluetracker 0.0.7
 
    * Modified zippingfilehandler to Python 2.5.x
