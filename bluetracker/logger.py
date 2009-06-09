@@ -20,6 +20,7 @@
 
 import logging
 import logging.handlers
+import os
 import threading
 import time
 
@@ -118,7 +119,9 @@ class Logger(object):
         """
         Switch the state of the LED (on/off) with the specified id.
         """
-        if self.config.get_value('alix_led_support'):
+        if self.config.get_value('alix_led_support') and \
+                (False not in [os.path.exists('/sys/class/leds/alix:%i' % i) \
+                for i in [1, 2, 3]]):
             swap = {0: 1, 1: 0}
 
             file = open('/sys/class/leds/alix:%i/brightness' % id, 'r')
