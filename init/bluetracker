@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #-*- coding: utf-8 -*-
 ### BEGIN INIT INFO
-# Provides:          bluetrackd
+# Provides:          bluetracker
 # Required-Start:    $local_fs $remote_fs $network $syslog
 # Required-Stop:     $local_fs $remote_fs $network $syslog
 # Default-Start:     2 3 4 5
@@ -56,16 +56,17 @@ if __name__ == '__main__':
         sys.exit(1)
 
     #Create main bluetracker instance.
-    main = bluetracker.Main(LOCKFILE, LOGFILE, CONFIGFILE, ERRORLOGFILE)
+    main = bluetracker.Main(LOCKFILE, LOGFILE, CONFIGFILE, ERRORLOGFILE,
+            'debug' in sys.argv)
 
     #Start, stop or restart the daemon.
     if len(sys.argv) in [2, 3]:
         if 'start' == sys.argv[1]:
-            main.start('debug' in sys.argv)
+            main.start()
         elif 'stop' == sys.argv[1]:
-            main.stop('debug' in sys.argv)
+            main.stop()
         elif 'restart' == sys.argv[1] or 'force-reload' == sys.argv[1]:
-            main.restart('debug' in sys.argv)
+            main.restart()
         else:
             print "Error: Unknown command"
             sys.exit(2)
@@ -73,3 +74,4 @@ if __name__ == '__main__':
     else:
         print "usage: %s start|stop|restart|force-reload {debug}" % sys.argv[0]
         sys.exit(2)
+    

@@ -108,12 +108,6 @@ class Logger(object):
         """
         self.poolchecker.stop()
         del(self.poolchecker)
-        
-    def close(self):
-        """
-        Stop the poolchecker and close the logfile.
-        """
-        self.stop()
 
     def switch_led(self, id):
         """

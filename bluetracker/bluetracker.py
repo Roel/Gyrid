@@ -38,7 +38,8 @@ class Main(daemon.Daemon):
     Main class of the Bluetooth tracker; subclass of daemon for easy
     daemonising.
     """
-    def __init__(self, lockfile, logfile, configfile, errorlogfile):
+    def __init__(self, lockfile, logfile, configfile, errorlogfile,
+                 debug_mode):
         """
         Initialistation of the daemon, threading, logging and DBus connection.
 
@@ -46,7 +47,9 @@ class Main(daemon.Daemon):
         @param  logfile         URL of the logfile.
         @param  configfile      URL of the configfile.
         @param  errorlogfile    URL of the errorlogfile.
+        @param  debug_mode      Whether to start in debug mode.
         """
+        self.debug_mode = debug_mode
         self.errorlogger = logging.getLogger('BluetrackerErrorLogger')
         self.errorlogger.setLevel(logging.ERROR)
 
@@ -96,13 +99,17 @@ class Main(daemon.Daemon):
 
         @param  restart  If this call is part of a restart operation.
         """
-        if not restart:
-            self.logger.write_info("I: Started")
-            self.debug("Started")
-            print "Starting bluetracker."
-        else:
-            self.logger.write_info("I: Restarted")
+        debugstr = " in debug mode" if self.debug_mode else ""
+        if restart:
+            self.logger.write_info("I: Restarted" + debugstr)
             self.debug("Restarted")
+            if not self.debug_mode:
+                print "Restarting bluetracker" + debugstr + "."
+        else:
+            self.logger.write_info("I: Started" + debugstr)
+            self.debug("Started")
+            if not self.debug_mode:
+                print "Starting bluetracker" + debugstr + "."
 
         self._dbus_systembus.add_signal_receiver(self._bluetooth_device_added,
             bus_name = "org.bluez",
@@ -117,18 +124,37 @@ class Main(daemon.Daemon):
                 (adap_iface.GetProperties()['Address'],
                  str(adapter).split('/')[-1]))
         try:         
-            default_adapter = self._dbus_bluez.DefaultAdapter()
+            self.default_adap_path = self._dbus_bluez.DefaultAdapter()
             device_obj = self._dbus_systembus.get_object("org.bluez",
-                default_adapter)
-            device = dbus.Interface(device_obj, "org.bluez.Adapter")
+                self.default_adap_path)
+            self.default_adap_iface = dbus.Interface(device_obj, "org.bluez.Adapter")
         except DBusException:
             #No adapter found
             pass
         else:
-            self._start_discover(device,
-                int(str(default_adapter).split('/')[-1].strip('hci')))
+            if self.default_adap_iface.GetProperties()['Discovering']:
+                self.debug("Adapter %s (%s) is still discovering, waiting for the scan to end" % \
+                    (self.default_adap_iface.GetProperties()['Address'],
+                     str(self.default_adap_path).split('/')[-1]))
+                self.default_adap_iface.connect_to_signal(
+                    "PropertyChanged", self._device_prop_changed)
+            else:
+                self._start_discover(self.default_adap_iface,
+                    int(str(self.default_adap_path).split('/')[-1].strip('hci')))
         finally:
             self.main_loop.run()
+            
+    def _device_prop_changed(self, property, value):
+        """
+        Called if the properties of the scandevice have changed. In casu
+        it is used to listen for the Discovering=False signal to restart
+        scanning.
+        """
+        if property == "Discovering" and \
+                value == False and \
+                'discoverer' not in self.__dict__:
+            self._start_discover(self.default_adap_iface,
+                int(str(self.default_adap_path).split('/')[-1].strip('hci')))
 
     @_threaded
     def _start_discover(self, device, device_id):
@@ -144,7 +170,7 @@ class Main(daemon.Daemon):
             device_id)
             
         address = device.GetProperties()['Address']
-
+        
         self.debug("Started scanning with adapter %s (%s)" %
             (address, 'hci%i' % device_id))
         self.logger.write_info('I: Started scanning with %s' % address)
@@ -187,7 +213,7 @@ class Main(daemon.Daemon):
             self._start_discover(device,
                 int(str(path).split('/')[-1].strip('hci')))
 
-    def stop(self, debug=False, restart=False):
+    def stop(self, restart=False):
         """
         Called when the daemon gets the stop command. Stop the logger, cleanly
         close the logfile if restart=False and then stop the daemon.
@@ -195,13 +221,10 @@ class Main(daemon.Daemon):
         @param  restart   If this call is part of a restart operation.
         """
         if not restart:
-            self.debug_mode = debug
             self.logger.write_info("I: Stopped")
             self.debug("Stopped")
             print "Stopping bluetracker."
-            self.logger.close()
-        else:
-            self.logger.stop()
+        self.logger.stop()
         daemon.Daemon.stop(self)
         
     def debug(self, text):
