@@ -150,6 +150,7 @@ class PoolChecker(threading.Thread):
         delete devices that have not been seen since x amount of time. Write
         them to the logfile as being moved 'out'.
         """
+        previous = 0
         while self._running:
             self.logger.switch_led(2)
 
@@ -165,9 +166,17 @@ class PoolChecker(threading.Thread):
                     to_delete.append(device)
             for device in to_delete:
                 del(self.logger.pool[device])
+
+            current = len(self.logger.pool)
+            new = current - previous
                 
-            self.main.debug("Device pool checked: %i devices; %i disappeared" %
-                (len(self.logger.pool), len(to_delete)))
+            d = {'current': current,
+                 'new': new if new > 0 else 0,
+                 'gone': len(to_delete)}
+
+            self.main.debug("Device pool checked: %(current)i devices; " % d + \
+                "%(new)i new; %(gone)i disappeared" % d)
+            previous = current
             time.sleep(self.buffer)
             
     def stop(self):
