@@ -1,3 +1,10 @@
+bluetracker 0.0.9
+
+   * Wait for the previous scan to finish before restarting.
+   * Print the number of newly discovered devices in debug mode.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 18 Jun 2009 09:22:13 +0200
+
 bluetracker 0.0.8
 
    * Added startup and shutdown messages.
