@@ -28,11 +28,10 @@ Classes:
     _Option: Class for all Options.
 """
 
+import ConfigParser
 import os
 import sys
 import textwrap
-
-import ConfigParser
 
 class Configuration(object):
     """

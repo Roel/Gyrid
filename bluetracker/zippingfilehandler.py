@@ -22,11 +22,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import bz2
+import logging
+import logging.handlers
 import os
 import re
 import time
-import logging
-import logging.handlers
 
 class TimedCompressedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
     """

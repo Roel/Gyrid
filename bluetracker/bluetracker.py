@@ -18,20 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
 import bluetooth
 import dbus
 import dbus.mainloop.glib
 import gobject
-import threading
 import logging
 import logging.handlers
-import traceback
+import sys
+import threading
 import time
+import traceback
 
+import daemon
 import discoverer
 import logger
-import daemon
 
 class Main(daemon.Daemon):
     """
