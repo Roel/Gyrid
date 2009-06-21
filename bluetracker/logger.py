@@ -53,6 +53,7 @@ class Logger(object):
         self.started = False
         
         self.pool = {}
+        self.to_add = {}
         self.poolchecker = PoolChecker(self.main, self)
         
     def write(self, timestamp, mac_address, device_class, moving):
@@ -87,10 +88,10 @@ class Logger(object):
         """
         self.switch_led(3)
         
-        if mac_address not in self.pool:
-            self.write(timestamp, mac_address, device_class, 'in')
-            
-        self.pool[mac_address] = [timestamp, device_class]
+        if mac_address not in self.pool and mac_address not in self.to_add:
+            self.to_add[mac_address] = [timestamp, device_class]
+        elif mac_address in self.pool:
+            self.pool[mac_address] = [timestamp, device_class]
                     
     def start(self):
         """
@@ -164,8 +165,19 @@ class PoolChecker(threading.Thread):
                                       self.logger.pool[device][1],
                                       'out')
                     to_delete.append(device)
+            
+            # Delete
             for device in to_delete:
                 del(self.logger.pool[device])
+
+            # Add
+            self.logger.pool.update(self.logger.to_add)
+            for device in self.logger.to_add:
+                self.logger.write(self.logger.pool[device][0],
+                                  device,
+                                  self.logger.pool[device][1],
+                                  'in')
+            self.logger.to_add.clear()
 
             current = len(self.logger.pool)
             new = current - previous
