@@ -1,3 +1,10 @@
+bluetracker 0.0.10
+
+   * Use a separate list for new devices. They're no longer immediately
+   added to the pool, but are added by the poolchecker thread.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Mon, 22 Jun 2009 10:13:03 +0200
+
 bluetracker 0.0.9
 
    * Wait for the previous scan to finish before restarting.
