@@ -38,7 +38,7 @@ class Configuration(object):
     Store all the configuration options and retrieve the value of
     a certain option with the ConfigurationParser.
     """
-    def __init__(self, main, configfile):
+    def __init__(self, main):
         """
         Initialisation. Construct an empty list of options, and fill it
         with all the Options.
@@ -48,7 +48,7 @@ class Configuration(object):
         """
         self.main = main
         self.options = []
-        self.configfile = configfile
+        self.configfile = self.main.configfile
         self._define_options()
         self.configparser = _ConfigurationParser(self)
 

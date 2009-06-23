@@ -32,7 +32,7 @@ class TimedCompressedRotatingFileHandler(logging.handlers.TimedRotatingFileHandl
     """
     Subclassing TimedRotatingFileHandler to add bzipping on rollover.
     """
-    def __init__(self, main, filename):
+    def __init__(self, main):
         """
         Initialisation. 
         
@@ -40,7 +40,7 @@ class TimedCompressedRotatingFileHandler(logging.handlers.TimedRotatingFileHandl
         @param  filename    Filename to write to.
         """
         self.main = main
-        logging.handlers.BaseRotatingHandler.__init__(self, filename, 'a')
+        logging.handlers.BaseRotatingHandler.__init__(self, self.main.logfile, 'a')
         self.backupCount = 0
         currentTime = int(time.time())
 

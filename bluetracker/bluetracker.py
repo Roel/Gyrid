@@ -49,6 +49,8 @@ class Main(daemon.Daemon):
         @param  errorlogfile    URL of the errorlogfile.
         @param  debug_mode      Whether to start in debug mode.
         """
+        self.logfile = logfile
+        self.configfile = configfile
         self.debug_mode = debug_mode
         self.errorlogger = logging.getLogger('BluetrackerErrorLogger')
         self.errorlogger.setLevel(logging.ERROR)
@@ -65,7 +67,7 @@ class Main(daemon.Daemon):
                                stderr='/dev/stderr')
                               
         gobject.threads_init()
-        self.logger = logger.Logger(self, logfile, configfile)
+        self.logger = logger.Logger(self)
         self.main_loop = gobject.MainLoop()
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()

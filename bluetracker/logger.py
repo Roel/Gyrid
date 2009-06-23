@@ -33,7 +33,7 @@ class Logger(object):
     of recently seen devices, in order to only write incoming and outgoing
     devices to the logfile.
     """
-    def __init__(self, main, logfile, configfile):
+    def __init__(self, main):
         """
         Initialisation of the logfile, pool and poolchecker.
         
@@ -45,11 +45,11 @@ class Logger(object):
         self.scanlogger = logging.getLogger('BluetrackerScanLogger')
         self.scanlogger.setLevel(logging.INFO)
         handler = zippingfilehandler.TimedCompressedRotatingFileHandler(
-            self.main, logfile)
+            self.main)
         handler.setFormatter(logging.Formatter("%(message)s"))
         self.scanlogger.addHandler(handler)
         
-        self.config = configuration.Configuration(self.main, configfile)
+        self.config = configuration.Configuration(self.main)
         self.started = False
         
         self.pool = {}
@@ -69,6 +69,7 @@ class Logger(object):
                                      str(mac_address),
                                      str(device_class),
                                      str(moving)]))
+                                     
     def write_info(self, info):
         """
         Append a timestamp and the information to the logfile on a new line
@@ -173,22 +174,19 @@ class PoolChecker(threading.Thread):
             # Add
             self.logger.pool.update(self.logger.to_add)
             for device in self.logger.to_add:
-                self.logger.write(self.logger.pool[device][0],
+                self.logger.write(self.logger.to_add[device][0],
                                   device,
-                                  self.logger.pool[device][1],
+                                  self.logger.to_add[device][1],
                                   'in')
-            self.logger.to_add.clear()
-
-            current = len(self.logger.pool)
-            new = current - previous
                 
-            d = {'current': current,
-                 'new': new if new > 0 else 0,
+            d = {'current': len(self.logger.pool),
+                 'new': len(self.logger.to_add),
                  'gone': len(to_delete)}
+                 
+            self.logger.to_add.clear()
 
             self.main.debug("Device pool checked: %(current)i devices; " % d + \
                 "%(new)i new; %(gone)i disappeared" % d)
-            previous = current
             time.sleep(self.buffer)
             
     def stop(self):

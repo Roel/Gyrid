@@ -26,7 +26,7 @@ class Discoverer(bluetooth.DeviceDiscoverer):
     Bluetooth discover, this is the device scanner. A few modification have
     been made from the original DeviceDiscoverer.
     """
-    def __init__(self, main, logger, device_id):
+    def __init__(self, main, device_id):
         """
         Initialisation of the DeviceDiscoverer. Store the reference to logger
         and start scanning.
@@ -39,7 +39,7 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         bluetooth.DeviceDiscoverer.__init__(self, device_id)
         
         self.main = main
-        self.logger = logger
+        self.logger = self.main.logger
         self.find()
 
     def find(self):
