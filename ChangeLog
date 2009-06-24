@@ -1,3 +1,14 @@
+bluetracker 0.0.11
+
+   * The separate lists from previous version were not such a smart idea
+   after all. Same problem in a new package.
+   * We now use locking facilities instead to ensure only one thread can 
+   access the pool at the same time.
+   * Minor changes in the debug output, logrotation and the transmission of
+   variables.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 24 Jun 2009 20:07:32 +0200
+
 bluetracker 0.0.10
 
    * Use a separate list for new devices. They're no longer immediately
