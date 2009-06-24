@@ -195,8 +195,8 @@ class PoolChecker(threading.Thread):
                      'gone': len(to_delete)}
                 previous = current
                 
-                self.main.debug("Device pool checked: %(current)i devices; " % d + \
-                "%(new)i new; %(gone)i disappeared" % d)
+                self.main.debug("Device pool checked: %(current)i devices " % d + \
+                "(%(new)i new, %(gone)i disappeared)" % d)
                 
             finally:
                 self.logger.lock.release()

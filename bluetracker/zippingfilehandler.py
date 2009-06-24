@@ -98,17 +98,17 @@ class TimedCompressedRotatingFileHandler(logging.handlers.TimedRotatingFileHandl
         for line in input_file:
             linelist = line.split(',')
             if len(linelist) > 2:
-                time = line.split(',')[0]
+                tijd = line.split(',')[0]
                 mac = line.split(',')[1]
                 dc = line.split(',')[2]
-                if (mac in macs) and (macs[mac] == time):
-                    output_file.write(','.join([time, mac, dc, 'pass']) + '\n')
+                if (mac in macs) and (macs[mac] == tijd):
+                    output_file.write(','.join([str(i) for i in [tijd, mac, dc, 'pass']]) + '\n')
                     del(macs[mac])
                 elif mac in macs:
-                    output_file.write(','.join([macs[mac], mac, dc, 'in']) + '\n')
-                    output_file.write(','.join([time, mac, dc, 'out']) + '\n')
+                    output_file.write(','.join([str(i) for i in [macs[mac], mac, dc, 'in']]) + '\n')
+                    output_file.write(','.join([str(i) for i in [tijd, mac, dc, 'out']]) + '\n')
                     del(macs[mac])
                 else:
-                    macs[mac] = time
+                    macs[mac] = tijd
             else:
                 output_file.write(line.strip('\n') + '\n')
