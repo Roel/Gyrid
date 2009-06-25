@@ -168,8 +168,7 @@ class Main(daemon.Daemon):
         
         @param  device_id   The device to use for scanning.
         """
-        self.discoverer = discoverer.Discoverer(self, self.logger,
-            device_id)
+        self.discoverer = discoverer.Discoverer(self, device_id)
             
         address = device.GetProperties()['Address']
         
