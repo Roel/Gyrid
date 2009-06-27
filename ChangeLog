@@ -1,3 +1,9 @@
+bluetracker 0.0.12
+
+   * Fix the creation of the DeviceDiscoverer so the program starts again.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Sat, 27 Jun 2009 09:53:55 +0200
+
 bluetracker 0.0.11
 
    * The separate lists from previous version were not such a smart idea
