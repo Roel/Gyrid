@@ -1,3 +1,10 @@
+bluetracker 0.0.13
+
+   * Change buffer_size option to type float and a default of 10.24 seconds.
+   * Fix process rotation to write all devices to the logfile.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Mon, 29 Jun 2009 12:09:15 +0200
+
 bluetracker 0.0.12
 
    * Fix the creation of the DeviceDiscoverer so the program starts again.
