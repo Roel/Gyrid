@@ -49,7 +49,7 @@ def get_vendor(mac_address):
     @param  mac_address  The mac address of the device.
     """
     try:
-        return VENDOR_MAC[mac_address[:8]]
+        return VENDOR_MAC[mac_address[:8].upper()]
     except KeyError:
         return None
         
