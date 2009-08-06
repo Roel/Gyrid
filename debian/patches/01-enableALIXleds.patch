@@ -1,12 +1,12 @@
 diff -Nur -x '*.orig' -x '*~' tracker/bluetracker/configuration.py tracker.new/bluetracker/configuration.py
---- tracker/bluetracker/configuration.py	2009-05-04 09:15:25.000000000 +0200
-+++ tracker.new/bluetracker/configuration.py	2009-06-09 13:47:45.623627243 +0200
-@@ -66,7 +66,7 @@
- 
-         alix_led_support = _Option(name = 'alix_led_support',
-             type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
--            default = False,
-+            default = True,
+--- tracker/bluetracker/configuration.py	2009-08-06 09:51:42.000000000 +0200
++++ tracker.new/bluetracker/configuration.py	2009-08-06 11:35:45.833524419 +0200
+@@ -68,7 +68,7 @@
              description = 'Support for flashing LEDs on ALIX boards.',
-             domain = {True: 'Enable support.', False: 'Disable support.'})
- 
+             type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
+             values = {True: 'Enable support.', False: 'Disable support.'},
+-            default = False)
++            default = True)
+             
+         time_format = _Option(name = 'time_format',
+             description = 'The time format to use in the logfile. This string ' +
