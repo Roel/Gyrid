@@ -56,20 +56,27 @@ class Configuration(object):
         """
         Create all options and add them to the list.
         """
-        buffer_length = _Option(name = 'buffer_size',
-            type = 'float("%s")',
-            default = 10.24,
+        buffer_size = _Option(name = 'buffer_size',
             description = 'The buffer length in seconds. This is the amount of ' +
                 'time a device may disappear and appear again without it being ' +
-                'noticed.')
+                'noticed.',
+            type = 'float("%s")',
+            values = {10.24: 'Buffer size to match the scan time of 8 * 1.28s.'},
+            default = 10.24)
 
         alix_led_support = _Option(name = 'alix_led_support',
-            type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
-            default = False,
             description = 'Support for flashing LEDs on ALIX boards.',
-            domain = {True: 'Enable support.', False: 'Disable support.'})
+            type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
+            values = {True: 'Enable support.', False: 'Disable support.'},
+            default = False)
+            
+        time_format = _Option(name = 'time_format',
+            description = 'The time format to use in the logfile. This string ' +
+                'is passed to the time.strftime() function.',
+            values = {'%s': 'Write times in UNIX timestamp format.'},
+            default = '%s')
 
-        self.options.extend([buffer_length, alix_led_support])
+        self.options.extend([buffer_size, alix_led_support, time_format])
 
     def _get_option_by_name(self, name):
         """
@@ -91,23 +98,26 @@ class Configuration(object):
         @param  option   (str)       The option to retrieve the value from.
         @return          (unicode)   The value of the option.
         """
-
         optionObj = self._get_option_by_name(option)
 
         try:
-            config = eval(optionObj.type % self.configparser.get_value(option))
+            value = self.configparser.get_value(option)
+            if value != None:
+                config = eval(optionObj.type % value)
+            else:
+                raise ValueError("No valid value.")
         except:
             self.main.errorlogger.error("Error in '%s' option: " % option + str(sys.exc_info()[1]) + \
                 " [Using default value: %s]" % optionObj.default)
             config = None
         
-        if config != None and optionObj.domain_has_key(config):
+        if config != None and optionObj.values_has_key(config):
             return config
         elif config != None:
             self.main.errorlogger.error("Wrong value for option %(option)s: '%(value)s'." % \
                 {'option': optionObj.name, 'value': config})
 
-        return optionObj.default
+        return eval(optionObj.type % optionObj.default)
 
 
 class _ConfigurationParser(ConfigParser.ConfigParser, object):
@@ -149,14 +159,14 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
         default = '#Bluetracker configuration file\n[Bluetracker]\n\n'
         for option in self.configuration.options:
             default += "\n#".join(textwrap.wrap("#%s" % option.description, 80))
-            if option.domain:
-                default += '\n#Options:'
-                for key in option.domain.items():
+            if option.values:
+                default += '\n# Values:'
+                for key in option.values.items():
                     if key[0] == option.default:
                         defaultValue = '(default) '
                     else:
                         defaultValue = ''
-                    default += '\n#%s - %s%s' % \
+                    default += '\n# %s - %s%s' % \
                         (key[0], defaultValue, key[1])
             default += '\n%s = %s\n\n' % (option.name, option.default)
         return default.rstrip('\n')
@@ -178,39 +188,44 @@ class _Option(object):
     """
     Class for an option.
     """
-    def __init__(self, name, description, default=None, domain=None, type='str("%s")'):
+    def __init__(self, name, description, default, values, type='str("%s")'):
         """
         Initialisation.
 
         Mandatory:
         @param  name          (str)   The name of the option.
-        @param  default       (str)   The default value of the option.
         @param  description   (str)   A descriptive documentation string.
+        @param  values        (dict)  Which values are accepted. The value as
+                                      key, a description as value. If there's only one key,
+                                      this value is treated as a default and all other values are
+                                      accepted too. If there are multiple keys, these values are
+                                      restrictive.
 
         #Optional
-        @param  domain        (dict)  Which values are accepted. The value as
-                                      key, a description as value.
         @param  type          (str)   The type of the value of the option.
                                       F.ex. 'str(%s)' (default), 'int(str(%s))'.
         """
         #Mandatory
         self.name = name
-        self.default = default
         self.description = description
+        self.default = default
+        self.values = values
 
         #Optional
-        self.domain = domain
         self.type = type
 
-    def domain_has_key(self, key):
+    def values_has_key(self, key):
         """
-        Checks if the given key is in the domain.
+        Checks if the given key is in the values
+        dictionary.
 
         @param key     (str)       The key to check.
-        @return        (boolean)   True if the key is in the domain.
+        @return        (boolean)   True if the key is in the dict.
         """
-        if self.domain:
-            for item in self.domain.keys():
+        if len(self.values) == 1:
+            return True
+        else:
+            for item in self.values.keys():
                 try:
                     if item.lower() == key.lower():
                         return True
@@ -220,5 +235,3 @@ class _Option(object):
                     elif str(item) == str(key):
                         return True
             return False
-        else:
-            return True

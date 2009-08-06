@@ -29,6 +29,7 @@ import threading
 import time
 import traceback
 
+import configuration
 import daemon
 import discoverer
 import logger
@@ -49,19 +50,21 @@ class Main(daemon.Daemon):
         @param  errorlogfile    URL of the errorlogfile.
         @param  debug_mode      Whether to start in debug mode.
         """
+        sys.excepthook = self._handle_exception
+        
         self.logfile = logfile
         self.configfile = configfile
         self.debug_mode = debug_mode
         self.errorlogger = logging.getLogger('BluetrackerErrorLogger')
         self.errorlogger.setLevel(logging.ERROR)
+        
+        self.config = configuration.Configuration(self)
 
         handler = logging.handlers.RotatingFileHandler(errorlogfile,
             maxBytes=204800, backupCount=5) #200 kiB
-        handler.setFormatter(logging.Formatter("%(asctime)s: %(message)s"))
-
         self.errorlogger.addHandler(handler)
-
-        sys.excepthook = self._handle_exception
+        handler.setFormatter(logging.Formatter("%(asctime)s: %(message)s",
+            self.config.get_value('time_format')))
 
         daemon.Daemon.__init__(self, lockfile, stdout='/dev/stdout',
                                stderr='/dev/stderr')
@@ -235,4 +238,10 @@ class Main(daemon.Daemon):
         @param  text   The text to print.
         """
         if ('debug_mode' in self.__dict__) and self.debug_mode:
-            sys.stderr.write("%s Bluetracker: %s.\n" % (time.strftime('%H:%M:%S'), text))
+            time_format = self.config.get_value('time_format')
+            extra_time = ""
+            if False in [i in time_format for i in '%H', '%M', '%S']:
+                extra_time = " (%H:%M:%S)"
+            sys.stderr.write("%s%s Bluetracker: %s.\n" % \
+                (time.strftime(self.config.get_value('time_format')), 
+                time.strftime(extra_time), text))

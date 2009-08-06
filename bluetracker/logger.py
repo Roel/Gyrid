@@ -24,7 +24,6 @@ import os
 import threading
 import time
 
-import configuration
 import zippingfilehandler
 
 class Logger(object):
@@ -49,7 +48,6 @@ class Logger(object):
         handler.setFormatter(logging.Formatter("%(message)s"))
         self.scanlogger.addHandler(handler)
         
-        self.config = configuration.Configuration(self.main)
         self.started = False
         
         self.pool = {}
@@ -66,10 +64,12 @@ class Logger(object):
         @param  device_class   Device class of the Bluetooth device.
         @param  moving         Whether the device is moving 'in' or 'out'.
         """
-        self.scanlogger.info(",".join([str(timestamp),
-                                     str(mac_address),
-                                     str(device_class),
-                                     str(moving)]))
+        self.scanlogger.info(",".join([time.strftime(
+            self.main.config.get_value('time_format'), 
+            time.localtime(timestamp)),
+            str(mac_address),
+            str(device_class),
+            str(moving)]))
                                      
     def write_info(self, info):
         """
@@ -78,7 +78,9 @@ class Logger(object):
 
         @param  info   The information to write.
         """
-        self.scanlogger.info(",".join([str(int(time.time())), info]))
+        self.scanlogger.info(",".join([time.strftime(
+            self.main.config.get_value('time_format'),
+            time.localtime()), info]))
 
     def update_device(self, timestamp, mac_address, device_class):
         """
@@ -129,7 +131,7 @@ class Logger(object):
         """
         Switch the state of the LED (on/off) with the specified id.
         """
-        if self.config.get_value('alix_led_support') and \
+        if self.main.config.get_value('alix_led_support') and \
                 (False not in [os.path.exists('/sys/class/leds/alix:%i' % i) \
                 for i in [1, 2, 3]]):
             swap = {0: 1, 1: 0}
@@ -157,7 +159,7 @@ class PoolChecker(threading.Thread):
         threading.Thread.__init__(self)
         self.main = main
         self.logger = logger
-        self.buffer = self.logger.config.get_value('buffer_size')
+        self.buffer = self.logger.main.config.get_value('buffer_size')
         self._running = True
         
     def run(self):
