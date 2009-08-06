@@ -36,8 +36,9 @@ class InstallData(install_data):
         Call _gzip to zip the ChangeLog and install it to
         /usr/share/doc/bluetracker.
         """
-        self.data_files.extend (self._gzip ('ChangeLog', os.path.join('share',
-                                            'doc', 'bluetracker')))
+
+        self._gzip('ChangeLog', 'share/doc/bluetracker')
+        self._gzip('bluetracker/tools/oui.txt', 'share/bluetracker')
         install_data.run (self)
 
     def _gzip(self, file, dest):
@@ -48,20 +49,18 @@ class InstallData(install_data):
         @param  dest  The URL of the folder to install the zipped file into.
         @return  A list ready to extend to data_files.
         """
-        data_files = []
-        buildDir = 'build'
+        buildDir = '/'.join(('build/%s' % file).split('/')[:-1])
+        filename = file if not '/' in file else file.split('/')[-1]
         if not os.path.exists(buildDir):
             info('creating %s directory' % buildDir)
             os.makedirs(buildDir)
 
-        str = {'build': buildDir, 'file': file, 'fileLower': file.lower()}
+        str = {'build': buildDir, 'file': file, 'fileLower': filename.lower()}
         cmd = 'gzip -c --best %(file)s > %(build)s/%(fileLower)s.gz' % str
         info('gzipping %s' % file)
         if os.system(cmd) != 0:
             raise SystemExit('Error while gzipping %(file)s' % str)
-        data_files.append((dest, ['%(build)s/%(fileLower)s.gz' % str]))
-
-        return data_files
+        self.data_files.append((dest, ['%(build)s/%(fileLower)s.gz' % str]))
 
 setup(name = "bluetracker",
       version = "0.0.13",
@@ -70,6 +69,5 @@ setup(name = "bluetracker",
       author_email = "roel.huybrechts@ugent.be",
       license = "GPLv3",
       packages = ["bluetracker", "bluetracker/tools"],
-      data_files = [("/etc/init.d", ['init/bluetracker']),
-                    ("/usr/share/bluetracker", ['bluetracker/tools/oui.txt.bz2'])],
+      data_files = [("/etc/init.d", ['init/bluetracker'])],
       cmdclass = {'install_data': InstallData})
