@@ -42,9 +42,9 @@ def _parse_oui(url):
     else:
         file = open(url, 'r')
     for line in file:
-        if '(hex)' in line:
-            VENDOR_MAC [line[:8].replace('-', ':')] = line.split(
-                '\t\t')[-1].strip(' \r\n')
+        if not line.startswith('#'):
+            ls = line.split('\t')
+            VENDOR_MAC [ls[0]] = ls[1].strip('\n')
     file.close()
                 
 def get_vendor(mac_address):
@@ -60,6 +60,6 @@ def get_vendor(mac_address):
         
 #Parse the oui file on importing
 try:
-    _parse_oui('oui.txt')
+    _parse_oui('oui_data.txt')
 except IOError:
-    _parse_oui('/usr/share/bluetracker/oui.txt.gz')
+    _parse_oui('/usr/share/bluetracker/oui_data.txt.gz')

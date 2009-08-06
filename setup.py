@@ -38,7 +38,7 @@ class InstallData(install_data):
         """
 
         self._gzip('ChangeLog', 'share/doc/bluetracker')
-        self._gzip('bluetracker/tools/oui.txt', 'share/bluetracker')
+        self._gzip('bluetracker/tools/oui_data.txt', 'share/bluetracker')
         install_data.run (self)
 
     def _gzip(self, file, dest):
