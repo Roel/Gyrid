@@ -28,6 +28,7 @@ Source of information (oui.txt):
 """
 
 import gzip
+import os
 
 VENDOR_MAC = {}
 
@@ -60,6 +61,8 @@ def get_vendor(mac_address):
         
 #Parse the oui file on importing
 try:
-    _parse_oui('oui_data.txt')
+    __dir__ = os.path.dirname(os.path.abspath(__file__))
+    filepath = os.path.join(__dir__, 'oui_data.txt')
+    _parse_oui(filepath)
 except IOError:
     _parse_oui('/usr/share/bluetracker/oui_data.txt.gz')
