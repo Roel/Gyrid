@@ -18,31 +18,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import bluetooth
-import dbus
-import dbus.mainloop.glib
 import gobject
-import logging
-import logging.handlers
 import sys
-import threading
 import time
 import traceback
 
-import configuration
 import daemon
-import discoverer
-import logger
+import scanmanager
 
 class Main(daemon.Daemon):
     """
-    Main class of the Bluetooth tracker; subclass of daemon for easy
+    Main class of the Bluetooth tracker; subclass of Daemon for easy
     daemonising.
     """
     def __init__(self, lockfile, logfile, configfile, errorlogfile,
                  debug_mode):
         """
-        Initialistation of the daemon, threading, logging and DBus connection.
+        Initialistation of the daemon, logging and DBus connection.
 
         @param  lockfile        URL of the lockfile.
         @param  logfile         URL of the logfile.
@@ -54,47 +46,33 @@ class Main(daemon.Daemon):
         
         self.logfile = logfile
         self.configfile = configfile
+        self.errorlogfile = errorlogfile
         self.debug_mode = debug_mode
-        self.errorlogger = logging.getLogger('BluetrackerErrorLogger')
-        self.errorlogger.setLevel(logging.ERROR)
-        
-        self.config = configuration.Configuration(self)
+        self.mgr = scanmanager.SerialScanManager(self, self.debug_mode)
 
-        handler = logging.handlers.RotatingFileHandler(errorlogfile,
-            maxBytes=204800, backupCount=5) #200 kiB
-        self.errorlogger.addHandler(handler)
-        handler.setFormatter(logging.Formatter("%(asctime)s: %(message)s",
-            self.config.get_value('time_format')))
+        self.main_loop = gobject.MainLoop()
 
         daemon.Daemon.__init__(self, lockfile, stdout='/dev/stdout',
                                stderr='/dev/stderr')
                               
         gobject.threads_init()
-        self.logger = logger.Logger(self)
-        self.main_loop = gobject.MainLoop()
-        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        self._dbus_systembus = dbus.SystemBus()
-        bluez_obj = self._dbus_systembus.get_object('org.bluez', '/')
-        self._dbus_bluez = dbus.Interface(bluez_obj, 'org.bluez.Manager')
 
     def _handle_exception(self, etype, evalue, etraceback):
         """
         Handle the exception by writing information to the error log.
         """
         exc = ' '.join(traceback.format_exception(etype, evalue, etraceback)).replace('\n', '')
-        self.errorlogger.error(exc)
-        sys.exit("Error: exiting on unhandled exception: %s, %s" % (etype.__name__, evalue))
+        self.log_error('Error', exc)
+        sys.stderr.write("Error: unhandled exception: %s, %s\n\n" % \
+            (etype.__name__, evalue))
+        sys.stderr.write(' '.join(traceback.format_exception(etype, evalue, etraceback)))
 
-    def _threaded(f):
-        """
-        Wrapper to start a function within a new thread.
-
-        @param  f   The function to run inside the thread.
-        """
-        def wrapper(*args):
-            t = threading.Thread(target=f, args=args)
-            t.start()
-        return wrapper
+    def log_error(self, level, message):
+        self.errorlog = open(self.errorlogfile, 'a')
+        self.errorlog.write("%(tijd)s %(level)s: %(message)s\n" % \
+            {'tijd': time.strftime('%Y%m%d-%H%M%S'),
+             'level': level, 'message': message})
+        self.errorlog.flush()
 
     def run(self, restart=False):
         """
@@ -106,116 +84,20 @@ class Main(daemon.Daemon):
         """
         debugstr = " in debug mode" if self.debug_mode else ""
         if restart:
-            self.logger.write_info("I: Restarted" + debugstr)
-            self.debug("Restarted")
+            self.mgr.log_info("I: Restarted" + debugstr)
+            self.mgr.debug("Restarted")
             if not self.debug_mode:
-                print "Restarting bluetracker" + debugstr + "."
+                print("Restarting bluetracker" + debugstr + ".")
         else:
-            self.logger.write_info("I: Started" + debugstr)
-            self.debug("Started")
+            self.mgr.log_info("I: Started" + debugstr)
+            self.mgr.debug("Started")
             if not self.debug_mode:
-                print "Starting bluetracker" + debugstr + "."
+                print("Starting bluetracker" + debugstr + ".")
 
-        self._dbus_systembus.add_signal_receiver(self._bluetooth_device_added,
-            bus_name = "org.bluez",
-            signal_name = "AdapterAdded")            
-        self.debug("Connected to BlueZ AdapterAdded D-Bus signal")
-        
-        for adapter in self._dbus_bluez.ListAdapters():
-            adap_obj = self._dbus_systembus.get_object('org.bluez', adapter)
-            adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
-            adap_iface.SetProperty('Discoverable', False)
-            self.debug("Found Bluetooth adapter with address %s (%s)" %
-                (adap_iface.GetProperties()['Address'],
-                 str(adapter).split('/')[-1]))
-        try:         
-            self.default_adap_path = self._dbus_bluez.DefaultAdapter()
-            device_obj = self._dbus_systembus.get_object("org.bluez",
-                self.default_adap_path)
-            self.default_adap_iface = dbus.Interface(device_obj, "org.bluez.Adapter")
-        except DBusException:
-            #No adapter found
-            pass
-        else:
-            if self.default_adap_iface.GetProperties()['Discovering']:
-                self.debug("Adapter %s (%s) is still discovering, waiting for the scan to end" % \
-                    (self.default_adap_iface.GetProperties()['Address'],
-                     str(self.default_adap_path).split('/')[-1]))
-                self.default_adap_iface.connect_to_signal(
-                    "PropertyChanged", self._device_prop_changed)
-            else:
-                self._start_discover(self.default_adap_iface,
-                    int(str(self.default_adap_path).split('/')[-1].strip('hci')))
+        try:
+            self.mgr.run()
         finally:
             self.main_loop.run()
-            
-    def _device_prop_changed(self, property, value):
-        """
-        Called if the properties of the scandevice have changed. In casu
-        it is used to listen for the Discovering=False signal to restart
-        scanning.
-        """
-        if property == "Discovering" and \
-                value == False and \
-                'discoverer' not in self.__dict__:
-            self._start_discover(self.default_adap_iface,
-                int(str(self.default_adap_path).split('/')[-1].strip('hci')))
-
-    @_threaded
-    def _start_discover(self, device, device_id):
-        """
-        Start the Discoverer and start scanning. Start the logger in order to
-        get the pool_checker running. This function is decorated to start in
-        a new thread automatically. The scan ends if there is no Bluetooth
-        device (anymore).
-        
-        @param  device_id   The device to use for scanning.
-        """
-        self.discoverer = discoverer.Discoverer(self, device_id)
-            
-        address = device.GetProperties()['Address']
-        
-        self.debug("Started scanning with adapter %s (%s)" %
-            (address, 'hci%i' % device_id))
-        self.logger.write_info('I: Started scanning with %s' % address)
-        self.logger.start()
-        while not self.discoverer.done:
-            try:
-                self.discoverer.process_event()
-            except bluetooth._bluetooth.error, e:
-                if e[0] == 32:
-                    #The Bluetooth adapter has been plugged out, end the loop.
-                    #We will automatically start again after a Bluetooth adapter
-                    #has been plugged in thanks to BlueZ signal receiver.
-                    self.debug("Bluetooth adapter %s (%s) lost" %
-                        (address, 'hci%i' % device_id))
-                    self.logger.write_info("E: Bluetooth adapter %s lost" %
-                        address)
-                    self.logger.stop()
-                    self.discoverer.done = True
-        self.debug("Stopped scanning")
-        del(self.discoverer)
-
-    def _bluetooth_device_added(self, path=None):
-        """
-        Callback function for BlueZ signal. This method is automatically called
-        after a new Bluetooth device has been plugged in. Start scanning.
-
-        @param  path   The device that has been plugged in.
-        """
-        device_obj = self._dbus_systembus.get_object("org.bluez", path)
-        device = dbus.Interface(device_obj, "org.bluez.Adapter")
-        
-        device.SetProperty('Discoverable', False)
-
-        if not 'discoverer' in self.__dict__:
-            self.logger.write_info("I: Bluetooth adapter found with address %s" %
-                device.GetProperties()['Address'])
-            self.debug("Found Bluetooth adapter with address %s (%s)" %
-                (device.GetProperties()['Address'],
-                 str(path).split('/')[-1]))
-            self._start_discover(device,
-                int(str(path).split('/')[-1].strip('hci')))
 
     def stop(self, restart=False):
         """
@@ -225,23 +107,9 @@ class Main(daemon.Daemon):
         @param  restart   If this call is part of a restart operation.
         """
         if not restart:
-            self.logger.write_info("I: Stopped")
-            self.debug("Stopped")
-            print "Stopping bluetracker."
-        self.logger.stop()
+            self.mgr.log_info("I: Stopped")
+            self.mgr.debug("Stopped")
+            if not self.debug_mode:
+                print("Stopping bluetracker.")
+        self.mgr.stop()
         daemon.Daemon.stop(self)
-        
-    def debug(self, text):
-        """
-        Write text to stderr if debug mode is enabled.
-        
-        @param  text   The text to print.
-        """
-        if ('debug_mode' in self.__dict__) and self.debug_mode:
-            time_format = self.config.get_value('time_format')
-            extra_time = ""
-            if False in [i in time_format for i in '%H', '%M', '%S']:
-                extra_time = " (%H:%M:%S)"
-            sys.stderr.write("%s%s Bluetracker: %s.\n" % \
-                (time.strftime(self.config.get_value('time_format')), 
-                time.strftime(extra_time), text))

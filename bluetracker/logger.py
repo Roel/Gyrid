@@ -32,27 +32,29 @@ class Logger(object):
     of recently seen devices, in order to only write incoming and outgoing
     devices to the logfile.
     """
-    def __init__(self, main):
+    def __init__(self, mgr, logfile):
         """
         Initialisation of the logfile, pool and poolchecker.
         
         @param  logfile      URL of the logfile to write to.
         @param  configfile   URL of the configfile to write to.
         """
-        self.main = main
+        self.mgr = mgr
         
         self.scanlogger = logging.getLogger('BluetrackerScanLogger')
         self.scanlogger.setLevel(logging.INFO)
-        handler = zippingfilehandler.TimedCompressedRotatingFileHandler(
-            self.main)
+        handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
+            logfile)
         handler.setFormatter(logging.Formatter("%(message)s"))
         self.scanlogger.addHandler(handler)
         
         self.started = False
+        self.alix_led_support = self.mgr.config.get_value('alix_led_support')
+        self.time_format = self.mgr.config.get_value('time_format')
         
         self.pool = {}
         self.temp_pool = {}
-        self.poolchecker = PoolChecker(self.main, self)
+        self.poolchecker = PoolChecker(self.mgr, self)
         self.lock = threading.Lock()
         
     def write(self, timestamp, mac_address, device_class, moving):
@@ -65,12 +67,12 @@ class Logger(object):
         @param  moving         Whether the device is moving 'in' or 'out'.
         """
         self.scanlogger.info(",".join([time.strftime(
-            self.main.config.get_value('time_format'), 
+            self.time_format, 
             time.localtime(timestamp)),
             str(mac_address),
             str(device_class),
             str(moving)]))
-                                     
+
     def write_info(self, info):
         """
         Append a timestamp and the information to the logfile on a new line
@@ -79,7 +81,7 @@ class Logger(object):
         @param  info   The information to write.
         """
         self.scanlogger.info(",".join([time.strftime(
-            self.main.config.get_value('time_format'),
+            self.time_format,
             time.localtime()), info]))
 
     def update_device(self, timestamp, mac_address, device_class):
@@ -99,7 +101,9 @@ class Logger(object):
             try:
                 if len(self.temp_pool) > 0:
                     self.pool.update(self.temp_pool)
-                    self.main.debug("%i devices in temporary pool, merging" % len(self.temp_pool))
+                    self.mgr.debug(
+                        "%i devices in temporary pool, merging" % \
+                        len(self.temp_pool))
                     self.temp_pool.clear()
                 self.switch_led(3)
                 
@@ -116,8 +120,8 @@ class Logger(object):
         devices that have disappeared.
         """
         if not 'poolchecker' in self.__dict__:
-            self.poolchecker = PoolChecker(self.main, self)
-        self.main.debug("Started pool checker")
+            self.poolchecker = PoolChecker(self.mgr, self)
+        self.mgr.debug("Started pool checker")
         self.poolchecker.start()
         
     def stop(self):
@@ -130,8 +134,9 @@ class Logger(object):
     def switch_led(self, id):
         """
         Switch the state of the LED (on/off) with the specified id.
+        Checks if such a LED exists on the system before trying to set it.
         """
-        if self.main.config.get_value('alix_led_support') and \
+        if self.alix_led_support and \
                 (False not in [os.path.exists('/sys/class/leds/alix:%i' % i) \
                 for i in [1, 2, 3]]):
             swap = {0: 1, 1: 0}
@@ -143,23 +148,24 @@ class Logger(object):
             file = open('/sys/class/leds/alix:%i/brightness' % id, 'w')
             file.write(str(swap[current_state]))
             file.close()
-        
+
+
 class PoolChecker(threading.Thread):
     """
     The PoolChecker checks the device_pool at regular intervals to delete
     devices that have not been seen for x amount of time from the pool.
     It is a subclass of threading.Thread to start in a new thread automatically.
     """
-    def __init__(self, main, logger):
+    def __init__(self, mgr, logger):
         """
         Initialisation of the thread.
         
         @param   logger   Reference to Logger instance.
         """
         threading.Thread.__init__(self)
-        self.main = main
+        self.mgr = mgr
         self.logger = logger
-        self.buffer = self.logger.main.config.get_value('buffer_size')
+        self.buffer = self.logger.mgr.config.get_value('buffer_size')
         self._running = True
         
     def run(self):
@@ -197,8 +203,10 @@ class PoolChecker(threading.Thread):
                      'gone': len(to_delete)}
                 previous = current
                 
-                self.main.debug("Device pool checked: %(current)i devices " % d + \
-                "(%(new)i new, %(gone)i disappeared)" % d)
+                self.mgr.debug(
+                    "Device pool checked: %(current)i device" % d + \
+                    ("s " if current != 1 else " ") + \
+                    "(%(new)i new, %(gone)i disappeared)" % d)
                 
             finally:
                 self.logger.lock.release()
@@ -210,4 +218,4 @@ class PoolChecker(threading.Thread):
         Stop the thread.
         """
         self._running = False
-        self.main.debug("Stopped pool checker")
+        self.mgr.debug("Stopped pool checker")

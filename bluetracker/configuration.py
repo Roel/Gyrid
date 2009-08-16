@@ -38,17 +38,16 @@ class Configuration(object):
     Store all the configuration options and retrieve the value of
     a certain option with the ConfigurationParser.
     """
-    def __init__(self, main):
+    def __init__(self, mgr, configfile):
         """
         Initialisation. Construct an empty list of options, and fill it
         with all the Options.
 
-        @param  main         Reference to Main instance.
         @param  configfile   URL of the configfile to write to.
         """
-        self.main = main
+        self.mgr = mgr
         self.options = []
-        self.configfile = self.main.configfile
+        self.configfile = configfile
         self._define_options()
         self.configparser = _ConfigurationParser(self)
 
@@ -57,11 +56,11 @@ class Configuration(object):
         Create all options and add them to the list.
         """
         buffer_size = _Option(name = 'buffer_size',
-            description = 'The buffer length in seconds. This is the amount of ' +
-                'time a device may disappear and appear again without it being ' +
-                'noticed.',
+            description = 'The buffer length in seconds. This is the amount ' +
+                'of time a device may disappear and appear again without it ' +
+                'being noticed.',
             type = 'float("%s")',
-            values = {10.24: 'Buffer size to match the scan time of 8 * 1.28s.'},
+            values = {10.24: 'Buffer size to match the scan time of 8*1.28s.'},
             default = 10.24)
 
         alix_led_support = _Option(name = 'alix_led_support',
@@ -71,8 +70,8 @@ class Configuration(object):
             default = False)
             
         time_format = _Option(name = 'time_format',
-            description = 'The time format to use in the logfile. This string ' +
-                'is passed to the time.strftime() function.',
+            description = 'The time format to use in the logfile. This ' +
+                'string is passed to the time.strftime() function.',
             values = {'%s': 'Write times in UNIX timestamp format.'},
             default = '%s')
 
@@ -107,15 +106,19 @@ class Configuration(object):
             else:
                 raise ValueError("No valid value.")
         except:
-            self.main.errorlogger.error("Error in '%s' option: " % option + str(sys.exc_info()[1]) + \
+            self.mgr.main.log_error('Warning',
+                "Issue concerning option '%s' : " % option + \
+                str(sys.exc_info()[1]) + \
                 " [Using default value: %s]" % optionObj.default)
             config = None
         
         if config != None and optionObj.values_has_key(config):
             return config
         elif config != None:
-            self.main.errorlogger.error("Wrong value for option %(option)s: '%(value)s'." % \
-                {'option': optionObj.name, 'value': config})
+            self.mgr.main.log_error('Warning',
+                "Wrong value for option %(option)s: '%(value)s'." % \
+                {'option': optionObj.name, 'value': config} + \
+                "[Using default value: %s]" % optionObj.default)
 
         return eval(optionObj.type % optionObj.default)
 
@@ -196,14 +199,14 @@ class _Option(object):
         @param  name          (str)   The name of the option.
         @param  description   (str)   A descriptive documentation string.
         @param  values        (dict)  Which values are accepted. The value as
-                                      key, a description as value. If there's only one key,
-                                      this value is treated as a default and all other values are
-                                      accepted too. If there are multiple keys, these values are
-                                      restrictive.
+                  key, a description as value. If there's only one key,
+                  this value is treated as a default and all other values are
+                  accepted too. If there are multiple keys, these values are
+                  restrictive.
 
-        #Optional
+        Optional
         @param  type          (str)   The type of the value of the option.
-                                      F.ex. 'str(%s)' (default), 'int(str(%s))'.
+                  F.ex. 'str("%s")' (default), 'int(str(%s))'.
         """
         #Mandatory
         self.name = name

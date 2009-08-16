@@ -26,7 +26,7 @@ class Discoverer(bluetooth.DeviceDiscoverer):
     Bluetooth discover, this is the device scanner. A few modification have
     been made from the original DeviceDiscoverer.
     """
-    def __init__(self, main, device_id):
+    def __init__(self, mgr, device_id):
         """
         Initialisation of the DeviceDiscoverer. Store the reference to logger
         and start scanning.
@@ -38,8 +38,8 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         # at Pybluez's code.google.com as issue 18.
         bluetooth.DeviceDiscoverer.__init__(self, device_id)
         
-        self.main = main
-        self.logger = self.main.logger
+        self.mgr = mgr
+        self.logger = self.mgr.logger
         self.find()
 
     def find(self):
@@ -67,7 +67,7 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         """
         timestamp = time.time()
         
-        if self.main.debug_mode:
+        if self.mgr.debug_mode:
             import tools.deviceclass
             import tools.macvendor
 
@@ -75,7 +75,7 @@ class Discoverer(bluetooth.DeviceDiscoverer):
                      str(tools.deviceclass.get_minor_class(device_class))])
             vendor = tools.macvendor.get_vendor(address)
         
-            self.main.debug("Found device %(mac)s [%(dc)s (%(vendor)s)] at %(time)s" %
+            self.mgr.debug("Found device %(mac)s [%(dc)s (%(vendor)s)]" %
                 {'mac': address, 'dc': device, 'vendor': vendor ,'time': str(timestamp)})
         
         self.logger.update_device(int(timestamp), address, device_class)
@@ -86,5 +86,5 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         find(). We create an endless loop here to continuously scan for
         devices.
         """
-        self.main.debug("New inquiry")
+        self.mgr.debug("New inquiry")
         self.find()
