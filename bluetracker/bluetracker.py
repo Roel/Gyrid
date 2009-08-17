@@ -31,20 +31,18 @@ class Main(daemon.Daemon):
     Main class of the Bluetooth tracker; subclass of Daemon for easy
     daemonising.
     """
-    def __init__(self, lockfile, logfile, configfile, errorlogfile,
+    def __init__(self, lockfile, configfile, errorlogfile,
                  debug_mode):
         """
         Initialistation of the daemon, logging and DBus connection.
 
         @param  lockfile        URL of the lockfile.
-        @param  logfile         URL of the logfile.
         @param  configfile      URL of the configfile.
         @param  errorlogfile    URL of the errorlogfile.
         @param  debug_mode      Whether to start in debug mode.
         """
         sys.excepthook = self._handle_exception
         
-        self.logfile = logfile
         self.configfile = configfile
         self.errorlogfile = errorlogfile
         self.debug_mode = debug_mode

@@ -106,7 +106,7 @@ class ScanManager(object):
 class SerialScanManager(ScanManager):
     def __init__(self, main, debug_mode):
         ScanManager.__init__(self, main, debug_mode)
-        self.logger = logger.Logger(self, self.main.logfile)
+        self.logger = logger.Logger(self, '/var/log/bluetracker/scan.log')
 
     def log_info(self, message):
         self.logger.write_info(message)
@@ -114,12 +114,8 @@ class SerialScanManager(ScanManager):
     def _bluetooth_adapter_added(self, path=None):
         adapter = ScanManager._bluetooth_adapter_added(self, path)
         adapter.SetProperty('Discoverable', False)
-        if not 'discoverer' in self.__dict__:
-            self.logger.write_info("I: Bluetooth adapter found with address %s" %
-                adapter.GetProperties()['Address'])
-            self._start_discover(adapter,
-                int(str(path).split('/')[-1].strip('hci')))
-        
+        self.scan_with_default()
+
     def run(self):
         for adapter in self._dbus_bluez_manager.ListAdapters():
             adap_obj = self._dbus_systembus.get_object('org.bluez', adapter)
@@ -129,29 +125,27 @@ class SerialScanManager(ScanManager):
                 (adap_iface.GetProperties()['Address'],
                  str(adapter).split('/')[-1]))
 
+        self.scan_with_default()
+
+    def scan_with_default(self):
         try:
             self.default_adap_path = self._dbus_bluez_manager.DefaultAdapter()
             device_obj = self._dbus_systembus.get_object("org.bluez",
                 self.default_adap_path)
-            self.default_adap_iface = dbus.Interface(device_obj, "org.bluez.Adapter")
-        except DBusException:
+            self.default_adap_iface = dbus.Interface(device_obj,
+                "org.bluez.Adapter")
+        except dbus.DBusException:
             #No adapter found
             pass
         else:
-            if self.default_adap_iface.GetProperties()['Discovering']:
-                self.debug("Adapter %s (%s) is still discovering, waiting for the scan to end" % \
-                    (self.default_adap_iface.GetProperties()['Address'],
-                     str(self.default_adap_path).split('/')[-1]))
-                self.default_adap_iface.connect_to_signal(
-                    "PropertyChanged", self._device_prop_changed)
-            else:
+            if not 'discoverer' in self.__dict__:
                 self._start_discover(self.default_adap_iface,
                     int(str(self.default_adap_path).split('/')[-1].strip('hci')))
 
     def stop(self):
         self.logger.stop()
 
-    def _device_prop_changed(self, property, value):
+    def _dev_prop_changed(self, property, value):
         """
         Called if the properties of the scandevice have changed. In casu
         it is used to listen for the Discovering=False signal to restart
@@ -173,27 +167,31 @@ class SerialScanManager(ScanManager):
         
         @param  device_id   The device to use for scanning.
         """
-        self.discoverer = discoverer.Discoverer(self, device_id)
+        if device.GetProperties()['Discovering']:
+            self.debug("Adapter %s (%s) is still discovering, waiting for the scan to end" % \
+                (self.default_adap_iface.GetProperties()['Address'],
+                 str(self.default_adap_path).split('/')[-1]))
+            device.connect_to_signal("PropertyChanged", self._dev_prop_changed)
+        else:
+            self.discoverer = discoverer.Discoverer(self, device_id)
+            address = device.GetProperties()['Address']
             
-        address = device.GetProperties()['Address']
-        
-        self.debug("Started scanning with adapter %s (%s)" %
-            (address, 'hci%i' % device_id))
-        self.logger.write_info('I: Started scanning with %s' % address)
-        self.logger.start()
-        while not self.discoverer.done:
-            try:
-                self.discoverer.process_event()
-            except bluetooth._bluetooth.error, e:
-                if e[0] == 32:
-                    #The Bluetooth adapter has been plugged out, end the loop.
-                    #We will automatically start again after a Bluetooth adapter
-                    #has been plugged in thanks to BlueZ signal receiver.
-                    self.debug("Bluetooth adapter %s (%s) lost" %
-                        (address, 'hci%i' % device_id))
-                    self.logger.write_info("E: Bluetooth adapter %s lost" %
-                        address)
-                    self.logger.stop()
-                    self.discoverer.done = True
-        self.debug("Stopped scanning")
-        del(self.discoverer)
+            self.debug("Started scanning with adapter %s (%s)" %
+                (address, 'hci%i' % device_id))
+            self.logger.write_info('I: Started scanning with %s' % address)
+            self.logger.start()
+            while not self.discoverer.done:
+                try:
+                    self.discoverer.process_event()
+                except bluetooth._bluetooth.error, e:
+                    if e[0] == 32:
+                        self.debug("Bluetooth adapter %s (%s) lost" %
+                            (address, 'hci%i' % device_id))
+                        self.logger.write_info("E: Bluetooth adapter %s lost" %
+                            address)
+                        self.logger.stop()
+                        self.discoverer.done = True
+            self.log_info("I: Stopped scanning")
+            self.debug("Stopped scanning")
+            del(self.discoverer)
+            self.scan_with_default()
