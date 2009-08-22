@@ -1,1 +1,9 @@
-Bluetrackd is a Bluetooth device scanning daemon.
+Gyrid is a Bluetooth device scanning daemon. When there is a Bluetooth adapter
+connected to the computer, it continuously scans for Bluetooth-enabled devices
+which are publicly visible. Their MAC-addresses are saved to a logfile including
+a timestamp and their device class (which is a number that indicates whether
+the device is a phone, a carkit, etc.).
+
+The idea behind this is scientifical. When multiple of these scanners are placed
+at known positions, the logfiles can be combined afterwards into a (geo)database
+and used for analysis of group behaviour.
