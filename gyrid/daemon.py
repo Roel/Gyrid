@@ -1,8 +1,8 @@
 #-*- coding: utf-8 -*-
 #
-# This file belongs to Bluetracker.
+# This file belongs to Gyrid.
 #
-# Bluetracker is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner daemon.
 #
 # Source of this module:
 #   http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/

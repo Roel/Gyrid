@@ -1,8 +1,8 @@
 #-*- coding: utf-8 -*-
 #
-# This file belongs to Bluetracker.
+# This file belongs to Gyrid.
 #
-# Bluetracker is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner daemon.
 # Copyright (C) 2007-2009  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -159,7 +159,7 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
         @return  (str)    A default configuration file, based on the
                           configuration options.
         """
-        default = '#Bluetracker configuration file\n[Bluetracker]\n\n'
+        default = '#Gyrid configuration file\n[Gyrid]\n\n'
         for option in self.configuration.options:
             default += "\n#".join(textwrap.wrap("#%s" % option.description, 80))
             if option.values:
@@ -183,7 +183,7 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
                            option.
         """
         try:
-            return ConfigParser.ConfigParser.get(self, 'Bluetracker', option)
+            return ConfigParser.ConfigParser.get(self, 'Gyrid', option)
         except:
             return None
 

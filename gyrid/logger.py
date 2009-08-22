@@ -1,8 +1,8 @@
 #-*- coding: utf-8 -*-
 #
-# This file belongs to Bluetracker.
+# This file belongs to Gyrid.
 #
-# Bluetracker is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner daemon.
 # Copyright (C) 2009  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@ class Logger(object):
         """
         self.mgr = mgr
         
-        self.scanlogger = logging.getLogger('BluetrackerScanLogger')
+        self.scanlogger = logging.getLogger('GyridScanLogger')
         self.scanlogger.setLevel(logging.INFO)
         handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
             logfile)
