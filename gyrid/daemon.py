@@ -93,6 +93,7 @@ class Daemon:
 
         if pid:
             message = "pidfile %s already exist. Daemon already running?\n"
+            sys.stderr.write("Gyrid: Error: %s" % message)
             self.log_error('Error', message % self.pidfile)
             sys.exit(1)
 
