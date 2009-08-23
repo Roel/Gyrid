@@ -206,7 +206,7 @@ class ParallelScanManager(ScanManager):
         print(message)
 
     def _create_log_dir(self, mac):
-        path = '/var/log/bluetracker/%s' % mac
+        path = '/var/log/gyrid/%s' % mac
         if mac != '00:00:00:00:00:00' and not os.path.exists(path):
             os.makedirs(path, 0755)
 
@@ -239,7 +239,7 @@ class ParallelScanManager(ScanManager):
         
         @param  device_id   The device to use for scanning.
         """
-        _logger = logger.Logger(self, '/var/log/bluetracker/%s/scan.log' % \
+        _logger = logger.Logger(self, '/var/log/gyrid/%s/scan.log' % \
             device.GetProperties()['Address'])
         if device.GetProperties()['Discovering']:
             self.debug("Adapter %s (%s) is still discovering, waiting for the scan to end" % \
