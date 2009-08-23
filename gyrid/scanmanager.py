@@ -1,8 +1,8 @@
 #-*- coding: utf-8 -*-
 #
-# This file belongs to Bluetracker.
+# This file belongs to Gyrid.
 #
-# Bluetracker is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner daemon.
 # Copyright (C) 2009  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -81,7 +81,7 @@ class ScanManager(object):
             extra_time = ""
             if False in [i in time_format for i in '%H', '%M', '%S']:
                 extra_time = " (%H:%M:%S)"
-            sys.stderr.write("%s%s Bluetracker: %s.\n" % \
+            sys.stderr.write("%s%s Gyrid: %s.\n" % \
                 (time.strftime(self.config.get_value('time_format')), 
                 time.strftime(extra_time), message))
         
@@ -107,7 +107,7 @@ class ScanManager(object):
 class SerialScanManager(ScanManager):
     def __init__(self, main, debug_mode):
         ScanManager.__init__(self, main, debug_mode)
-        self.logger = logger.Logger(self, '/var/log/bluetracker/scan.log')
+        self.logger = logger.Logger(self, '/var/log/gyrid/scan.log')
 
     def log_info(self, message):
         self.logger.write_info(message)

@@ -1,8 +1,8 @@
 #-*- coding: utf-8 -*-
 #
-# This file belongs to Bluetracker.
+# This file belongs to Gyrid.
 #
-# Bluetracker is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner daemon.
 # Copyright (C) 2009  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -85,12 +85,12 @@ class Main(daemon.Daemon):
             self.mgr.log_info("I: Restarted" + debugstr)
             self.mgr.debug("Restarted")
             if not self.debug_mode:
-                print("Restarting bluetracker" + debugstr + ".")
+                print("Restarting Gyrid" + debugstr + ".")
         else:
             self.mgr.log_info("I: Started" + debugstr)
             self.mgr.debug("Started")
             if not self.debug_mode:
-                print("Starting bluetracker" + debugstr + ".")
+                print("Starting Gyrid" + debugstr + ".")
 
         try:
             self.mgr.run()
@@ -108,6 +108,6 @@ class Main(daemon.Daemon):
             self.mgr.log_info("I: Stopped")
             self.mgr.debug("Stopped")
             if not self.debug_mode:
-                print("Stopping bluetracker.")
+                print("Stopping Gyrid.")
         self.mgr.stop()
         daemon.Daemon.stop(self)

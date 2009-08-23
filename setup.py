@@ -1,9 +1,9 @@
 #!/usr/bin/python
 #-*- coding: utf-8 -*-
 #
-# This file belongs to Bluetracker.
+# This file belongs to Gyrid.
 #
-# Bluetracker is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner daemon.
 # Copyright (C) 2009  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -34,11 +34,11 @@ class InstallData(install_data):
     def run (self):
         """
         Call _gzip to zip the ChangeLog and install it to
-        /usr/share/doc/bluetracker.
+        /usr/share/doc/gyrid.
         """
 
-        self._gzip('ChangeLog', 'share/doc/bluetracker')
-        self._gzip('bluetracker/tools/oui_data.txt', 'share/bluetracker')
+        self._gzip('ChangeLog', 'share/doc/gyrid')
+        self._gzip('gyrid/tools/oui_data.txt', 'share/gyrid')
         install_data.run (self)
 
     def _gzip(self, file, dest):
@@ -62,12 +62,12 @@ class InstallData(install_data):
             raise SystemExit('Error while gzipping %(file)s' % str)
         self.data_files.append((dest, ['%(build)s/%(fileLower)s.gz' % str]))
 
-setup(name = "bluetracker",
+setup(name = "gyrid",
       version = "0.0.13",
       description = "Bluetooth device scanner daemon.",
       author = "Roel Huybrechts",
       author_email = "roel.huybrechts@ugent.be",
       license = "GPLv3",
-      packages = ["bluetracker", "bluetracker/tools"],
-      data_files = [("/etc/init.d", ['init/bluetracker'])],
+      packages = ["gyrid", "gyrid/tools"],
+      data_files = [("/etc/init.d", ['init/gyrid'])],
       cmdclass = {'install_data': InstallData})

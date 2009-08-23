@@ -1,8 +1,8 @@
 #-*- coding: utf-8 -*-
 #
-# This file belongs to Bluetracker.
+# This file belongs to Gyrid.
 #
-# Bluetracker is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner daemon.
 # Copyright (C) 2009  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -65,4 +65,4 @@ try:
     filepath = os.path.join(__dir__, 'oui_data.txt')
     _parse_oui(filepath)
 except IOError:
-    _parse_oui('/usr/share/bluetracker/oui_data.txt.gz')
+    _parse_oui('/usr/share/gyrid/oui_data.txt.gz')

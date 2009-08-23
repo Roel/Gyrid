@@ -1,17 +1,17 @@
 #!/usr/bin/python
 #-*- coding: utf-8 -*-
 ### BEGIN INIT INFO
-# Provides:          bluetracker
+# Provides:          gyrid
 # Required-Start:    $local_fs $remote_fs $network $syslog
 # Required-Stop:     $local_fs $remote_fs $network $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Start/stop bluetracker bluetooth scanner
+# Short-Description: Start/stop Gyrid bluetooth scanner
 ### END INIT INFO-
 #
-# This file belongs to Bluetracker.
+# This file belongs to Gyrid.
 #
-# Bluetracker is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner daemon.
 # Copyright (C) 2009  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -31,30 +31,30 @@ import os
 import sys
 
 try:
-    from bluetracker import bluetracker
+    from gyrid import gyrid
 except ImportError:
-    sys.stderr.write("Error: bluetracker not installed.\n")
+    sys.stderr.write("Error: gyrid not installed.\n")
     sys.exit(1)
 
-ERRORLOGFILE = '/var/log/bluetracker/error.log'
-LOCKFILE = '/var/run/bluetracker.pid'
-CONFIGFILE = '/etc/bluetracker.conf'
+ERRORLOGFILE = '/var/log/gyrid/error.log'
+LOCKFILE = '/var/run/gyrid.pid'
+CONFIGFILE = '/etc/gyrid.conf'
 
 if __name__ == '__main__':
     #Check for write access to LOGFILE, ERRORLOGFILE, LOCKFILE and CONFIGFILE.
     access = True
     for file in [ERRORLOGFILE, LOCKFILE, CONFIGFILE]:
         if os.path.exists(file) and os.access(file, os.W_OK) == False:
-            sys.stderr.write("Bluetracker: Error: Needs write access to %s\n" % file)
+            sys.stderr.write("Gyrid: Error: Needs write access to %s\n" % file)
             access = False
         elif not os.path.exists(file) and os.access(os.path.dirname(file), os.W_OK) == False:
-            sys.stderr.write("Bluetracker: Error: Needs write access to %s\n" % file)
+            sys.stderr.write("Gyrid: Error: Needs write access to %s\n" % file)
             access = False
     if not access:
         sys.exit(1)
 
-    #Create main bluetracker instance.
-    main = bluetracker.Main(LOCKFILE, CONFIGFILE, ERRORLOGFILE,
+    #Create main gyrid instance.
+    main = gyrid.Main(LOCKFILE, CONFIGFILE, ERRORLOGFILE,
             'debug' in sys.argv)
 
     #Start, stop or restart the daemon.
