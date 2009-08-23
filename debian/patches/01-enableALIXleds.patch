@@ -1,7 +1,7 @@
-diff -Nur -x '*.orig' -x '*~' tracker/bluetracker/configuration.py tracker.new/bluetracker/configuration.py
---- tracker/bluetracker/configuration.py	2009-08-06 09:51:42.000000000 +0200
-+++ tracker.new/bluetracker/configuration.py	2009-08-06 11:35:45.833524419 +0200
-@@ -68,7 +68,7 @@
+diff -Nur -x '*.orig' -x '*~' git/gyrid/configuration.py git.new/gyrid/configuration.py
+--- git/gyrid/configuration.py	2009-08-23 17:11:09.000000000 +0200
++++ git.new/gyrid/configuration.py	2009-08-23 17:20:11.545552546 +0200
+@@ -67,7 +67,7 @@
              description = 'Support for flashing LEDs on ALIX boards.',
              type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
              values = {True: 'Enable support.', False: 'Disable support.'},
@@ -9,4 +9,4 @@ diff -Nur -x '*.orig' -x '*~' tracker/bluetracker/configuration.py tracker.new/b
 +            default = True)
              
          time_format = _Option(name = 'time_format',
-             description = 'The time format to use in the logfile. This string ' +
+             description = 'The time format to use in the logfile. This ' +
