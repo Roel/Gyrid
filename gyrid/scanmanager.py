@@ -219,11 +219,8 @@ class ParallelScanManager(ScanManager):
             self.debug("Found Bluetooth adapter with address %s (%s)" %
                 (adap_mac, str(adapter).split('/')[-1]))
 
-            self._create_log_dir(adap_mac)
-
     def _bluetooth_adapter_added(self, path=None):
         device = ScanManager._bluetooth_adapter_added(self, path)
-        self._create_log_dir(device.GetProperties()['Address'])
         self._start_discover(device, int(str(path).split('/')[-1].strip('hci')))
 
     def stop(self):
@@ -239,8 +236,9 @@ class ParallelScanManager(ScanManager):
         
         @param  device_id   The device to use for scanning.
         """
-        _logger = logger.Logger(self, '/var/log/gyrid/%s/scan.log' % \
-            device.GetProperties()['Address'])
+        address = device.GetProperties()['Address']
+        self._create_log_dir(address)
+        _logger = logger.Logger(self, '/var/log/gyrid/%s/scan.log' % address)
         if device.GetProperties()['Discovering']:
             self.debug("Adapter %s (%s) is still discovering, waiting for the scan to end" % \
                 (self.default_adap_iface.GetProperties()['Address'],
@@ -248,7 +246,6 @@ class ParallelScanManager(ScanManager):
             #device.connect_to_signal("PropertyChanged", self._dev_prop_changed)
         else:
             _discoverer = discoverer.Discoverer(self, _logger, device_id)
-            address = device.GetProperties()['Address']
             
             self.debug("Started scanning with adapter %s (%s)" %
                 (address, 'hci%i' % device_id))
