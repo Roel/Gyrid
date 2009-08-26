@@ -4,4 +4,4 @@ set -e
 
 #DEBHELPER#
 
-update-rc.d bluetracker defaults 98 02
+update-rc.d gyrid defaults 98 02

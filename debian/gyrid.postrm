@@ -5,5 +5,5 @@ set -e
 #DEBHELPER#
 
 if [ "$1" = purge ]; then
-    update-rc.d -f bluetracker remove
+    update-rc.d -f gyrid remove
 fi
