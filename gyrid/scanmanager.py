@@ -50,8 +50,10 @@ class ScanManager(object):
         """
         self.main = main
         self.debug_mode = debug_mode
-        
+
         self.config = configuration.Configuration(self, self.main.configfile)
+
+        self.time_format = self.config.get_value('time_format')
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()
@@ -77,9 +79,8 @@ class ScanManager(object):
         @param  message   The text to print.
         """
         if self.debug_mode:
-            time_format = self.config.get_value('time_format')
             extra_time = ""
-            if False in [i in time_format for i in '%H', '%M', '%S']:
+            if False in [i in self.time_format for i in '%H', '%M', '%S']:
                 extra_time = " (%H:%M:%S)"
             sys.stderr.write("%s%s Gyrid: %s.\n" % \
                 (time.strftime(self.config.get_value('time_format')), 
@@ -106,6 +107,7 @@ class ScanManager(object):
 
 class SerialScanManager(ScanManager):
     def __init__(self, main, debug_mode):
+        self.name = 'serial'
         ScanManager.__init__(self, main, debug_mode)
         self.logger = logger.Logger(self, '/var/log/gyrid/scan.log')
 
@@ -200,13 +202,15 @@ class SerialScanManager(ScanManager):
 
 class ParallelScanManager(ScanManager):
     def __init__(self, main, debug_mode):
+        self.name = 'parallel'
         ScanManager.__init__(self, main, debug_mode)
+        self.info_logger = logger.Logger(self, '/var/log/gyrid/parallel/messages.log')
 
     def log_info(self, message):
-        print(message)
+        self.info_logger.write_info(message)
 
     def _create_log_dir(self, mac):
-        path = '/var/log/gyrid/%s' % mac
+        path = '/var/log/gyrid/parallel/%s' % mac
         if mac != '00:00:00:00:00:00' and not os.path.exists(path):
             os.makedirs(path, 0755)
 
@@ -237,31 +241,30 @@ class ParallelScanManager(ScanManager):
         @param  device_id   The device to use for scanning.
         """
         address = device.GetProperties()['Address']
-        self._create_log_dir(address)
-        _logger = logger.Logger(self, '/var/log/gyrid/%s/scan.log' % address)
-        if device.GetProperties()['Discovering']:
-            self.debug("Adapter %s (%s) is still discovering, waiting for the scan to end" % \
-                (self.default_adap_iface.GetProperties()['Address'],
-                 str(self.default_adap_path).split('/')[-1]))
-            #device.connect_to_signal("PropertyChanged", self._dev_prop_changed)
-        else:
-            _discoverer = discoverer.Discoverer(self, _logger, device_id)
-            
-            self.debug("Started scanning with adapter %s (%s)" %
-                (address, 'hci%i' % device_id))
-            _logger.write_info('I: Started scanning with %s' % address)
-            _logger.start()
-            while not _discoverer.done:
-                try:
-                    _discoverer.process_event()
-                except bluetooth._bluetooth.error, e:
-                    if e[0] == 32:
-                        self.debug("Bluetooth adapter %s (%s) lost" %
-                            (address, 'hci%i' % device_id))
-                        _logger.write_info("E: Bluetooth adapter %s lost" %
-                            address)
-                        _logger.stop()
-                        _discoverer.done = True
-            self.log_info("I: Stopped scanning")
-            self.debug("Stopped scanning")
+        if address != '00:00:00:00:00:00':
+            self._create_log_dir(address)
+            _logger = logger.Logger(self, '/var/log/gyrid/parallel/%s/scan.log' % address)
+            if device.GetProperties()['Discovering']:
+                self.debug("Adapter %s (%s) is still discovering, waiting for the scan to end" % \
+                    (self.default_adap_iface.GetProperties()['Address'],
+                     str(self.default_adap_path).split('/')[-1]))
+                #device.connect_to_signal("PropertyChanged", self._dev_prop_changed)
+            else:
+                _discoverer = discoverer.Discoverer(self, _logger, device_id)
+
+                self.debug("Started scanning with adapter %s" % address)
+                _logger.write_info('I: Started scanning')
+                _logger.start()
+                while not _discoverer.done:
+                    try:
+                        _discoverer.process_event()
+                    except bluetooth._bluetooth.error, e:
+                        if e[0] == 32:
+                            self.debug("Bluetooth adapter %s (%s) lost" %
+                                (address, 'hci%i' % device_id))
+                            _logger.write_info("E: Bluetooth adapter lost")
+                            _logger.stop()
+                            _discoverer.done = True
+                self.log_info("I: Stopped scanning with adapter %s" % address)
+                self.debug("Stopped scanning with adapter %s" % address)
             del(_discoverer)
