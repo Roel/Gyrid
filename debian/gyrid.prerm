@@ -3,12 +3,12 @@
 set -e
 
 if [ -f /var/run/bluetracker.pid ]; then
-    echo "Stopping bluetracker."
+    echo "Stopping Gyrid."
 
     if which invoke-rc.d >/dev/null 2>&1; then
-        invoke-rc.d bluetracker stop
+        invoke-rc.d gyrid stop
     else
-        /etc/init.d/bluetracker stop
+        /etc/init.d/gyrid stop
     fi
 fi
 
