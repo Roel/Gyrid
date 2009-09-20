@@ -82,13 +82,11 @@ class Main(daemon.Daemon):
         """
         debugstr = " in debug mode" if self.debug_mode else ""
         if restart:
-            self.mgr.log_info("I: Restarted" + debugstr)
-            self.mgr.debug("Restarted")
+            self.mgr.log_info("Restarted" + debugstr)
             if not self.debug_mode:
                 print("Restarting Gyrid" + debugstr + ".")
         else:
-            self.mgr.log_info("I: Started" + debugstr)
-            self.mgr.debug("Started")
+            self.mgr.log_info("Started" + debugstr)
             if not self.debug_mode:
                 print("Starting Gyrid" + debugstr + ".")
 
@@ -105,8 +103,7 @@ class Main(daemon.Daemon):
         @param  restart   If this call is part of a restart operation.
         """
         if not restart:
-            self.mgr.log_info("I: Stopped")
-            self.mgr.debug("Stopped")
+            self.mgr.log_info("Stopped")
             if not self.debug_mode:
                 print("Stopping Gyrid.")
         self.mgr.stop()

@@ -32,7 +32,7 @@ class Logger(object):
     of recently seen devices, in order to only write incoming and outgoing
     devices to the logfile.
     """
-    def __init__(self, mgr, logfile):
+    def __init__(self, mgr, mac):
         """
         Initialisation of the logfile, pool and poolchecker.
         
@@ -40,11 +40,13 @@ class Logger(object):
         @param  configfile   URL of the configfile to write to.
         """
         self.mgr = mgr
-        
-        self.scanlogger = logging.getLogger('GyridScanLogger')
+
+        self.logfile = self.mgr.get_log_location(mac)
+
+        self.scanlogger = logging.getLogger(mac)
         self.scanlogger.setLevel(logging.INFO)
         handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
-            logfile)
+            self.logfile)
         handler.setFormatter(logging.Formatter("%(message)s"))
         self.scanlogger.addHandler(handler)
         
