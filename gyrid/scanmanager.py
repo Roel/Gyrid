@@ -52,6 +52,7 @@ class ScanManager(object):
         self.debug_mode = debug_mode
 
         self.config = configuration.Configuration(self, self.main.configfile)
+        self.info_logger = logger.Logger(self, 'info')
 
         self.time_format = self.config.get_value('time_format')
 
@@ -116,7 +117,6 @@ class ScanManager(object):
 class SerialScanManager(ScanManager):
     def __init__(self, main, debug_mode):
         ScanManager.__init__(self, main, debug_mode)
-        self.info_logger = logger.Logger(self, 'info')
 
     def get_log_location(self, mac):
         base = '/var/log/gyrid/serial/'
@@ -216,7 +216,6 @@ class SerialScanManager(ScanManager):
 class ParallelScanManager(ScanManager):
     def __init__(self, main, debug_mode):
         ScanManager.__init__(self, main, debug_mode)
-        self.info_logger = logger.Logger(self, 'info')
 
     def get_log_location(self, mac):
         base = '/var/log/gyrid/parallel/'
