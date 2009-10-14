@@ -46,7 +46,7 @@ class Main(daemon.Daemon):
         self.configfile = configfile
         self.errorlogfile = errorlogfile
         self.debug_mode = debug_mode
-        self.mgr = scanmanager.ParallelScanManager(self, self.debug_mode)
+        self.mgr = scanmanager.SerialScanManager(self, self.debug_mode)
 
         self.main_loop = gobject.MainLoop()
 
