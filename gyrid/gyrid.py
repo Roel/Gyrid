@@ -59,7 +59,7 @@ class Main(daemon.Daemon):
         """
         Handle the exception by writing information to the error log.
         """
-        exc = ' '.join(traceback.format_exception(etype, evalue, etraceback)).replace('\n', '')
+        exc = ''.join(traceback.format_exception(etype, evalue, etraceback))
         self.log_error('Error', exc)
         sys.stderr.write("Error: unhandled exception: %s, %s\n\n" % \
             (etype.__name__, evalue))
