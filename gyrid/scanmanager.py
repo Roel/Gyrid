@@ -166,19 +166,19 @@ class SerialScanManager(ScanManager):
         self.scan_with_default()
 
     def scan_with_default(self):
-        try:
-            if not 'discoverer' in self.__dict__:
+        if not 'discoverer' in self.__dict__:
+            try:
                 default_adap_path = self._dbus_bluez_manager.DefaultAdapter()
                 device_obj = self._dbus_systembus.get_object("org.bluez",
                     default_adap_path)
                 default_adap_iface = dbus.Interface(device_obj,
                     "org.bluez.Adapter")
-        except dbus.DBusException:
-            #No adapter found
-            pass
-        else:
-            self._start_discover(default_adap_iface,
-                int(str(default_adap_path).split('/')[-1].strip('hci')))
+            except dbus.DBusException:
+                #No adapter found
+                pass
+            else:
+                self._start_discover(default_adap_iface,
+                    int(str(default_adap_path).split('/')[-1].strip('hci')))
 
     def stop(self):
         self.info_logger.stop()
@@ -192,8 +192,7 @@ class SerialScanManager(ScanManager):
         if property == "Discovering" and \
                 value == False and \
                 'discoverer' not in self.__dict__:
-            self._start_discover(self.default_adap_iface,
-                int(str(self.default_adap_path).split('/')[-1].strip('hci')))
+            self.scan_with_default()
 
     @threaded
     def _start_discover(self, device, device_id):
