@@ -26,7 +26,45 @@ import time
 
 import zippingfilehandler
 
-class Logger(object):
+class InfoLogger(object):
+    """
+    The InfoLogger class handles writing informational messages to a logfile.
+    """
+    def __init__(self, mgr):
+        """
+        Initialisation of the logfile.
+
+        @param  mgr   Reference to a ScanManager instance.
+        """
+        self.mgr = mgr
+
+        self.logger = self._get_logger()
+        self.logger.setLevel(logging.INFO)
+
+        self.time_format = self.mgr.config.get_value('time_format')
+
+    def _get_log_location(self):
+        return self.mgr.get_info_log_location()
+
+    def _get_logger(self):
+        logger = logging.getLogger('info')
+        handler = logging.FileHandler(self._get_log_location())
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(handler)
+        return logger
+
+    def write_info(self, info):
+        """
+        Append a timestamp and the information to the logfile on a new line
+        and flush the file.
+
+        @param  info   The information to write.
+        """
+        self.logger.info(",".join([time.strftime(
+            self.time_format,
+            time.localtime()), info]))
+
+class Logger(InfoLogger):
     """
     The Logger class handles all writing to the logfile and stores a pool
     of recently seen devices, in order to only write incoming and outgoing
@@ -39,25 +77,27 @@ class Logger(object):
         @param  logfile      URL of the logfile to write to.
         @param  configfile   URL of the configfile to write to.
         """
-        self.mgr = mgr
-
-        self.logfile = self.mgr.get_log_location(mac)
-
-        self.scanlogger = logging.getLogger(mac)
-        self.scanlogger.setLevel(logging.INFO)
-        handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
-            self.logfile)
-        handler.setFormatter(logging.Formatter("%(message)s"))
-        self.scanlogger.addHandler(handler)
+        self.mac = mac
+        InfoLogger.__init__(self, mgr)
         
         self.started = False
         self.alix_led_support = self.mgr.config.get_value('alix_led_support')
-        self.time_format = self.mgr.config.get_value('time_format')
         
         self.pool = {}
         self.temp_pool = {}
         self.poolchecker = PoolChecker(self.mgr, self)
         self.lock = threading.Lock()
+
+    def _get_log_location(self):
+        return self.mgr.get_scan_log_location(self.mac)
+
+    def _get_logger(self):
+        logger = logging.getLogger(self.mac)
+        handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
+            self._get_log_location())
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(handler)
+        return logger
         
     def write(self, timestamp, mac_address, device_class, moving):
         """
@@ -68,23 +108,12 @@ class Logger(object):
         @param  device_class   Device class of the Bluetooth device.
         @param  moving         Whether the device is moving 'in' or 'out'.
         """
-        self.scanlogger.info(",".join([time.strftime(
+        self.logger.info(",".join([time.strftime(
             self.time_format, 
             time.localtime(timestamp)),
             str(mac_address),
             str(device_class),
             str(moving)]))
-
-    def write_info(self, info):
-        """
-        Append a timestamp and the information to the logfile on a new line
-        and flush the file.
-
-        @param  info   The information to write.
-        """
-        self.scanlogger.info(",".join([time.strftime(
-            self.time_format,
-            time.localtime()), info]))
 
     def update_device(self, timestamp, mac_address, device_class):
         """
@@ -150,7 +179,6 @@ class Logger(object):
             file = open('/sys/class/leds/alix:%i/brightness' % id, 'w')
             file.write(str(swap[current_state]))
             file.close()
-
 
 class PoolChecker(threading.Thread):
     """
