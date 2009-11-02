@@ -24,7 +24,7 @@ Module to get useful information from the device class of a Bluetooth
 device.
 
 Information from Bluetooth Assigned Numbers, Bluetooth Baseband:
-    http://violator.kiev.ua/docs/Bluetooth_assigned_numbers_baseband.pdf
+    http://simon.dehartog.nl/datasheets/protocols/Bluetooth_assigned_numbers_baseband.pdf
 """
 
 SERVICE_MASK = 0xffe000
