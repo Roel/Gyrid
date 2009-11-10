@@ -33,9 +33,8 @@ class Discoverer(bluetooth.DeviceDiscoverer):
 
         @param  logger  Reference to a Logger instance.
         """
-        # We need a patched version of Pybluez where one can specify a 
-        # device_id when initialising a DeviceDiscoverer. Patch is available
-        # at Pybluez's code.google.com as issue 18.
+        # We need PyBluez >= 0.17 to be able to specify a device_id when
+        # creating a DeviceDiscoverer.
         bluetooth.DeviceDiscoverer.__init__(self, device_id)
         
         self.mgr = mgr
