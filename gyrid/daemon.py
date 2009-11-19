@@ -116,7 +116,7 @@ class Daemon:
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n" % self.pidfile
             sys.stderr.write("Gyrid: Error: %s" % message)
-            self.log_error(message)
+            self.log_error('Error', message)
             if restart:
                 return # not an error in a restart
             else:
