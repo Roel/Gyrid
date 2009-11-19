@@ -40,7 +40,7 @@ class Daemon:
                 # exit first parent
                 sys.exit(0)
         except OSError, e:
-            self.errorlogger.error("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
+            sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
             sys.exit(1)
 
         # decouple from parent environment
@@ -55,7 +55,7 @@ class Daemon:
                 # exit from second parent
                 sys.exit(0)
         except OSError, e:
-            self.errorlogger.error("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
+            sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
             sys.exit(1)
 
         # redirect standard file descriptors
@@ -92,9 +92,9 @@ class Daemon:
             pid = None
 
         if pid:
-            message = "pidfile %s already exist. Daemon already running?\n"
+            message = "pidfile %s already exist. Daemon already running?\n" % self.pidfile
             sys.stderr.write("Gyrid: Error: %s" % message)
-            self.log_error('Error', message % self.pidfile)
+            self.log_error('Error', message)
             sys.exit(1)
 
         # Start the daemon
@@ -114,8 +114,9 @@ class Daemon:
             pid = None
 
         if not pid:
-            message = "pidfile %s does not exist. Daemon not running?\n"
-            self.errorlogger.error(message % self.pidfile)
+            message = "pidfile %s does not exist. Daemon not running?\n" % self.pidfile
+            sys.stderr.write("Gyrid: Error: %s" % message)
+            self.log_error(message)
             if restart:
                 return # not an error in a restart
             else:

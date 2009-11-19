@@ -41,10 +41,11 @@ class Main(daemon.Daemon):
         @param  errorlogfile    URL of the errorlogfile.
         @param  debug_mode      Whether to start in debug mode.
         """
+        self.errorlogfile = errorlogfile
+        self.errorlog = open(self.errorlogfile, 'a')
         sys.excepthook = self._handle_exception
         
         self.configfile = configfile
-        self.errorlogfile = errorlogfile
         self.debug_mode = debug_mode
         self.mgr = scanmanager.SerialScanManager(self, self.debug_mode)
 
@@ -66,7 +67,6 @@ class Main(daemon.Daemon):
         sys.stderr.write(' '.join(traceback.format_exception(etype, evalue, etraceback)))
 
     def log_error(self, level, message):
-        self.errorlog = open(self.errorlogfile, 'a')
         self.errorlog.write("%(tijd)s %(level)s: %(message)s\n" % \
             {'tijd': time.strftime('%Y%m%d-%H%M%S'),
              'level': level, 'message': message})
