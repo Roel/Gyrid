@@ -1,3 +1,13 @@
+gyrid (0.1-0ugent1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control:
+      - updated dependencies to require pybluez >= 0.17.
+  * debian/patches:
+      - update patch to enable ALIX led support.
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 19 Nov 2009 11:27:12 +0100
+
 bluetracker (0.0.13-0ugent1) experimental; urgency=low
 
   * New upstream release.

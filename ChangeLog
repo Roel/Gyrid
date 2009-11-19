@@ -1,3 +1,21 @@
+gyrid 0.1
+
+   * Added configuration option to specify the timeformat being used.
+   * Switch from full IEEE data to a trimmed down version keeping all
+   information. Added script to generate this file.
+   * Introduced the concept of ScanManagers to simplify the definition
+   of program behaviour. We have two ScanManagers at present:
+      - SerialScanManager: This default ScanManager scans with one
+      Bluetooth adaptor at the time.
+      - ParallelScanManager: Not fully matured ScanManager that ought to
+      scan with multiple adaptors simultaneously.
+   * Print error message when starting while already running.
+   * Don't reduce logged tracebacks to a single line.
+   * Fix serious bug on logrotation causing data corruption.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 19 Nov 2009 11:38:16 +0100
+
+
 bluetracker 0.0.13
 
    * Change buffer_size option to type float and a default of 10.24 seconds.
