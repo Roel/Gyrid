@@ -88,28 +88,37 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         while newRolloverAt <= currentTime:
             newRolloverAt = newRolloverAt + self.interval
         self.rolloverAt = newRolloverAt
-        
+
     def _process_passing_movement(self, input_file, output_file):
         """
-        Return an updated file where all 'pass' movements are shown as such.
+        Create an updated file where all 'pass' movements are shown as such.
         """
         macs = {}
         for line in input_file:
             linelist = line.split(',')
-            if len(linelist) > 2:
-                tijd = line.split(',')[0]
-                mac = line.split(',')[1]
-                dc = line.split(',')[2]
-                if (mac in macs) and (macs[mac][0] == tijd):
+            if len(linelist) == 4:
+                tijd = linelist[0].strip()
+                mac = linelist[1].strip()
+                dc = linelist[2].strip()
+                move = linelist[3].strip()
+
+                if not mac in macs:
+                    macs[mac] = [tijd, dc, move]
+                elif macs[mac][0] == tijd and \
+                        macs[mac][2] == 'in' and \
+                        move == 'out' and \
+                        macs[mac][1] == dc:
                     output_file.write(','.join([str(i) for i in [tijd, mac, dc, 'pass']]) + '\n')
                     del(macs[mac])
-                elif mac in macs:
-                    output_file.write(','.join([str(i) for i in [macs[mac][0], mac, dc, 'in']]) + '\n')
-                    output_file.write(','.join([str(i) for i in [tijd, mac, dc, 'out']]) + '\n')
-                    del(macs[mac])
                 else:
-                    macs[mac] = [tijd, dc]
+                    output_file.write(','.join([str(i) for i in [macs[mac][0],
+                        mac, macs[mac][1], macs[mac][2]]]) + '\n')
+                    output_file.write(','.join([str(i) for i in [tijd, mac, dc, move]]) + '\n')
+                    del(macs[mac])
+
             else:
-                output_file.write(line.strip('\n') + '\n')
+                output_file.write(line.strip() + '\n')
+
         for mac in macs:
-            output_file.write(','.join([str(i) for i in [macs[mac][0], mac, macs[mac][1], 'in']]) + '\n')
+            output_file.write(','.join([str(i) for i in [macs[mac][0],
+                mac, macs[mac][1], macs[mac][2]]]) + '\n')
