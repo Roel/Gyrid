@@ -1,3 +1,10 @@
+gyrid 0.1.1
+
+   * Fix issue with error reporting in daemon.py.
+   * Dim the Alix LED's when Gyrid is shutting down.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 20 Nov 2009 00:00:36 +0100
+
 gyrid 0.1
 
    * Added configuration option to specify the timeformat being used.
@@ -14,7 +21,6 @@ gyrid 0.1
    * Fix serious bug on logrotation causing data corruption.
 
 -- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 19 Nov 2009 11:38:16 +0100
-
 
 bluetracker 0.0.13
 
