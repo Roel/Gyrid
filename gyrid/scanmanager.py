@@ -135,9 +135,16 @@ class ScanManager(object):
 
     def stop(self):
         """
-        Implement this method in a subclass.
+        Use this function in a subclass. Dims the lights on shutdown.
         """
-        raise NotImplementedError
+        if self.config.get_value('alix_led_support') and \
+                (False not in [os.path.exists('/sys/class/leds/alix:%i' % i) \
+                for i in [1, 2, 3]]):
+
+            for i in [1, 2]:
+                file = open('/sys/class/leds/alix:%i/brightness' % i, 'w')
+                file.write('0')
+                file.close()
 
 
 class SerialScanManager(ScanManager):
@@ -183,7 +190,7 @@ class SerialScanManager(ScanManager):
                     int(str(default_adap_path).split('/')[-1].strip('hci')))
 
     def stop(self):
-        pass
+        ScanManager.stop(self)
 
     def _dev_prop_changed(self, property, value):
         """
@@ -258,7 +265,7 @@ class ParallelScanManager(ScanManager):
         self._start_discover(device, int(str(path).split('/')[-1].strip('hci')))
 
     def stop(self):
-        pass
+        ScanManager.stop(self)
 
     @threaded
     def _start_discover(self, device, device_id):
