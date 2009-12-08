@@ -33,23 +33,27 @@ import sys
 try:
     from gyrid import gyrid
 except ImportError:
-    sys.stderr.write("Error: gyrid not installed.\n")
+    sys.stderr.write("Error: Importing Gyrid failed. Is the program properly installed?\n")
     sys.exit(1)
 
+LOGDIR = '/var/log/gyrid/'
 ERRORLOGFILE = '/var/log/gyrid/error.log'
 LOCKFILE = '/var/run/gyrid.pid'
 CONFIGFILE = '/etc/gyrid.conf'
 
 if __name__ == '__main__':
-    #Check for write access to LOGFILE, ERRORLOGFILE, LOCKFILE and CONFIGFILE.
+    #Check for write access to LOGDIR, ERRORLOGFILE, LOCKFILE and CONFIGFILE.
     access = True
-    for file in [ERRORLOGFILE, LOCKFILE, CONFIGFILE]:
-        if os.path.exists(file) and os.access(file, os.W_OK) == False:
+    for file in [LOGDIR, ERRORLOGFILE, LOCKFILE, CONFIGFILE]:
+        if not os.path.exists(os.path.dirname(file)):
+            os.makedirs(os.path.dirname(file))
+        elif (os.path.exists(file)) and (os.access(file, os.W_OK) == False):
             sys.stderr.write("Gyrid: Error: Needs write access to %s\n" % file)
             access = False
-        elif not os.path.exists(file) and os.access(os.path.dirname(file), os.W_OK) == False:
+        elif (not os.path.exists(file)) and (os.access(os.path.dirname(file), os.W_OK) == False):
             sys.stderr.write("Gyrid: Error: Needs write access to %s\n" % file)
             access = False
+
     if not access:
         sys.exit(1)
 
