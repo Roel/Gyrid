@@ -69,7 +69,7 @@ class Configuration(object):
             description = 'Support for flashing LEDs on ALIX boards.',
             type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
             values = {True: 'Enable support.', False: 'Disable support.'},
-            default = False)
+            default = True)
             
         time_format = _Option(name = 'time_format',
             description = 'The time format to use in the logfile. This ' +
