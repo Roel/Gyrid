@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import bluetooth
+import math
 import time
 
 class Discoverer(bluetooth.DeviceDiscoverer):
@@ -36,16 +37,20 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         # We need PyBluez >= 0.17 to be able to specify a device_id when
         # creating a DeviceDiscoverer.
         bluetooth.DeviceDiscoverer.__init__(self, device_id)
-        
+
         self.mgr = mgr
         self.logger = logger
+        self.buffer_size = int(math.ceil(
+            self.mgr.config.get_value('buffer_size')/1.28))
+
         self.find()
 
     def find(self):
         """
         Start scanning.
         """
-        self.find_devices(flush_cache=True, lookup_names=False, duration=8)
+        self.find_devices(flush_cache=True, lookup_names=False,
+            duration=self.buffer_size)
 
     def pre_inquiry(self):
         """

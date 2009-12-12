@@ -58,9 +58,11 @@ class Configuration(object):
         buffer_size = _Option(name = 'buffer_size',
             description = 'The buffer length in seconds. This is the amount ' +
                 'of time a device may disappear and appear again without it ' +
-                'being noticed.',
+                'being noticed. This option also influences the inquiry ' +
+                'time, which is defined as ceil(buffer_size/1.28).',
             type = 'float("%s")',
-            values = {10.24: 'Buffer size to match the scan time of 8*1.28s.'},
+            values = {10.24: 'Buffer size to match the inquiry time of ' +
+                '8*1.28s.'},
             default = 10.24)
 
         alix_led_support = _Option(name = 'alix_led_support',
