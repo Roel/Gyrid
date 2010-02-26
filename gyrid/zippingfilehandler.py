@@ -22,6 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import bz2
+import glob
 import logging
 import logging.handlers
 import os
@@ -44,7 +45,7 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         currentTime = int(time.time())
 
         self.interval = 60 * 60 # one hour
-        self.suffix = "%Y%m%d-%H%z"
+        self.suffix = "%Y%m%d-%H-%Z"
         self.extMatch = r"^\d{4}-\d{2}-\d{2}_\d{2}$"
 
         self.extMatch = re.compile(self.extMatch)
@@ -66,11 +67,18 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         # get the time that this sequence started at and make it a TimeTuple
         t = self.rolloverAt - self.interval
         timeTuple = time.localtime(t)
-        dfn = self.baseFilename + "." + time.strftime(self.suffix, timeTuple)
-        if os.path.exists(dfn):
-            os.remove(dfn)
+        dfn = '%s.%s' % (self.baseFilename, time.strftime(self.suffix, timeTuple))
+        dfn_bz2 = '%s.bz2' % dfn
+        if os.path.exists(dfn_bz2):
+            newest = sorted(glob.glob('%s*' % dfn_bz2), reverse=True)[0]
+            if newest != '%s.bz2' % dfn:
+                nr = int(newest[newest.rfind('.')+1:])
+            else:
+                nr = 0
+            nr += 1
+            os.rename(dfn_bz2, '%s.%i' % (dfn_bz2, nr))
         os.rename(self.baseFilename, dfn)
-        output = bz2.BZ2File(dfn + '.bz2', 'w')
+        output = bz2.BZ2File(dfn_bz2, 'w')
         input = open(dfn, 'r')
         self._process_passing_movement(input, output)
         output.close()

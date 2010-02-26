@@ -73,7 +73,8 @@ class Configuration(object):
             
         time_format = _Option(name = 'time_format',
             description = 'The time format to use in the logfile. This ' +
-                'string is passed to the time.strftime() function.',
+                'string is passed to the time.strftime() function. Hint: ' +
+                'don\'t use %z, it doesn\'t work.',
             values = {'%s': 'Write times in UNIX timestamp format.'},
             default = '%s')
 
