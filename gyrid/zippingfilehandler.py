@@ -3,7 +3,7 @@
 # This file belongs to Gyrid.
 #
 # Gyrid is a Bluetooth device scanner daemon.
-# Copyright (C) 2009  Roel Huybrechts
+# Copyright (C) 2009-2010  Roel Huybrechts
 #
 # Heavily based on code by Angel Freire
 #   (http://code.activestate.com/recipes/502265/)
