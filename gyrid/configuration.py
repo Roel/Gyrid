@@ -161,17 +161,17 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
         @return  (str)    A default configuration file, based on the
                           configuration options.
         """
-        default = '#Gyrid configuration file\n[Gyrid]\n\n'
+        default = '# Gyrid configuration file\n[Gyrid]\n\n'
         for option in self.configuration.options:
-            default += "\n#".join(textwrap.wrap("#%s" % option.description, 80))
+            default += "\n# ".join(textwrap.wrap("# %s" % option.description, 78))
             if option.values:
-                default += '\n# Values:'
+                default += '\n#  Values:'
                 for key in option.values.items():
                     if key[0] == option.default:
                         defaultValue = '(default) '
                     else:
                         defaultValue = ''
-                    default += '\n# %s - %s%s' % \
+                    default += '\n#  %s - %s%s' % \
                         (key[0], defaultValue, key[1])
             default += '\n%s = %s\n\n' % (option.name, option.default)
         return default.rstrip('\n')
