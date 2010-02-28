@@ -88,7 +88,7 @@ class ScanManager(object):
             extra_time = ""
             if False in [i in self.time_format for i in ['%H', '%M', '%S']]:
                 extra_time = " (%H:%M:%S)"
-            sys.stderr.write("%s%s Gyrid: %s.\n" % \
+            sys.stdout.write("%s%s Gyrid: %s.\n" % \
                 (time.strftime(self.config.get_value('time_format')), 
                 time.strftime(extra_time), message))
 
