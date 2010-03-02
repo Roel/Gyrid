@@ -6,4 +6,4 @@ the device is a phone, a carkit, etc.).
 
 The idea behind this is scientifical. When multiple of these scanners are placed
 at known positions, the logfiles can be combined afterwards into a (geo)database
-and used for analysis of group behaviour.
+and used for further analysis.

@@ -1,0 +1,45 @@
+.TH "gyrid" 1
+.SH NAME
+gyrid \- A Bluetooth device scanner and logger daemon.
+.SH SYNOPSIS
+.B /etc/init.d/gyrid
+start|stop|restart|debug|track [MAC-address]
+.SH DESCRIPTION
+Gyrid continuously scans the neighborhood for Bluetooth-enabled devices which are publicly visible, given there is a Bluetooth adapter connected.
+
+The MAC-addresses of the discovered devices are saved to a logfile including a timestamp and their device class (which is a number that indicates whether the device is a phone, a carkit, etc.).
+
+The idea behind this is scientifical. When multiple of these scanners are placed at known positions, the logfiles can be combined afterwards into a (geo)database for further research.
+.SH OPTIONS
+.TP
+.B start
+Start the Gyrid daemon.
+.TP
+.B stop
+Stop the Gyrid daemon.
+.TP
+.B restart
+Restart the Gyrid daemon.
+.TP
+.B debug
+Start Gyrid in debug mode, stopping any running Gyrid daemon. Debug mode does not daemonize the process and can be ended by issuing Ctrl+C on the console.
+
+Debug mode is more verbose, printing all activity to standard output. This might be useful to spot bugs or issues more easily.
+.TP
+.B track MAC-address
+Start Gyrid in track mode, stopping any running Gyrid daemon. Track mode does not daemonize the process and can be ended by issuing Ctrl+C on the console. A MAC-address to track is required as a second argument.
+
+Track mode prints a line to standard output every time the device with given MAC is discovered. The given MAC-address should be in the '00:11:22:33:44:55' format.
+.SH FILES
+.TP
+/etc/gyrid.conf
+Configuration file where a few options can be specified. The default configuration file documents all options.
+.TP
+/var/log/gyrid/
+This is the directory where all logfiles are stored.
+.SH BUGS
+Bugs and patches are welcome via e-mail at <roel.huybrechts@ugent.be>
+.SH VCS
+Gyrid is maintained in Git at <http://code.rulus.be/gyrid/>. Please test bugs and generate patches against current master.
+.SH AUTHOR
+Roel Huybrechts <roel.huybrechts@ugent.be>, Ghent University

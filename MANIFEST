@@ -12,6 +12,7 @@ gyrid/tools/generate_oui_data.py
 gyrid/tools/macvendor.py
 gyrid/tools/oui_data.txt
 init/gyrid
+doc/gyrid.1
 setup.py
 ChangeLog
 README

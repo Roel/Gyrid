@@ -39,6 +39,7 @@ class InstallData(install_data):
 
         self._gzip('ChangeLog', 'share/doc/gyrid')
         self._gzip('gyrid/tools/oui_data.txt', 'share/gyrid')
+        self._gzip('doc/gyrid.1', 'share/man/man1')
         install_data.run (self)
 
     def _gzip(self, file, dest):
