@@ -3,7 +3,7 @@
 # This file belongs to Gyrid.
 #
 # Gyrid is a Bluetooth device scanner daemon.
-# Copyright (C) 2009  Roel Huybrechts
+# Copyright (C) 2009-2010  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import bluetooth
 import dbus
 import dbus.mainloop.glib
 import os
+import re
 import sys
 import threading
 import time
@@ -42,15 +43,15 @@ def threaded(f):
     return wrapper
 
 class ScanManager(object):
-    def __init__(self, main, debug_mode):
+    def __init__(self, main):
         """
         Initialisation.
         
         @param  main   Reference to main instance.
-        @param  debug_mode   Whether to use debug mode.
         """
         self.main = main
-        self.debug_mode = debug_mode
+        self.debug_mode = False
+        self.track_mode = None
 
         self.config = configuration.Configuration(self, self.main.configfile)
         self.info_logger = logger.InfoLogger(self)
@@ -65,6 +66,28 @@ class ScanManager(object):
         self._dbus_systembus.add_signal_receiver(self._bluetooth_adapter_added,
             bus_name = "org.bluez",
             signal_name = "AdapterAdded")
+
+    def set_debug_mode(self, bool):
+        """
+        Enable or disable debug mode.
+
+        @param  bool   True to enable debug mode.
+        """
+        self.debug_mode = bool
+
+    def set_track_mode(self, mac):
+        """
+        Enable or disable track mode.
+
+        @param  mac    The MAC-address to track, None to disable track mode.
+        """
+        if mac == None:
+            self.track_mode = None
+        elif len(mac) == 17 and \
+            re.match("([0-F][0-F]:){5}[0-F][0-F]", mac.upper()):
+            self.track_mode = mac
+        else:
+            self.track_mode = None
             
     def _bluetooth_adapter_added(self, path=None):
         """
@@ -78,13 +101,14 @@ class ScanManager(object):
                 device.GetProperties()['Address'])
         return device
 
-    def debug(self, message):
+    def debug(self, message, force=False):
         """
         Write message to stderr if debug mode is enabled.
         
         @param  message   The text to print.
+        @param  force     Force printing even if debug mode is disabled.
         """
-        if self.debug_mode:
+        if self.debug_mode or force:
             extra_time = ""
             if False in [i in self.time_format for i in ['%H', '%M', '%S']]:
                 extra_time = " (%H:%M:%S)"
@@ -148,10 +172,10 @@ class ScanManager(object):
 
 
 class SerialScanManager(ScanManager):
-    def __init__(self, main, debug_mode):
+    def __init__(self, main):
         self.base_location = '/var/log/gyrid/serial/'
         self.makedirs(self.base_location)
-        ScanManager.__init__(self, main, debug_mode)
+        ScanManager.__init__(self, main)
 
     def get_scan_log_location(self, mac):
         return self.base_location + 'scan.log'
@@ -239,10 +263,10 @@ class SerialScanManager(ScanManager):
 
 
 class ParallelScanManager(ScanManager):
-    def __init__(self, main, debug_mode):
+    def __init__(self, main):
         self.base_location = '/var/log/gyrid/parallel/'
         self.makedirs(self.base_location)
-        ScanManager.__init__(self, main, debug_mode)
+        ScanManager.__init__(self, main)
 
     def get_scan_log_location(self, mac):
         self.makedirs(self.base_location + mac)

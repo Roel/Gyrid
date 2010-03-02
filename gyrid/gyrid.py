@@ -3,7 +3,7 @@
 # This file belongs to Gyrid.
 #
 # Gyrid is a Bluetooth device scanner daemon.
-# Copyright (C) 2009  Roel Huybrechts
+# Copyright (C) 2009-2010  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import gobject
+import os
+import re
 import sys
 import time
 import traceback
@@ -31,8 +33,7 @@ class Main(daemon.Daemon):
     Main class of the Bluetooth tracker; subclass of Daemon for easy
     daemonising.
     """
-    def __init__(self, lockfile, configfile, errorlogfile,
-                 debug_mode):
+    def __init__(self, lockfile, configfile, errorlogfile):
         """
         Initialistation of the daemon, logging and DBus connection.
 
@@ -41,20 +42,65 @@ class Main(daemon.Daemon):
         @param  errorlogfile    URL of the errorlogfile.
         @param  debug_mode      Whether to start in debug mode.
         """
+        self.lockfile = lockfile
         self.errorlogfile = errorlogfile
         self.errorlog = open(self.errorlogfile, 'a')
         sys.excepthook = self._handle_exception
         
         self.configfile = configfile
-        self.debug_mode = debug_mode
-        self.mgr = scanmanager.SerialScanManager(self, self.debug_mode)
+        self.mgr = scanmanager.SerialScanManager(self)
 
         self.main_loop = gobject.MainLoop()
 
-        daemon.Daemon.__init__(self, lockfile, stdout='/dev/stdout',
+        daemon.Daemon.__init__(self, self.lockfile, stdout='/dev/stdout',
                                stderr='/dev/stderr')
                               
         gobject.threads_init()
+
+    def pass_args(self, *args):
+        """
+        Handle commandline arguments passed to Gyrid.
+
+        @param  *args    sys.argv arguments.
+        """
+        def start_restart():
+            """
+            Start when not running, otherwise restart.
+            """
+            if os.path.isfile(self.lockfile):
+                self.stop()
+            self.run()
+
+        argerr = False
+        self.debug_mode = False
+        self.track_mode = False
+        if len(args) == 2:
+            if args[1] == 'start':
+                self.start()
+            elif args[1] == 'stop':
+                self.stop()
+            elif args[1] in ('restart', 'force-reload'):
+                self.restart()
+            elif args[1] == 'debug':
+                self.debug_mode = True
+                self.mgr.set_debug_mode(True)
+                start_restart()
+            else:
+                argerr = True
+        elif len(args) == 3 and args[1] == 'track' and len(args[2]) == 17 \
+            and re.match("([0-F][0-F]:){5}[0-F][0-F]", args[2].upper()):
+            self.track_mode = True
+            self.mgr.set_track_mode(args[2].upper())
+            start_restart()
+        else:
+            argerr = True
+
+        if argerr:
+            self.log_error('Error', 'Wrong set of arguments %s' % str(args))
+            sys.stderr.write('Gyrid: Error: Wrong set of arguments.\n')
+            sys.stderr.write('Gyrid: Usage: %s start|stop|' % args[0] + \
+                'restart|force-reload|debug|track [track:MAC-address]\n')
+            sys.exit(2)
 
     def _handle_exception(self, etype, evalue, etraceback):
         """
@@ -80,7 +126,12 @@ class Main(daemon.Daemon):
 
         @param  restart  If this call is part of a restart operation.
         """
-        debugstr = " in debug mode" if self.debug_mode else ""
+        if self.debug_mode:
+            debugstr = " in debug mode"
+        elif self.track_mode:
+            debugstr = " in track mode"
+        else:
+            debugstr = ""
         if restart:
             self.mgr.log_info("Restarted" + debugstr)
             if not self.debug_mode:
@@ -93,9 +144,12 @@ class Main(daemon.Daemon):
         try:
             self.mgr.run()
         finally:
-            self.main_loop.run()
+            try:
+                self.main_loop.run()
+            except KeyboardInterrupt:
+                self.stop(stop_daemon=False)
 
-    def stop(self, restart=False):
+    def stop(self, restart=False, stop_daemon=True):
         """
         Called when the daemon gets the stop command. Stop the logger, cleanly
         close the logfile if restart=False and then stop the daemon.
@@ -107,4 +161,7 @@ class Main(daemon.Daemon):
             if not self.debug_mode:
                 print("Stopping Gyrid.")
         self.mgr.stop()
-        daemon.Daemon.stop(self)
+        if stop_daemon:
+            daemon.Daemon.stop(self)
+        else:
+            sys.exit(0)

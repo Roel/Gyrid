@@ -3,7 +3,7 @@
 # This file belongs to Gyrid.
 #
 # Gyrid is a Bluetooth device scanner daemon.
-# Copyright (C) 2009  Roel Huybrechts
+# Copyright (C) 2009-2010  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,7 +71,8 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         """
         timestamp = time.time()
         
-        if self.mgr.debug_mode:
+        if self.mgr.debug_mode or (self.mgr.track_mode and \
+            address.upper() == self.mgr.track_mode.upper()):
             import tools.deviceclass
             import tools.macvendor
 
@@ -80,8 +81,9 @@ class Discoverer(bluetooth.DeviceDiscoverer):
             vendor = tools.macvendor.get_vendor(address)
         
             self.mgr.debug("Found device %(mac)s [%(dc)s (%(vendor)s)]" %
-                {'mac': address, 'dc': device, 'vendor': vendor ,'time': str(timestamp)})
-        
+                {'mac': address, 'dc': device, 'vendor': vendor,
+                'time': str(timestamp)}, force=True)
+
         self.logger.update_device(int(timestamp), address, device_class)
 
     def inquiry_complete(self):

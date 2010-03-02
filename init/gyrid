@@ -12,7 +12,7 @@
 # This file belongs to Gyrid.
 #
 # Gyrid is a Bluetooth device scanner daemon.
-# Copyright (C) 2009  Roel Huybrechts
+# Copyright (C) 2009-2010  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -58,22 +58,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     #Create main gyrid instance.
-    main = gyrid.Main(LOCKFILE, CONFIGFILE, ERRORLOGFILE,
-            'debug' in sys.argv)
+    main = gyrid.Main(LOCKFILE, CONFIGFILE, ERRORLOGFILE)
 
-    #Start, stop or restart the daemon.
-    if len(sys.argv) in [2, 3]:
-        if 'start' == sys.argv[1]:
-            main.start()
-        elif 'stop' == sys.argv[1]:
-            main.stop()
-        elif 'restart' == sys.argv[1] or 'force-reload' == sys.argv[1]:
-            main.restart()
-        else:
-            print "Error: Unknown command"
-            sys.exit(2)
-        sys.exit(0)
-    else:
-        print "usage: %s start|stop|restart|force-reload {debug}" % sys.argv[0]
-        sys.exit(2)
-    
+    #Pass arguments
+    main.pass_args(*sys.argv)
