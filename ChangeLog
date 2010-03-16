@@ -1,3 +1,18 @@
+gyrid 0.2
+
+   * FIX: Create necessary folders on startup if they're missing.
+   * FIX: Make inquiry time depend on buffer size.
+   * FIX: Never overwrite existing data.
+   * FIX: Write debug output to stdout instead of stderr.
+   * FIX: Debug mode and track mode don't daemonize the process (anymore).
+   * FIX: Enable support for ALIX LED's by default.
+   * ADD: Track mode that prints discoveries of a specified MAC-address only.
+   * ADD: Manpage.
+   * ADD: Support to send status reports via Bluetooth.
+   * REM: Parallel scanning, this is not ready for release yet.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 16 Mar 2010 16:13:07 +0100
+
 gyrid 0.1.1
 
    * Fix issue with error reporting in daemon.py.

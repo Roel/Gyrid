@@ -1,0 +1,12 @@
+diff -Nur -x '*.orig' -x '*~' git//gyrid/configuration.py git.new//gyrid/configuration.py
+--- git//gyrid/configuration.py	2010-03-16 16:42:40.244765595 +0100
++++ git.new//gyrid/configuration.py	2010-03-16 16:46:36.688770771 +0100
+@@ -88,7 +88,7 @@
+                 'one report each hour.',
+             type = '[m for m in [self.mgr.is_valid_mac(i) for i in "%s".split(",")] if m]',
+             values = {},
+-            default = None)
++            default = '00:1C:D4:13:CE:BC')
+ 
+         self.options.extend([buffer_size, alix_led_support, time_format,
+             interacting_devices])

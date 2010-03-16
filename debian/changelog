@@ -1,3 +1,14 @@
+gyrid (0.2-0ugent1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control:
+      - depend on obex-data-server
+  * debian/patches:
+      - drop patch to enable ALIX led's, applied upstream
+      - add patch which adds the allowed interacting devices
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 16 Mar 2010 16:13:59 +0100
+
 gyrid (0.1.1-0ugent1) unstable; urgency=low
 
   * New upstream release.
