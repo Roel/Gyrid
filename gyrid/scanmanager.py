@@ -62,7 +62,7 @@ class ScanManager(object):
         self.time_format = self.config.get_value('time_format')
 
         self.interactive_mode = \
-            self.config.get_value('interacting_devices') != None
+            len(self.config.get_value('interacting_devices')) > 0
         if self.interactive_mode:
             self.reporter = reporter.Reporter(self)
             report_generator = reporter.ReportGenerator(self.reporter)
