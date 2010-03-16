@@ -78,7 +78,20 @@ class Configuration(object):
             values = {'%s': 'Write times in UNIX timestamp format.'},
             default = '%s')
 
-        self.options.extend([buffer_size, alix_led_support, time_format])
+        interacting_devices = _Option(name = 'interacting_devices',
+            description = 'A list of the MAC-addresses of the devices which ' +
+                'are allowed to receive reports from the scanner ' +
+                '(comma separated, in the 00:11:22:33:44:55 format). ' +
+                'Bear in mind that sending reports pauses device discovery: ' +
+                'the listed devices should only enable Bluetooth when ' +
+                'wanting to receive a report. Devices can receive at most ' +
+                'one report each hour.',
+            type = '[m for m in [self.mgr.is_valid_mac(i) for i in "%s".split(",")] if m]',
+            values = {},
+            default = None)
+
+        self.options.extend([buffer_size, alix_led_support, time_format,
+            interacting_devices])
 
     def _get_option_by_name(self, name):
         """
@@ -123,7 +136,10 @@ class Configuration(object):
                 {'option': optionObj.name, 'value': config} + \
                 "[Using default value: %s]" % optionObj.default)
 
-        return eval(optionObj.type % optionObj.default)
+        if optionObj.default != None:
+            return eval(optionObj.type % optionObj.default)
+        else:
+            return None
 
 
 class _ConfigurationParser(ConfigParser.ConfigParser, object):
@@ -228,7 +244,7 @@ class _Option(object):
         @param key     (str)       The key to check.
         @return        (boolean)   True if the key is in the dict.
         """
-        if len(self.values) == 1:
+        if len(self.values) <= 1:
             return True
         else:
             for item in self.values.keys():

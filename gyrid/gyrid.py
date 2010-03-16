@@ -87,10 +87,10 @@ class Main(daemon.Daemon):
                 start_restart()
             else:
                 argerr = True
-        elif len(args) == 3 and args[1] == 'track' and len(args[2]) == 17 \
-            and re.match("([0-F][0-F]:){5}[0-F][0-F]", args[2].upper()):
+        elif len(args) == 3 and args[1] == 'track' and \
+            self.mgr.is_valid_mac(args[2]):
             self.track_mode = True
-            self.mgr.set_track_mode(args[2].upper())
+            self.mgr.set_track_mode(args[2])
             start_restart()
         else:
             argerr = True

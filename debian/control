@@ -10,7 +10,7 @@ Standards-Version: 3.8.0
 Package: gyrid
 Architecture: all
 XB-Python-Version: ${python:Versions}
-Depends: ${misc:Depends}, ${python:Depends}, python-bluez (>= 0.17), python-dbus (>= 0.82), python-gobject (>= 2.14) | python-gtk2 (>= 2.12), bluez (>= 4.32) | bluez-utils (>= 4.32)
+Depends: ${misc:Depends}, ${python:Depends}, python-bluez (>= 0.17), python-dbus (>= 0.82), python-gobject (>= 2.14) | python-gtk2 (>= 2.12), bluez (>= 4.32) | bluez-utils (>= 4.32), obex-data-server (>= 0.4)
 Description: Bluetooth device scanner and logger daemon
  Gyrid scans the neighbourhood for Bluetooth devices and
  logs all hardware addresses and device classes found.

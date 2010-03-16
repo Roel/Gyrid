@@ -30,6 +30,7 @@ import time
 import configuration
 import discoverer
 import logger
+import reporter
 
 def threaded(f):
     """
@@ -52,20 +53,43 @@ class ScanManager(object):
         self.main = main
         self.debug_mode = False
         self.track_mode = None
-
-        self.config = configuration.Configuration(self, self.main.configfile)
-        self.info_logger = logger.InfoLogger(self)
-
-        self.time_format = self.config.get_value('time_format')
+        self.startup_time = int(time.time())
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()
+
+        self.config = configuration.Configuration(self, self.main.configfile)
+        self.time_format = self.config.get_value('time_format')
+
+        self.interactive_mode = \
+            self.config.get_value('interacting_devices') != None
+        if self.interactive_mode:
+            self.reporter = reporter.Reporter(self)
+            report_generator = reporter.ReportGenerator(self.reporter)
+            self.stats_generator = reporter.StatsGenerator(report_generator)
+
+        self.info_logger = logger.InfoLogger(self)
+
         bluez_obj = self._dbus_systembus.get_object('org.bluez', '/')
         self._dbus_bluez_manager = dbus.Interface(bluez_obj, 'org.bluez.Manager')
 
         self._dbus_systembus.add_signal_receiver(self._bluetooth_adapter_added,
             bus_name = "org.bluez",
             signal_name = "AdapterAdded")
+
+    def is_valid_mac(self, string):
+        """
+        Determine if the given string is a valid MAC-address.
+
+        @param  string   The string to test.
+        @return          The MAC-address if it is valid, else False.
+        """
+        string = string.strip().upper()
+        if len(string) == 17 and \
+            re.match("([0-F][0-F]:){5}[0-F][0-F]", string):
+            return string
+        else:
+            return False
 
     def set_debug_mode(self, bool):
         """
@@ -81,14 +105,8 @@ class ScanManager(object):
 
         @param  mac    The MAC-address to track, None to disable track mode.
         """
-        if mac == None:
-            self.track_mode = None
-        elif len(mac) == 17 and \
-            re.match("([0-F][0-F]:){5}[0-F][0-F]", mac.upper()):
-            self.track_mode = mac
-        else:
-            self.track_mode = None
-            
+        self.track_mode = self.is_valid_mac(mac)
+
     def _bluetooth_adapter_added(self, path=None):
         """
         Called automatically when a Bluetooth adapter is added to the system.
@@ -148,6 +166,16 @@ class ScanManager(object):
     def get_info_log_location(self):
         """
         Get the location of the logfile for informational messages.
+
+        Implement this method in a subclass.
+        """
+        raise NotImplementedError
+
+    def get_stats_location(self):
+        """
+        Get the location of the file used to store the statistics.
+
+        Implement this method in a subclass.
         """
         raise NotImplementedError
 
@@ -182,6 +210,9 @@ class SerialScanManager(ScanManager):
 
     def get_info_log_location(self):
         return self.base_location + 'messages.log'
+
+    def get_stats_location(self):
+        return self.base_location + 'stats.txt'
 
     def _bluetooth_adapter_added(self, path=None):
         adapter = ScanManager._bluetooth_adapter_added(self, path)
@@ -274,6 +305,9 @@ class ParallelScanManager(ScanManager):
 
     def get_info_log_location(self):
         return self.base_location + 'messages.log'
+
+    def get_stats_location(self):
+        return self.base_location + 'stats.txt'
 
     def run(self):
         for adapter in self._dbus_bluez_manager.ListAdapters():

@@ -42,6 +42,8 @@ class Discoverer(bluetooth.DeviceDiscoverer):
         self.logger = logger
         self.buffer_size = int(math.ceil(
             self.mgr.config.get_value('buffer_size')/1.28))
+        self.interacting_devices = self.mgr.config.get_value(
+            'interacting_devices')
 
         self.find()
 
@@ -70,6 +72,13 @@ class Discoverer(bluetooth.DeviceDiscoverer):
                                 query names, this value will be None.
         """
         timestamp = time.time()
+
+        if self.mgr.interactive_mode and \
+            (address in self.interacting_devices) and \
+            self.mgr.reporter.needs_report(address):
+            if self.mgr.reporter.connect(address):
+                while self.mgr.reporter.is_busy(address):
+                    time.sleep(1)
         
         if self.mgr.debug_mode or (self.mgr.track_mode and \
             address.upper() == self.mgr.track_mode.upper()):

@@ -66,8 +66,9 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         self.stream.close()
         # get the time that this sequence started at and make it a TimeTuple
         t = self.rolloverAt - self.interval
-        timeTuple = time.localtime(t)
-        dfn = '%s.%s' % (self.baseFilename, time.strftime(self.suffix, timeTuple))
+        self.timeTuple = time.localtime(t)
+        dfn = '%s.%s' % (self.baseFilename, time.strftime(self.suffix,
+            self.timeTuple))
         dfn_bz2 = '%s.bz2' % dfn
         if os.path.exists(dfn_bz2):
             newest = sorted(glob.glob('%s*' % dfn_bz2), reverse=True)[0]
@@ -101,7 +102,24 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         """
         Create an updated file where all 'pass' movements are shown as such.
         """
+        def time_diff(time1, time2, time_format):
+            """
+            Return the difference in seconds between time1 and time2, both
+            specified in time_format.
+            """
+            if '%s' in time_format:
+                return abs(int(time2)-int(time1))
+            else:
+                return abs(int(
+                    time.mktime(time.strptime(time2, time_format)) - \
+                    time.mktime(time.strptime(time1, time_format))))
+
         macs = {}
+        if self.mgr.interactive_mode:
+            self.mgr.stats_generator.init()
+            time_format = self.mgr.config.get_value('time_format')
+            time_now = time.strftime(time_format)
+
         for line in input_file:
             linelist = line.split(',')
             if len(linelist) == 4:
@@ -110,6 +128,9 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
                 dc = linelist[2].strip()
                 move = linelist[3].strip()
 
+                if self.mgr.interactive_mode:
+                    self.mgr.stats_generator.add_mac(mac)
+
                 if not mac in macs:
                     macs[mac] = [tijd, dc, move]
                 elif macs[mac][0] == tijd and \
@@ -117,11 +138,18 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
                         move == 'out' and \
                         macs[mac][1] == dc:
                     output_file.write(','.join([str(i) for i in [tijd, mac, dc, 'pass']]) + '\n')
+                    if self.mgr.interactive_mode:
+                        self.mgr.stats_generator.add_time(0)
+                        self.mgr.stats_generator.add_line()
                     del(macs[mac])
                 else:
                     output_file.write(','.join([str(i) for i in [macs[mac][0],
                         mac, macs[mac][1], macs[mac][2]]]) + '\n')
                     output_file.write(','.join([str(i) for i in [tijd, mac, dc, move]]) + '\n')
+                    if self.mgr.interactive_mode:
+                        self.mgr.stats_generator.add_time(time_diff(
+                            macs[mac][0], tijd, time_format))
+                        self.mgr.stats_generator.add_line(2)
                     del(macs[mac])
 
             else:
@@ -130,3 +158,10 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         for mac in macs:
             output_file.write(','.join([str(i) for i in [macs[mac][0],
                 mac, macs[mac][1], macs[mac][2]]]) + '\n')
+            if self.mgr.interactive_mode:
+                self.mgr.stats_generator.add_time(time_diff(
+                    macs[mac][0], time_now, time_format))
+                self.mgr.stats_generator.add_line()
+
+        if self.mgr.interactive_mode:
+            self.mgr.stats_generator.log(self.timeTuple)
