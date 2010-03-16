@@ -201,7 +201,7 @@ class ScanManager(object):
 
 class SerialScanManager(ScanManager):
     def __init__(self, main):
-        self.base_location = '/var/log/gyrid/serial/'
+        self.base_location = '/var/log/gyrid/'
         self.makedirs(self.base_location)
         ScanManager.__init__(self, main)
 
@@ -291,71 +291,3 @@ class SerialScanManager(ScanManager):
             self.log_info("Stopped scanning with %s%s" % (address, end_cause))
             del(self.discoverer)
             self.scan_with_default()
-
-
-class ParallelScanManager(ScanManager):
-    def __init__(self, main):
-        self.base_location = '/var/log/gyrid/parallel/'
-        self.makedirs(self.base_location)
-        ScanManager.__init__(self, main)
-
-    def get_scan_log_location(self, mac):
-        self.makedirs(self.base_location + mac)
-        return self.base_location + '%s/scan.log' % mac
-
-    def get_info_log_location(self):
-        return self.base_location + 'messages.log'
-
-    def get_stats_location(self):
-        return self.base_location + 'stats.txt'
-
-    def run(self):
-        for adapter in self._dbus_bluez_manager.ListAdapters():
-            adap_obj = self._dbus_systembus.get_object('org.bluez', adapter)
-            adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
-            adap_iface.SetProperty('Discoverable', False)
-            adap_mac = adap_iface.GetProperties()['Address']
-            self.debug("Found Bluetooth adapter with address %s" % adap_mac)
-            self._start_discover(adap_iface, int(str(adapter).split('/')[-1].strip('hci')))
-
-    def _bluetooth_adapter_added(self, path=None):
-        device = ScanManager._bluetooth_adapter_added(self, path)
-        self._start_discover(device, int(str(path).split('/')[-1].strip('hci')))
-
-    def stop(self):
-        ScanManager.stop(self)
-
-    @threaded
-    def _start_discover(self, device, device_id):
-        """
-        Start the Discoverer and start scanning. Start the logger in order to
-        get the pool_checker running. This function is decorated to start in
-        a new thread automatically. The scan ends if there is no Bluetooth
-        device (anymore).
-
-        @param  device_id   The device to use for scanning.
-        """
-        address = device.GetProperties()['Address']
-        if address != '00:00:00:00:00:00':
-            _logger = logger.Logger(self, address)
-            if device.GetProperties()['Discovering']:
-                self.debug("Adapter %s (%s) is still discovering, waiting for the scan to end" % \
-                    (self.default_adap_iface.GetProperties()['Address'],
-                     str(self.default_adap_path).split('/')[-1]))
-                #device.connect_to_signal("PropertyChanged", self._dev_prop_changed)
-            else:
-                _discoverer = discoverer.Discoverer(self, _logger, device_id)
-
-                self.log_info("Started scanning with adapter %s" % address)
-                _logger.start()
-                end_cause = ""
-                while not _discoverer.done:
-                    try:
-                        _discoverer.process_event()
-                    except bluetooth._bluetooth.error, e:
-                        if e[0] == 32:
-                            _logger.stop()
-                            _discoverer.done = True
-                            end_cause = " (adapter lost)"
-                self.log_info("Stopped scanning with adapter %s%s" % (address, end_cause))
-            del(_discoverer)
