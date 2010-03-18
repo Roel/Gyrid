@@ -1,3 +1,12 @@
+gyrid (0.2.1-0ugent1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/patches:
+      - drop patch adding interacting devices, this functionality
+        is currently broken on systems without X11
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 18 Mar 2010 17:33:21 +0100
+
 gyrid (0.2-0ugent1) unstable; urgency=low
 
   * New upstream release.

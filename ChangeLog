@@ -1,3 +1,10 @@
+gyrid 0.2.1
+
+   * FIX: Detection of interactive mode. Don't enable it when there
+          aren't any (valid) MAC-addresses in the configuration file.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 18 Mar 2010 17:31:42 +0100
+
 gyrid 0.2
 
    * FIX: Create necessary folders on startup if they're missing.
