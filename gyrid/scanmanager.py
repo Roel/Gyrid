@@ -58,6 +58,7 @@ class ScanManager(object):
 
         self.config = configuration.Configuration(self, self.main.configfile)
         self.info_logger = logger.InfoLogger(self)
+        self.time_format = self.config.get_value('time_format')
 
     def init(self):
         """
@@ -66,8 +67,6 @@ class ScanManager(object):
         """
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()
-
-        self.time_format = self.config.get_value('time_format')
 
         self.interactive_mode = \
             len(self.config.get_value('interacting_devices')) > 0
