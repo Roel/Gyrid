@@ -25,7 +25,10 @@ the ability of sending those reports to Bluetooth devices.
 
 import dbus
 import math
+import os
+import signal
 import socket
+import subprocess
 import time
 
 class Reporter(object):
@@ -34,7 +37,8 @@ class Reporter(object):
     """
     def __init__(self, mgr, report_generator=None):
         """
-        Initialisation.
+        Initialisation. Starts a D-Bus session bus so we can use
+        org.openobex to send files.
 
         @param  mgr               Reference to a ScanManager.
         @param  report_generator  Reference to a ReportGenerator. When 'None'
@@ -48,6 +52,7 @@ class Reporter(object):
         self.connectionlog = {}
         self.busy = []
 
+        self._start_dbus_session_bus()
         self._dbus_sessionbus = dbus.SessionBus()
 
         self._dbus_sessionbus.add_signal_receiver(self._send_file,
@@ -57,6 +62,23 @@ class Reporter(object):
         self._dbus_sessionbus.add_signal_receiver(self._disconnect,
             bus_name = "org.openobex",
             signal_name = "TransferCompleted")
+
+    def _start_dbus_session_bus(self):
+        """
+        Call dbus-launch to start a D-Bus session bus.
+        """
+        p = subprocess.Popen('dbus-launch', shell=True,
+            stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        for item in p.stdout:
+            split = item.split('=', 1)
+            os.environ[split[0]] = split[1][:-1]
+
+    def stop(self):
+        """
+        Kill the D-Bus session bus we created on initialisation.
+        """
+        if 'DBUS_SESSION_BUS_PID' in os.environ:
+            os.kill(int(os.environ['DBUS_SESSION_BUS_PID']), signal.SIGTERM)
 
     def needs_report(self, mac):
         """

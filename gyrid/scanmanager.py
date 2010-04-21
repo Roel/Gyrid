@@ -46,7 +46,8 @@ def threaded(f):
 class ScanManager(object):
     def __init__(self, main):
         """
-        Initialisation.
+        Bare initialisation. Initialise only the necessary things in order to
+        make a shutdown possible.
         
         @param  main   Reference to main instance.
         """
@@ -55,10 +56,17 @@ class ScanManager(object):
         self.track_mode = None
         self.startup_time = int(time.time())
 
+        self.config = configuration.Configuration(self, self.main.configfile)
+        self.info_logger = logger.InfoLogger(self)
+
+    def init(self):
+        """
+        Full initialisation. Initialise everything, called when the program is
+        starting up.
+        """
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()
 
-        self.config = configuration.Configuration(self, self.main.configfile)
         self.time_format = self.config.get_value('time_format')
 
         self.interactive_mode = \
@@ -67,8 +75,6 @@ class ScanManager(object):
             self.reporter = reporter.Reporter(self)
             report_generator = reporter.ReportGenerator(self.reporter)
             self.stats_generator = reporter.StatsGenerator(report_generator)
-
-        self.info_logger = logger.InfoLogger(self)
 
         bluez_obj = self._dbus_systembus.get_object('org.bluez', '/')
         self._dbus_bluez_manager = dbus.Interface(bluez_obj, 'org.bluez.Manager')
@@ -187,7 +193,9 @@ class ScanManager(object):
 
     def stop(self):
         """
-        Use this function in a subclass. Dims the lights on shutdown.
+        Use this function in a subclass.
+
+        Dims the lights on shutdown and stops the reporter when necessary.
         """
         if self.config.get_value('alix_led_support') and \
                 (False not in [os.path.exists('/sys/class/leds/alix:%i' % i) \
@@ -197,6 +205,9 @@ class ScanManager(object):
                 file = open('/sys/class/leds/alix:%i/brightness' % i, 'w')
                 file.write('0')
                 file.close()
+
+        if self.interactive_mode:
+            self.reporter.stop()
 
 
 class SerialScanManager(ScanManager):

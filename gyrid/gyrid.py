@@ -145,6 +145,7 @@ class Main(daemon.Daemon):
                 print("Starting Gyrid" + debugstr + ".")
 
         try:
+            self.mgr.init()
             self.mgr.run()
         finally:
             try:
