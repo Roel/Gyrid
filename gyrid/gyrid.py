@@ -21,6 +21,7 @@
 import gobject
 import os
 import re
+import signal
 import sys
 import time
 import traceback
@@ -45,7 +46,9 @@ class Main(daemon.Daemon):
         self.lockfile = lockfile
         self.errorlogfile = errorlogfile
         self.errorlog = open(self.errorlogfile, 'a')
+
         sys.excepthook = self._handle_exception
+        signal.signal(signal.SIGTERM, self._catch_sigterm)
         
         self.configfile = configfile
         self.mgr = scanmanager.SerialScanManager(self)
@@ -149,6 +152,14 @@ class Main(daemon.Daemon):
             except KeyboardInterrupt:
                 self.stop(stop_daemon=False)
 
+    def _catch_sigterm(self, signum, frame):
+        """
+        Called when a SIGTERM signal is received, ie. when the daemon is
+        killed. Shutdown the manager and exit.
+        """
+        self.mgr.stop()
+        sys.exit(0)
+
     def stop(self, restart=False, stop_daemon=True):
         """
         Called when the daemon gets the stop command. Stop the logger, cleanly
@@ -156,12 +167,11 @@ class Main(daemon.Daemon):
         
         @param  restart   If this call is part of a restart operation.
         """
-        if not restart:
-            self.mgr.log_info("Stopped")
-            if not self.debug_mode:
-                print("Stopping Gyrid.")
-        self.mgr.stop()
         if stop_daemon:
+            if not restart:
+                self.mgr.log_info("Stopped")
+                if not self.debug_mode:
+                    print("Stopping Gyrid.")
             daemon.Daemon.stop(self)
         else:
             sys.exit(0)
