@@ -1,3 +1,11 @@
+gyrid (0.2.2-0ugent1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control:
+      - depend on dbus-x11
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 22 Apr 2010 18:04:13 +0200
+
 gyrid (0.2.1-0ugent1) unstable; urgency=low
 
   * New upstream release.

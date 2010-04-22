@@ -1,3 +1,12 @@
+gyrid 0.2.2
+
+   * FIX: Catch and handle the SIGTERM signal to properly shutdown
+          things when the daemon is killed.
+   * FIX: Start our own DBus session bus, we can't rely on one being
+          created since we run as a daemon.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 22 Apr 2010 18:02:06 +0200
+
 gyrid 0.2.1
 
    * FIX: Detection of interactive mode. Don't enable it when there
