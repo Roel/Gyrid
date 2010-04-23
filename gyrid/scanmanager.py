@@ -194,7 +194,7 @@ class ScanManager(object):
         """
         Use this function in a subclass.
 
-        Dims the lights on shutdown and stops the reporter when necessary.
+        Dims the lights on shutdown.
         """
         if self.config.get_value('alix_led_support') and \
                 (False not in [os.path.exists('/sys/class/leds/alix:%i' % i) \
@@ -204,10 +204,6 @@ class ScanManager(object):
                 file = open('/sys/class/leds/alix:%i/brightness' % i, 'w')
                 file.write('0')
                 file.close()
-
-        if self.interactive_mode:
-            self.reporter.stop()
-
 
 class SerialScanManager(ScanManager):
     def __init__(self, main):

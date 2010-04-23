@@ -37,8 +37,7 @@ class Reporter(object):
     """
     def __init__(self, mgr, report_generator=None):
         """
-        Initialisation. Starts a D-Bus session bus so we can use
-        org.openobex to send files.
+        Initialisation.
 
         @param  mgr               Reference to a ScanManager.
         @param  report_generator  Reference to a ReportGenerator. When 'None'
@@ -52,33 +51,15 @@ class Reporter(object):
         self.connectionlog = {}
         self.busy = []
 
-        self._start_dbus_session_bus()
-        self._dbus_sessionbus = dbus.SessionBus()
+        self._dbus_systembus = dbus.SystemBus()
 
-        self._dbus_sessionbus.add_signal_receiver(self._send_file,
+        self._dbus_systembus.add_signal_receiver(self._send_file,
             bus_name = "org.openobex",
             signal_name = "SessionConnected")
 
-        self._dbus_sessionbus.add_signal_receiver(self._disconnect,
+        self._dbus_systembus.add_signal_receiver(self._disconnect,
             bus_name = "org.openobex",
             signal_name = "TransferCompleted")
-
-    def _start_dbus_session_bus(self):
-        """
-        Call dbus-launch to start a D-Bus session bus.
-        """
-        p = subprocess.Popen('dbus-launch', shell=True,
-            stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        for item in p.stdout:
-            split = item.split('=', 1)
-            os.environ[split[0]] = split[1][:-1]
-
-    def stop(self):
-        """
-        Kill the D-Bus session bus we created on initialisation.
-        """
-        if 'DBUS_SESSION_BUS_PID' in os.environ:
-            os.kill(int(os.environ['DBUS_SESSION_BUS_PID']), signal.SIGTERM)
 
     def needs_report(self, mac):
         """
@@ -115,7 +96,7 @@ class Reporter(object):
         """
         self.currmac = mac
 
-        manager_obj = self._dbus_sessionbus.get_object('org.openobex',
+        manager_obj = self._dbus_systembus.get_object('org.openobex',
             '/org/openobex')
         self.manager = dbus.Interface(manager_obj, 'org.openobex.Manager')
 
@@ -136,7 +117,7 @@ class Reporter(object):
         @param   session_path   The Bluetooth session to use.
         """
         self.mgr.log_info("Report sent to %s" % self.currmac)
-        self.session = dbus.Interface(self._dbus_sessionbus.get_object(
+        self.session = dbus.Interface(self._dbus_systembus.get_object(
             'org.openobex', session_path), 'org.openobex.Session')
         self.session.SendFile(self.report_generator.generate_report())
 
