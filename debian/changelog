@@ -1,3 +1,12 @@
+gyrid (0.2.3-0ugent1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control:
+      - strictly depend on patched obex-data-server that
+        provides org.openobex on the DBus system bus
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 23 Apr 2010 13:36:11 +0200
+
 gyrid (0.2.2-0ugent1) unstable; urgency=low
 
   * New upstream release.
