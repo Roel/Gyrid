@@ -60,9 +60,10 @@ class InfoLogger(object):
 
         @param  info   The information to write.
         """
-        self.logger.info(",".join([time.strftime(
-            self.time_format,
-            time.localtime()), info]))
+        if not (self.mgr.debug_mode and self.mgr.debug_silent):
+            self.logger.info(",".join([time.strftime(
+                self.time_format,
+                time.localtime()), info]))
 
 class Logger(InfoLogger):
     """
@@ -73,16 +74,16 @@ class Logger(InfoLogger):
     def __init__(self, mgr, mac):
         """
         Initialisation of the logfile, pool and poolchecker.
-        
+
         @param  logfile      URL of the logfile to write to.
         @param  configfile   URL of the configfile to write to.
         """
         self.mac = mac
         InfoLogger.__init__(self, mgr)
-        
+
         self.started = False
         self.alix_led_support = self.mgr.config.get_value('alix_led_support')
-        
+
         self.pool = {}
         self.temp_pool = {}
         self.poolchecker = PoolChecker(self.mgr, self)
@@ -98,7 +99,7 @@ class Logger(InfoLogger):
         handler.setFormatter(logging.Formatter("%(message)s"))
         logger.addHandler(handler)
         return logger
-        
+
     def write(self, timestamp, mac_address, device_class, moving):
         """
         Append the parameters to the logfile on a new line and flush the file.
@@ -108,17 +109,18 @@ class Logger(InfoLogger):
         @param  device_class   Device class of the Bluetooth device.
         @param  moving         Whether the device is moving 'in' or 'out'.
         """
-        self.logger.info(",".join([time.strftime(
-            self.time_format, 
-            time.localtime(timestamp)),
-            str(mac_address),
-            str(device_class),
-            str(moving)]))
+        if not (self.mgr.debug_mode and self.mgr.debug_silent):
+            self.logger.info(",".join([time.strftime(
+                self.time_format,
+                time.localtime(timestamp)),
+                str(mac_address),
+                str(device_class),
+                str(moving)]))
 
     def update_device(self, timestamp, mac_address, device_class):
         """
         Update the device with specified mac_address in the pool.
-        
+
         @param  timestamp      UNIX timestamp.
         @param  mac_address    Hardware address of the Bluetooth device.
         @param  device_class   Device class of the Bluetooth device.
@@ -137,14 +139,14 @@ class Logger(InfoLogger):
                         len(self.temp_pool))
                     self.temp_pool.clear()
                 self.switch_led(3)
-                
+
                 if mac_address not in self.pool:
                     self.write(timestamp, mac_address, device_class, 'in')
-                
+
                 self.pool[mac_address] = [timestamp, device_class]
             finally:
                 self.lock.release()
-                    
+
     def start(self):
         """
         Start the poolchecker, which checks at regular intervals the pool for
@@ -154,7 +156,7 @@ class Logger(InfoLogger):
             self.poolchecker = PoolChecker(self.mgr, self)
         self.mgr.debug("Started pool checker")
         self.poolchecker.start()
-        
+
     def stop(self):
         """
         Stop the poolchecker.
@@ -189,7 +191,7 @@ class PoolChecker(threading.Thread):
     def __init__(self, mgr, logger):
         """
         Initialisation of the thread.
-        
+
         @param   logger   Reference to Logger instance.
         """
         threading.Thread.__init__(self)
@@ -197,7 +199,7 @@ class PoolChecker(threading.Thread):
         self.logger = logger
         self.buffer = self.logger.mgr.config.get_value('buffer_size')
         self._running = True
-        
+
     def run(self):
         """
         Start the thread. Loop over the device pool at a regular interval and
@@ -220,29 +222,29 @@ class PoolChecker(threading.Thread):
                                           self.logger.pool[device][1],
                                           'out')
                         to_delete.append(device)
-                
+
                 new = len(self.logger.pool) - previous
                 # Delete
                 for device in to_delete:
                     del(self.logger.pool[device])
-                    
+
                 current = len(self.logger.pool)
 
                 d = {'current': current,
                      'new': new if new > 0 else 0,
                      'gone': len(to_delete)}
                 previous = current
-                
+
                 self.mgr.debug(
                     "Device pool checked: %(current)i device" % d + \
                     ("s " if current != 1 else " ") + \
                     "(%(new)i new, %(gone)i disappeared)" % d)
-                
+
             finally:
                 self.logger.lock.release()
-                
+
             time.sleep(self.buffer)
-            
+
     def stop(self):
         """
         Stop the thread.

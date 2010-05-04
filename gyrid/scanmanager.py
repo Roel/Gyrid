@@ -48,11 +48,12 @@ class ScanManager(object):
         """
         Bare initialisation. Initialise only the necessary things in order to
         make a shutdown possible.
-        
+
         @param  main   Reference to main instance.
         """
         self.main = main
         self.debug_mode = False
+        self.debug_silent = False
         self.track_mode = None
         self.startup_time = int(time.time())
 
@@ -96,13 +97,15 @@ class ScanManager(object):
         else:
             return False
 
-    def set_debug_mode(self, bool):
+    def set_debug_mode(self, debug, silent):
         """
         Enable or disable debug mode.
 
-        @param  bool   True to enable debug mode.
+        @param  debug   True to enable debug mode.
+        @param  silent  True to enable silent (no logging) debug mode.
         """
-        self.debug_mode = bool
+        self.debug_mode = debug
+        self.debug_silent = silent
 
     def set_track_mode(self, mac):
         """
@@ -127,7 +130,7 @@ class ScanManager(object):
     def debug(self, message, force=False):
         """
         Write message to stderr if debug mode is enabled.
-        
+
         @param  message   The text to print.
         @param  force     Force printing even if debug mode is disabled.
         """
@@ -136,7 +139,7 @@ class ScanManager(object):
             if False in [i in self.time_format for i in ['%H', '%M', '%S']]:
                 extra_time = " (%H:%M:%S)"
             sys.stdout.write("%s%s Gyrid: %s.\n" % \
-                (time.strftime(self.config.get_value('time_format')), 
+                (time.strftime(self.config.get_value('time_format')),
                 time.strftime(extra_time), message))
 
     def makedirs(self, path, mode=0755):
@@ -271,7 +274,7 @@ class SerialScanManager(ScanManager):
         get the pool_checker running. This function is decorated to start in
         a new thread automatically. The scan ends if there is no Bluetooth
         device (anymore).
-        
+
         @param  device_id   The device to use for scanning.
         """
         if device.GetProperties()['Discovering']:
@@ -282,7 +285,7 @@ class SerialScanManager(ScanManager):
             _logger = logger.Logger(self, device.GetProperties()['Address'])
             self.discoverer = discoverer.Discoverer(self, _logger, device_id)
             address = device.GetProperties()['Address']
-            
+
             self.log_info("Started scanning with %s" % address)
             _logger.start()
             end_cause = ""

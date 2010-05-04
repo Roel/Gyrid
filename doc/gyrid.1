@@ -3,7 +3,7 @@
 gyrid \- A Bluetooth device scanner and logger daemon.
 .SH SYNOPSIS
 .B /etc/init.d/gyrid
-start|stop|restart|debug|track [MAC-address]
+start|stop|restart|debug|track
 .SH DESCRIPTION
 Gyrid continuously scans the neighborhood for Bluetooth-enabled devices which are publicly visible, given there is a Bluetooth adapter connected.
 
@@ -21,10 +21,12 @@ Stop the Gyrid daemon.
 .B restart
 Restart the Gyrid daemon.
 .TP
-.B debug
+.B debug [--no-log]
 Start Gyrid in debug mode, stopping any running Gyrid daemon. Debug mode does not daemonize the process and can be ended by issuing Ctrl+C on the console.
 
 Debug mode is more verbose, printing all activity to standard output. This might be useful to spot bugs or issues more easily.
+
+With the optional --no-log flag set, no logs are written to disk.
 .TP
 .B track MAC-address
 Start Gyrid in track mode, stopping any running Gyrid daemon. Track mode does not daemonize the process and can be ended by issuing Ctrl+C on the console. A MAC-address to track is required as a second argument.
