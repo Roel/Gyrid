@@ -203,7 +203,7 @@ class ScanManager(object):
                 (False not in [os.path.exists('/sys/class/leds/alix:%i' % i) \
                 for i in [1, 2, 3]]):
 
-            for i in [1, 2]:
+            for i in [2, 3]:
                 file = open('/sys/class/leds/alix:%i/brightness' % i, 'w')
                 file.write('0')
                 file.close()
