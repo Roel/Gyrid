@@ -30,25 +30,24 @@ class InfoLogger(object):
     """
     The InfoLogger class handles writing informational messages to a logfile.
     """
-    def __init__(self, mgr):
+    def __init__(self, mgr, log_location):
         """
         Initialisation of the logfile.
 
         @param  mgr   Reference to a ScanManager instance.
+        @param  log_location  The location of the logfile.
         """
         self.mgr = mgr
+        self.log_location = log_location
 
         self.logger = self._get_logger()
         self.logger.setLevel(logging.INFO)
 
         self.time_format = self.mgr.config.get_value('time_format')
 
-    def _get_log_location(self):
-        return self.mgr.get_info_log_location()
-
     def _get_logger(self):
-        logger = logging.getLogger('info')
-        handler = logging.FileHandler(self._get_log_location())
+        logger = logging.getLogger(self.log_location)
+        handler = logging.FileHandler(self.log_location)
         handler.setFormatter(logging.Formatter("%(message)s"))
         logger.addHandler(handler)
         return logger
@@ -75,11 +74,12 @@ class Logger(InfoLogger):
         """
         Initialisation of the logfile, pool and poolchecker.
 
-        @param  logfile      URL of the logfile to write to.
-        @param  configfile   URL of the configfile to write to.
+        @param  mgr   Reference to Scanmanager instance.
+        @param  mac   The MAC-address of the adapter used for scanning.
         """
+        self.mgr = mgr
         self.mac = mac
-        InfoLogger.__init__(self, mgr)
+        InfoLogger.__init__(self, mgr, self._get_log_location())
 
         self.started = False
         self.alix_led_support = self.mgr.config.get_value('alix_led_support')

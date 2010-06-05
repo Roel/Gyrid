@@ -58,7 +58,7 @@ class ScanManager(object):
         self.startup_time = int(time.time())
 
         self.config = configuration.Configuration(self, self.main.configfile)
-        self.info_logger = logger.InfoLogger(self)
+        self.info_logger = logger.InfoLogger(self, self.get_info_log_location())
         self.time_format = self.config.get_value('time_format')
 
     def init(self):
@@ -283,20 +283,14 @@ class SerialScanManager(ScanManager):
             device.connect_to_signal("PropertyChanged", self._dev_prop_changed)
         else:
             _logger = logger.Logger(self, device.GetProperties()['Address'])
-            self.discoverer = discoverer.Discoverer(self, _logger, device_id)
-            address = device.GetProperties()['Address']
+            _logger_rssi = logger.InfoLogger(self, self.base_location + 'rssi.log')
+            self.discoverer = discoverer.Discoverer(self, _logger, _logger_rssi, device_id)
+            if self.discoverer.init() == 0:
+                address = device.GetProperties()['Address']
 
-            self.log_info("Started scanning with %s" % address)
-            _logger.start()
-            end_cause = ""
-            while not self.discoverer.done:
-                try:
-                    self.discoverer.process_event()
-                except bluetooth._bluetooth.error, e:
-                    if e[0] == 32:
-                        _logger.stop()
-                        self.discoverer.done = True
-                        end_cause = " (adapter lost)"
-            self.log_info("Stopped scanning with %s%s" % (address, end_cause))
+                self.log_info("Started scanning with %s" % address)
+                _logger.start()
+                end_cause = self.discoverer.find()
+                self.log_info("Stopped scanning with %s%s" % (address, end_cause))
             del(self.discoverer)
             self.scan_with_default()
