@@ -125,7 +125,7 @@ class Main(daemon.Daemon):
 
     def log_error(self, level, message):
         self.errorlog.write("%(tijd)s %(level)s: %(message)s\n" % \
-            {'tijd': time.strftime('%Y%m%d-%H%M%S'),
+            {'tijd': time.strftime('%Y%m%d-%H%M%S-%Z'),
              'level': level, 'message': message})
         self.errorlog.flush()
 
