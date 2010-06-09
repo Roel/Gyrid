@@ -90,10 +90,13 @@ class RSSILogger(InfoLogger):
     def _get_log_location(self):
         return self.mgr.get_rssi_log_location(self.mac)
 
+    def _get_log_processing(self):
+        return False
+
     def _get_logger(self):
         logger = logging.getLogger(self._get_log_id())
         handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
-            self._get_log_location())
+            self._get_log_location(), self._get_log_processing())
         handler.setFormatter(logging.Formatter("%(message)s"))
         logger.addHandler(handler)
         return logger
@@ -145,6 +148,9 @@ class ScanLogger(RSSILogger):
 
     def _get_log_location(self):
         return self.mgr.get_scan_log_location(self.mac)
+
+    def _get_log_processing(self):
+        return True
 
     def write(self, timestamp, mac_address, device_class, moving):
         """
