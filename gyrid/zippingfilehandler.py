@@ -33,13 +33,16 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
     """
     Subclassing TimedRotatingFileHandler to add bzipping on rollover.
     """
-    def __init__(self, mgr, filename):
+    def __init__(self, mgr, filename, process=False):
         """
         Initialisation. 
         
+        @param  mgr         Reference to ScanManager instance.
         @param  filename    Filename to write to.
+        @param  process     Whether the log should be processed on rotation.
         """
         self.mgr = mgr
+        self.process = process
         logging.handlers.BaseRotatingHandler.__init__(self, filename, 'a')
         self.backupCount = 0
         currentTime = int(time.time())
@@ -81,7 +84,10 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         os.rename(self.baseFilename, dfn)
         output = bz2.BZ2File(dfn_bz2, 'w')
         input = open(dfn, 'r')
-        self._process_passing_movement(input, output)
+        if self.process:
+            self._process_passing_movement(input, output)
+        else:
+            output.write(input.read())
         output.close()
         input.close()
         os.remove(dfn)
