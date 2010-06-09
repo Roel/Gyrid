@@ -82,6 +82,8 @@ class RSSILogger(InfoLogger):
         self.mac = mac
         InfoLogger.__init__(self, mgr, self._get_log_location())
 
+        self.enable = self.mgr.config.get_value('enable_rssi_log')
+
     def _get_log_id(self):
         return '%s-rssi' % self.mac
 
@@ -105,7 +107,7 @@ class RSSILogger(InfoLogger):
         @param  device_class   Device class of the Bluetooth device.
         @param  rssi           The RSSI value of the received Bluetooth signal.
         """
-        if not (self.mgr.debug_mode and self.mgr.debug_silent):
+        if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
             self.logger.info(",".join([time.strftime(
                 self.time_format,
                 time.localtime(timestamp)),
