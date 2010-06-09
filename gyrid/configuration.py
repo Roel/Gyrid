@@ -86,12 +86,20 @@ class Configuration(object):
                 'the listed devices should only enable Bluetooth when ' +
                 'wanting to receive a report. Devices can receive at most ' +
                 'one report each hour.',
-            type = '[m for m in [self.mgr.is_valid_mac(i) for i in "%s".split(",")] if m]',
+            type = '[m for m in [self.mgr.is_valid_mac(i) ' + \
+                'for i in "%s".split(",")] if m]',
             values = {},
             default = None)
 
+        enable_rssi_log = _Option(name = 'enable_rssi_log',
+            description = 'Enable logging of received RSSI data.',
+            type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
+            values = {True: 'Enable RSSI logging.', False: \
+                'Disable RSSI logging.'},
+            default = True)
+
         self.options.extend([buffer_size, alix_led_support, time_format,
-            interacting_devices])
+            interacting_devices, enable_rssi_log])
 
     def _get_option_by_name(self, name):
         """
