@@ -253,8 +253,4 @@ class Discoverer(object):
                 "with RSSI %(rssi)d" % d, force=True)
 
         self.logger.update_device(int(timestamp), address, device_class)
-        self.logger_rssi.logger.info(
-            ",".join([str(i) for i in [
-            time.strftime(self.mgr.config.get_value('time_format'),
-                time.localtime(timestamp)),
-            address, device_class, rssi]]))
+        self.logger_rssi.write(int(timestamp), address, device_class, rssi)

@@ -164,8 +164,17 @@ class ScanManager(object):
 
     def get_scan_log_location(self, mac):
         """
-        Get the location of the logfile based on the MAC-address of the Bluetooth
-        adapter.
+        Get the location of the scan logfile based on the MAC-address of the
+        Bluetooth adapter.
+
+        Implement this method in a subclass.
+        """
+        raise NotImplementedError
+
+    def get_rssi_log_location(self, mac):
+        """
+        Get the location of the RSSI logfile based on the MAC-address of the
+        Bluetooth adapter.
 
         Implement this method in a subclass.
         """
@@ -216,6 +225,9 @@ class SerialScanManager(ScanManager):
 
     def get_scan_log_location(self, mac):
         return self.base_location + 'scan.log'
+
+    def get_rssi_log_location(self, mac):
+        return self.base_location + 'rssi.log'
 
     def get_info_log_location(self):
         return self.base_location + 'messages.log'
@@ -277,20 +289,20 @@ class SerialScanManager(ScanManager):
 
         @param  device_id   The device to use for scanning.
         """
+        addr = device.GetProperties()['Address']
         if device.GetProperties()['Discovering']:
-            self.debug("Adapter %s is still discovering, waiting for the scan to end" % \
-                device.GetProperties()['Address'])
+            self.debug("Adapter %s is still discovering, waiting " % addr + \
+                "for the scan to end")
             device.connect_to_signal("PropertyChanged", self._dev_prop_changed)
         else:
-            _logger = logger.Logger(self, device.GetProperties()['Address'])
-            _logger_rssi = logger.InfoLogger(self, self.base_location + 'rssi.log')
-            self.discoverer = discoverer.Discoverer(self, _logger, _logger_rssi, device_id)
+            _logger = logger.ScanLogger(self, addr)
+            _logger_rssi = logger.RSSILogger(self, addr)
+            self.discoverer = discoverer.Discoverer(self, _logger,
+                _logger_rssi, device_id)
             if self.discoverer.init() == 0:
-                address = device.GetProperties()['Address']
-
-                self.log_info("Started scanning with %s" % address)
+                self.log_info("Started scanning with %s" % addr)
                 _logger.start()
                 end_cause = self.discoverer.find()
-                self.log_info("Stopped scanning with %s%s" % (address, end_cause))
+                self.log_info("Stopped scanning with %s%s" % (addr, end_cause))
             del(self.discoverer)
             self.scan_with_default()

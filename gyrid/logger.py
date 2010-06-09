@@ -45,8 +45,11 @@ class InfoLogger(object):
 
         self.time_format = self.mgr.config.get_value('time_format')
 
+    def _get_log_id(self):
+        return self.log_location
+
     def _get_logger(self):
-        logger = logging.getLogger(self.log_location)
+        logger = logging.getLogger(self._get_log_id())
         handler = logging.FileHandler(self.log_location)
         handler.setFormatter(logging.Formatter("%(message)s"))
         logger.addHandler(handler)
@@ -64,7 +67,53 @@ class InfoLogger(object):
                 self.time_format,
                 time.localtime()), info]))
 
-class Logger(InfoLogger):
+class RSSILogger(InfoLogger):
+    """
+    The RSSI logger takes care of the logging of RSSI-enabled queries.
+    """
+    def __init__(self, mgr, mac):
+        """
+        Initialisation of the logfile, pool and poolchecker.
+
+        @param  mgr   Reference to Scanmanager instance.
+        @param  mac   The MAC-address of the adapter used for scanning.
+        """
+        self.mgr = mgr
+        self.mac = mac
+        InfoLogger.__init__(self, mgr, self._get_log_location())
+
+    def _get_log_id(self):
+        return '%s-rssi' % self.mac
+
+    def _get_log_location(self):
+        return self.mgr.get_rssi_log_location(self.mac)
+
+    def _get_logger(self):
+        logger = logging.getLogger(self._get_log_id())
+        handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
+            self._get_log_location())
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(handler)
+        return logger
+
+    def write(self, timestamp, mac_address, device_class, rssi):
+        """
+        Append the parameters to the logfile on a new line and flush the file.
+
+        @param  timestamp      UNIX timestamp.
+        @param  mac_address    Hardware address of the Bluetooth device.
+        @param  device_class   Device class of the Bluetooth device.
+        @param  rssi           The RSSI value of the received Bluetooth signal.
+        """
+        if not (self.mgr.debug_mode and self.mgr.debug_silent):
+            self.logger.info(",".join([time.strftime(
+                self.time_format,
+                time.localtime(timestamp)),
+                str(mac_address),
+                str(device_class),
+                str(rssi)]))
+
+class ScanLogger(RSSILogger):
     """
     The Logger class handles all writing to the logfile and stores a pool
     of recently seen devices, in order to only write incoming and outgoing
@@ -79,7 +128,7 @@ class Logger(InfoLogger):
         """
         self.mgr = mgr
         self.mac = mac
-        InfoLogger.__init__(self, mgr, self._get_log_location())
+        RSSILogger.__init__(self, mgr, self._get_log_location())
 
         self.started = False
         self.alix_led_support = self.mgr.config.get_value('alix_led_support')
@@ -89,16 +138,11 @@ class Logger(InfoLogger):
         self.poolchecker = PoolChecker(self.mgr, self)
         self.lock = threading.Lock()
 
+    def _get_log_id(self):
+        return '%s-scan' % self.mac
+
     def _get_log_location(self):
         return self.mgr.get_scan_log_location(self.mac)
-
-    def _get_logger(self):
-        logger = logging.getLogger(self.mac)
-        handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
-            self._get_log_location())
-        handler.setFormatter(logging.Formatter("%(message)s"))
-        logger.addHandler(handler)
-        return logger
 
     def write(self, timestamp, mac_address, device_class, moving):
         """
