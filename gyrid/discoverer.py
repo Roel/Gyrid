@@ -29,7 +29,7 @@ class Discoverer(object):
     Bluetooth discover, this class provides device discovery. Heavily based on
     the PyBluez advanced inquiry with RSSI example.
     """
-    def __init__(self, mgr, logger, logger_rssi, device_id):
+    def __init__(self, mgr, logger, logger_rssi, device_id, mac):
         """
         Initialisation of the Discoverer. Store the reference to the loggers and
         query the necessary configuration options.
@@ -39,11 +39,13 @@ class Discoverer(object):
         @param  logger_rssi  Reference to a logger instance which records
                                the RSSI values.
         @param  device_id    The ID of the Bluetooth device used for scanning.
+        @param  mac          The MAC address of the Bluetooth scanning device.
         """
         self.mgr = mgr
         self.logger = logger
         self.logger_rssi = logger_rssi
         self.device_id = device_id
+        self.mac = mac
         self.buffer_size = int(math.ceil(
             self.mgr.config.get_value('buffer_size')/1.28))
         self.interacting_devices = self.mgr.config.get_value(
@@ -155,7 +157,7 @@ class Discoverer(object):
         """
         Perform a Bluetooth inquiry with RSSI reception.
         """
-        self.mgr.debug("New inquiry")
+        self.mgr.debug("%s: New inquiry" % self.mac)
         # save current filter
         old_filter = self.sock.getsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, 14)
 
@@ -247,9 +249,9 @@ class Discoverer(object):
             vendor = tools.macvendor.get_vendor(address)
 
             d = {'mac': address, 'dc': device, 'vendor': vendor,
-                 'time': str(timestamp), 'rssi': rssi}
+                 'time': str(timestamp), 'rssi': rssi, 'sc': self.mac}
 
-            self.mgr.debug("Found device %(mac)s [%(dc)s (%(vendor)s)] " % d + \
+            self.mgr.debug("%(sc)s: Found device %(mac)s [%(dc)s (%(vendor)s)] " % d + \
                 "with RSSI %(rssi)d" % d, force=True)
 
         self.logger.update_device(int(timestamp), address, device_class)
