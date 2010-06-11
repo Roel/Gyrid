@@ -77,7 +77,8 @@ class ScanManager(object):
             self.stats_generator = reporter.StatsGenerator(report_generator)
 
         bluez_obj = self._dbus_systembus.get_object('org.bluez', '/')
-        self._dbus_bluez_manager = dbus.Interface(bluez_obj, 'org.bluez.Manager')
+        self._dbus_bluez_manager = dbus.Interface(bluez_obj,
+            'org.bluez.Manager')
 
         self._dbus_systembus.add_signal_receiver(self._bluetooth_adapter_added,
             bus_name = "org.bluez",
@@ -240,7 +241,8 @@ class DefaultScanManager(ScanManager):
     def _bluetooth_adapter_added(self, path=None):
         adapter = ScanManager._bluetooth_adapter_added(self, path)
         adapter.SetProperty('Discoverable', False)
-        self._start_discover(adapter, int(str(path).split('/')[-1].strip('hci')))
+        self._start_discover(adapter, int(str(path).split('/')[-1].strip(
+            'hci')))
 
     def run(self):
         for adapter in self._dbus_bluez_manager.ListAdapters():
@@ -249,14 +251,16 @@ class DefaultScanManager(ScanManager):
             adap_iface.SetProperty('Discoverable', False)
             self.debug("Found Bluetooth adapter with address %s" %
                 adap_iface.GetProperties()['Address'])
-            self._start_discover(adap_iface, int(str(adapter).split('/')[-1].strip('hci')))
+            self._start_discover(adap_iface, int(str(adapter).split(
+                '/')[-1].strip('hci')))
 
     def scan_with_all(self):
         for adapter in self._dbus_bluez_manager.ListAdapters():
             adap_obj = self._dbus_systembus.get_object('org.bluez', adapter)
             adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
             if not adap_iface.GetProperties()['Discovering']:
-                self._start_discover(adap_iface, int(str(adapter).split('/')[-1].strip('hci')))
+                self._start_discover(adap_iface, int(str(adapter).split(
+                    '/')[-1].strip('hci')))
 
     def stop(self):
         ScanManager.stop(self)
@@ -284,17 +288,20 @@ class DefaultScanManager(ScanManager):
         address = device.GetProperties()['Address']
         if address != '00:00:00:00:00:00':
             if device.GetProperties()['Discovering']:
-                self.debug("Adapter %s is still discovering, waiting for the scan to end" % \
-                    address)
-                device.connect_to_signal("PropertyChanged", self._dev_prop_changed)
+                self.debug("Adapter %s is still discovering, " % address + \
+                    "waiting for the scan to end")
+                device.connect_to_signal("PropertyChanged",
+                    self._dev_prop_changed)
             else:
                 _logger = logger.ScanLogger(self, address)
                 _logger_rssi = logger.RSSILogger(self, address)
-                _discoverer = discoverer.Discoverer(self, _logger, _logger_rssi, device_id, address)
+                _discoverer = discoverer.Discoverer(self, _logger, _logger_rssi,
+                    device_id, address)
 
                 if _discoverer.init() == 0:
                     self.log_info("Started scanning with adapter %s" % address)
                     _logger.start()
                     end_cause = _discoverer.find()
-                    self.log_info("Stopped scanning with adapter %s%s" % (address, end_cause))
+                    self.log_info("Stopped scanning with adapter %s%s" % \
+                        (address, end_cause))
                 del(_discoverer)
