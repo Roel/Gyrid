@@ -251,6 +251,7 @@ class DefaultScanManager(ScanManager):
             adap_iface.SetProperty('Discoverable', False)
             self.debug("Found Bluetooth adapter with address %s" %
                 adap_iface.GetProperties()['Address'])
+            time.sleep(0.1)
             self._start_discover(adap_iface, int(str(adapter).split(
                 '/')[-1].strip('hci')))
 
@@ -258,6 +259,7 @@ class DefaultScanManager(ScanManager):
         for adapter in self._dbus_bluez_manager.ListAdapters():
             adap_obj = self._dbus_systembus.get_object('org.bluez', adapter)
             adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
+            time.sleep(0.1)
             if not adap_iface.GetProperties()['Discovering']:
                 self._start_discover(adap_iface, int(str(adapter).split(
                     '/')[-1].strip('hci')))
