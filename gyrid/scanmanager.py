@@ -251,20 +251,12 @@ class DefaultScanManager(ScanManager):
                 adap_iface.GetProperties()['Address'])
             self._start_discover(adap_iface, int(str(adapter).split('/')[-1].strip('hci')))
 
-    def scan_with_default(self):
-        if not 'discoverer' in self.__dict__:
-            try:
-                default_adap_path = self._dbus_bluez_manager.DefaultAdapter()
-                device_obj = self._dbus_systembus.get_object("org.bluez",
-                    default_adap_path)
-                default_adap_iface = dbus.Interface(device_obj,
-                    "org.bluez.Adapter")
-            except dbus.DBusException:
-                #No adapter found
-                pass
-            else:
-                self._start_discover(default_adap_iface,
-                    int(str(default_adap_path).split('/')[-1].strip('hci')))
+    def scan_with_all(self):
+        for adapter in self._dbus_bluez_manager.ListAdapters():
+            adap_obj = self._dbus_systembus.get_object('org.bluez', adapter)
+            adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
+            if not adap_iface.GetProperties()['Discovering']:
+                self._start_discover(adap_iface, int(str(adapter).split('/')[-1].strip('hci')))
 
     def stop(self):
         ScanManager.stop(self)
@@ -277,8 +269,7 @@ class DefaultScanManager(ScanManager):
         """
         if property == "Discovering" and \
                 value == False:
-            #FIXME
-            pass
+            self.scan_with_all()
 
     @threaded
     def _start_discover(self, device, device_id):
