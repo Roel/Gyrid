@@ -198,14 +198,10 @@ class Discoverer(object):
             elif event == bluez.EVT_CMD_STATUS:
                 status, ncmd, opcode = struct.unpack("BBH", pkt[3:7])
                 if status != 0:
-                    s = 'Non-zero Bluetooth status packet received'
-                    self.mgr.main.log_error('Warning', s)
-                    self.mgr.debug(s)
+                    self.mgr.debug('Non-zero Bluetooth status packet received')
                     done = True
             else:
-                s = 'Unrecognized Bluetooth packet type received'
-                self.mgr.main.log_error('Warning', s)
-                self.mgr.debug(s)
+                self.mgr.debug('Unrecognized Bluetooth packet type received')
 
         # restore old filter
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
