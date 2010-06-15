@@ -115,7 +115,6 @@ class RSSILogger(InfoLogger):
                 self.time_format,
                 time.localtime(timestamp)),
                 str(mac_address),
-                str(device_class),
                 str(rssi)]))
 
 class ScanLogger(RSSILogger):
