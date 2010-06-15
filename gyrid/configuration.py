@@ -75,8 +75,8 @@ class Configuration(object):
             description = 'The time format to use in the logfile. This ' +
                 'string is passed to the time.strftime() function. Hint: ' +
                 'don\'t use %z, it doesn\'t work.',
-            values = {'%s': 'Write times in UNIX timestamp format.'},
-            default = '%s')
+            values = {'%Y%m%d-%H%M%S-%Z': 'Use the YYYYMMDD-HHMMSS-TZ format.'},
+            default = '%Y%m%d-%H%M%S-%Z')
 
         interacting_devices = _Option(name = 'interacting_devices',
             description = 'A list of the MAC-addresses of the devices which ' +
