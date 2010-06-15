@@ -77,7 +77,8 @@ class ScanManager(object):
             self.stats_generator = reporter.StatsGenerator(report_generator)
 
         bluez_obj = self._dbus_systembus.get_object('org.bluez', '/')
-        self._dbus_bluez_manager = dbus.Interface(bluez_obj, 'org.bluez.Manager')
+        self._dbus_bluez_manager = dbus.Interface(bluez_obj,
+            'org.bluez.Manager')
 
         self._dbus_systembus.add_signal_receiver(self._bluetooth_adapter_added,
             bus_name = "org.bluez",
@@ -148,7 +149,7 @@ class ScanManager(object):
         yet.
 
         @param  path   The path to be created.
-        @param  mode   The rights used to create the directories.
+        @param  mode   The permissions used to create the directories.
         """
         if not os.path.exists(path):
             os.makedirs(path, mode)
@@ -217,17 +218,19 @@ class ScanManager(object):
                 file.write('0')
                 file.close()
 
-class SerialScanManager(ScanManager):
+class DefaultScanManager(ScanManager):
     def __init__(self, main):
         self.base_location = '/var/log/gyrid/'
         self.makedirs(self.base_location)
         ScanManager.__init__(self, main)
 
     def get_scan_log_location(self, mac):
-        return self.base_location + 'scan.log'
+        self.makedirs(self.base_location + mac)
+        return self.base_location + mac + '/scan.log'
 
     def get_rssi_log_location(self, mac):
-        return self.base_location + 'rssi.log'
+        self.makedirs(self.base_location + mac)
+        return self.base_location + mac + '/rssi.log'
 
     def get_info_log_location(self):
         return self.base_location + 'messages.log'
@@ -238,7 +241,8 @@ class SerialScanManager(ScanManager):
     def _bluetooth_adapter_added(self, path=None):
         adapter = ScanManager._bluetooth_adapter_added(self, path)
         adapter.SetProperty('Discoverable', False)
-        self.scan_with_default()
+        self._start_discover(adapter, int(str(path).split('/')[-1].strip(
+            'hci')))
 
     def run(self):
         for adapter in self._dbus_bluez_manager.ListAdapters():
@@ -247,23 +251,18 @@ class SerialScanManager(ScanManager):
             adap_iface.SetProperty('Discoverable', False)
             self.debug("Found Bluetooth adapter with address %s" %
                 adap_iface.GetProperties()['Address'])
+            time.sleep(0.1)
+            self._start_discover(adap_iface, int(str(adapter).split(
+                '/')[-1].strip('hci')))
 
-        self.scan_with_default()
-
-    def scan_with_default(self):
-        if not 'discoverer' in self.__dict__:
-            try:
-                default_adap_path = self._dbus_bluez_manager.DefaultAdapter()
-                device_obj = self._dbus_systembus.get_object("org.bluez",
-                    default_adap_path)
-                default_adap_iface = dbus.Interface(device_obj,
-                    "org.bluez.Adapter")
-            except dbus.DBusException:
-                #No adapter found
-                pass
-            else:
-                self._start_discover(default_adap_iface,
-                    int(str(default_adap_path).split('/')[-1].strip('hci')))
+    def scan_with_all(self):
+        for adapter in self._dbus_bluez_manager.ListAdapters():
+            adap_obj = self._dbus_systembus.get_object('org.bluez', adapter)
+            adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
+            time.sleep(0.1)
+            if not adap_iface.GetProperties()['Discovering']:
+                self._start_discover(adap_iface, int(str(adapter).split(
+                    '/')[-1].strip('hci')))
 
     def stop(self):
         ScanManager.stop(self)
@@ -275,9 +274,8 @@ class SerialScanManager(ScanManager):
         scanning.
         """
         if property == "Discovering" and \
-                value == False and \
-                'discoverer' not in self.__dict__:
-            self.scan_with_default()
+                value == False:
+            self.scan_with_all()
 
     @threaded
     def _start_discover(self, device, device_id):
@@ -289,20 +287,23 @@ class SerialScanManager(ScanManager):
 
         @param  device_id   The device to use for scanning.
         """
-        addr = device.GetProperties()['Address']
-        if device.GetProperties()['Discovering']:
-            self.debug("Adapter %s is still discovering, waiting " % addr + \
-                "for the scan to end")
-            device.connect_to_signal("PropertyChanged", self._dev_prop_changed)
-        else:
-            _logger = logger.ScanLogger(self, addr)
-            _logger_rssi = logger.RSSILogger(self, addr)
-            self.discoverer = discoverer.Discoverer(self, _logger,
-                _logger_rssi, device_id)
-            if self.discoverer.init() == 0:
-                self.log_info("Started scanning with %s" % addr)
-                _logger.start()
-                end_cause = self.discoverer.find()
-                self.log_info("Stopped scanning with %s%s" % (addr, end_cause))
-            del(self.discoverer)
-            self.scan_with_default()
+        address = device.GetProperties()['Address']
+        if address != '00:00:00:00:00:00':
+            if device.GetProperties()['Discovering']:
+                self.debug("Adapter %s is still discovering, " % address + \
+                    "waiting for the scan to end")
+                device.connect_to_signal("PropertyChanged",
+                    self._dev_prop_changed)
+            else:
+                _logger = logger.ScanLogger(self, address)
+                _logger_rssi = logger.RSSILogger(self, address)
+                _discoverer = discoverer.Discoverer(self, _logger, _logger_rssi,
+                    device_id, address)
+
+                if _discoverer.init() == 0:
+                    self.log_info("Started scanning with adapter %s" % address)
+                    _logger.start()
+                    end_cause = _discoverer.find()
+                    self.log_info("Stopped scanning with adapter %s%s" % \
+                        (address, end_cause))
+                del(_discoverer)

@@ -132,7 +132,7 @@ class ScanLogger(RSSILogger):
         """
         self.mgr = mgr
         self.mac = mac
-        RSSILogger.__init__(self, mgr, self._get_log_location())
+        RSSILogger.__init__(self, mgr, mac)
 
         self.started = False
         self.alix_led_support = self.mgr.config.get_value('alix_led_support')
@@ -205,7 +205,7 @@ class ScanLogger(RSSILogger):
         """
         if not 'poolchecker' in self.__dict__:
             self.poolchecker = PoolChecker(self.mgr, self)
-        self.mgr.debug("Started pool checker")
+        self.mgr.debug("%s: Started pool checker" % self.mac)
         self.poolchecker.start()
 
     def stop(self):
@@ -286,7 +286,7 @@ class PoolChecker(threading.Thread):
                      'gone': len(to_delete)}
                 previous = current
 
-                self.mgr.debug(
+                self.mgr.debug("%s: " % self.logger.mac + 
                     "Device pool checked: %(current)i device" % d + \
                     ("s " if current != 1 else " ") + \
                     "(%(new)i new, %(gone)i disappeared)" % d)
@@ -301,4 +301,4 @@ class PoolChecker(threading.Thread):
         Stop the thread.
         """
         self._running = False
-        self.mgr.debug("Stopped pool checker")
+        self.mgr.debug("%s: Stopped pool checker" % self.logger.mac)

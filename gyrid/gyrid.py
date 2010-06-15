@@ -51,7 +51,7 @@ class Main(daemon.Daemon):
         signal.signal(signal.SIGTERM, self._catch_sigterm)
 
         self.configfile = configfile
-        self.mgr = scanmanager.SerialScanManager(self)
+        self.mgr = scanmanager.DefaultScanManager(self)
 
         self.main_loop = gobject.MainLoop()
 
