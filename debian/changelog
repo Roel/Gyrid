@@ -1,3 +1,9 @@
+gyrid (0.3-0ugent1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 15 Jun 2010 18:03:23 +0200
+
 gyrid (0.2.3-0ugent2) unstable; urgency=low
 
   * debian/control:

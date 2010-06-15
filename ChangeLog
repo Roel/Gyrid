@@ -1,3 +1,13 @@
+gyrid 0.3:
+    * ADD: Detection and logging of RSSI values.
+    * ADD: Scanning with multiple adapters simultaneously.
+    * ADD: Non-logging debug mode option.
+    * FIX: Write timezone information in error log.
+    * FIX: Dim the correct LED's on Gyrid shutdown.
+    * UPD: Use human-readable timestamp by default.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 15 Jun 2010 18:01:58 +0200
+
 gyrid 0.2.3
 
    * FIX: Use org.openobex on the DBus system bus instead of
