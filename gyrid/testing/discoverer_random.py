@@ -18,14 +18,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import bluetooth
-import bluetooth._bluetooth as bluez
-import math
 import random
-import struct
 import time
 
-class Discoverer(object):
+import gyrid.discoverer
+
+class Discoverer(gyrid.discoverer.Discoverer):
     """
     Discoverer that 'discovers' fake devices on a random basis.
     Used for stresstesting.
@@ -42,16 +40,8 @@ class Discoverer(object):
         @param  device_id    The ID of the Bluetooth device used for scanning.
         @param  mac          The MAC address of the Bluetooth scanning device.
         """
-        self.mgr = mgr
-        self.logger = logger
-        self.logger_rssi = logger_rssi
-        self.device_id = device_id
-        self.mac = mac
-        self.buffer_size = int(math.ceil(
-            self.mgr.config.get_value('buffer_size')/1.28))
-        self.interacting_devices = self.mgr.config.get_value(
-            'interacting_devices')
-        self.done = False
+        gyrid.discoverer.Discoverer.__init__(self, mgr, logger, logger_rssi,
+            device_id, mac)
 
     def init(self):
         """
@@ -164,42 +154,3 @@ class Discoverer(object):
                 self.macs))], 256, int(random.random()*-100))
             time.sleep(0.01+random.random()*0.016)
         return ""
-
-    def device_discovered(self, address, device_class, rssi):
-        """
-        Called when discovered a device. Get a UNIX timestamp and call the
-        update method of Logger to update the timestamp, the address and
-        the device_class of the device in the pool.
-
-        @param  address        Hardware address of the Bluetooth device.
-        @param  device_class   Device class of the Bluetooth device.
-        @param  rssi           The RSSI (RX power level) value of the
-                                discovery.
-        """
-        timestamp = time.time()
-
-        if self.mgr.interactive_mode and \
-            (address in self.interacting_devices) and \
-            self.mgr.reporter.needs_report(address):
-            if self.mgr.reporter.connect(address):
-                while self.mgr.reporter.is_busy(address):
-                    time.sleep(1)
-
-        if self.mgr.debug_mode or (self.mgr.track_mode and \
-            address.upper() == self.mgr.track_mode.upper()):
-            import gyrid.tools.deviceclass
-            import gyrid.tools.macvendor
-
-            device = ', '.join([str(gyrid.tools.deviceclass.get_major_class(
-                device_class)), str(gyrid.tools.deviceclass.get_minor_class(
-                device_class))])
-            vendor = gyrid.tools.macvendor.get_vendor(address)
-
-            d = {'mac': address, 'dc': device, 'vendor': vendor,
-                 'time': str(timestamp), 'rssi': rssi, 'sc': self.mac}
-
-            self.mgr.debug("%(sc)s: Found device %(mac)s [%(dc)s " % d + \
-                "(%(vendor)s)] with RSSI %(rssi)d" % d, force=True)
-
-        self.logger.update_device(int(timestamp), address, device_class)
-        self.logger_rssi.write(int(timestamp), address, device_class, rssi)
