@@ -9,7 +9,6 @@ gyrid/scanmanager.py
 gyrid/zippingfilehandler.py
 gyrid/tools/__init__.py
 gyrid/tools/deviceclass.py
-gyrid/tools/generate_oui_data.py
 gyrid/tools/macvendor.py
 gyrid/tools/oui_data.txt
 init/gyrid
