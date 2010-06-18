@@ -3,7 +3,7 @@
 # This file belongs to Gyrid.
 #
 # Gyrid is a Bluetooth device scanner daemon.
-# Copyright (C) 2009  Roel Huybrechts
+# Copyright (C) 2009-2010  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -185,7 +185,7 @@ class ScanLogger(RSSILogger):
             try:
                 if len(self.temp_pool) > 0:
                     self.pool.update(self.temp_pool)
-                    self.mgr.debug(
+                    self.mgr.debug("%s: " % self.mac + \
                         "%i devices in temporary pool, merging" % \
                         len(self.temp_pool))
                     self.temp_pool.clear()
