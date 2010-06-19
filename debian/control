@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 7.0.15),
  cdbs (>= 0.4.52)
 Build-Depends-Indep: python-support (>= 0.8.4)
 XS-Python-Version: all
-Standards-Version: 3.8.0
+Standards-Version: 3.8.4
 
 Package: gyrid
 Architecture: all
