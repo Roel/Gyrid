@@ -264,9 +264,6 @@ class DefaultScanManager(ScanManager):
                 self._start_discover(adap_iface, int(str(adapter).split(
                     '/')[-1].strip('hci')))
 
-    def stop(self):
-        ScanManager.stop(self)
-
     def _dev_prop_changed(self, property, value):
         """
         Called if the properties of the scandevice have changed. In casu
