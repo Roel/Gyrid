@@ -287,8 +287,14 @@ class DefaultScanManager(ScanManager):
 
         @param  device_id   The device to use for scanning.
         """
-        def start():
-            try:
+        address = device.GetProperties()['Address']
+        if address != '00:00:00:00:00:00':
+            if device.GetProperties()['Discovering']:
+                self.debug("Adapter %s is still discovering, " % address + \
+                    "waiting for the scan to end")
+                device.connect_to_signal("PropertyChanged",
+                    self._dev_prop_changed)
+            else:
                 _logger = logger.ScanLogger(self, address)
                 _logger_rssi = logger.RSSILogger(self, address)
                 _discoverer = discoverer.Discoverer(self, _logger, _logger_rssi,
@@ -301,21 +307,3 @@ class DefaultScanManager(ScanManager):
                     self.log_info("Stopped scanning with adapter %s%s" % \
                         (address, end_cause))
                 del(_discoverer)
-            except IOError:
-                try:
-                    del(_discoverer)
-                    del(_logger_rssi)
-                    _logger.stop()
-                    del(_logger)
-                finally:
-                    start()
-
-        address = device.GetProperties()['Address']
-        if address != '00:00:00:00:00:00':
-            if device.GetProperties()['Discovering']:
-                self.debug("Adapter %s is still discovering, " % address + \
-                    "waiting for the scan to end")
-                device.connect_to_signal("PropertyChanged",
-                    self._dev_prop_changed)
-            else:
-                start()
