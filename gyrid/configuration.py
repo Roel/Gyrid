@@ -98,8 +98,16 @@ class Configuration(object):
                 'Disable RSSI logging.'},
             default = True)
 
+        excluded_devices = _Option(name = 'excluded_devices',
+            description = 'A list of HCI device-ID\'s to exclude from ' +
+                'scanning. For example: 0 to exclude hci0.',
+            type = '[int for int in [self._parse_int(i) ' +
+                'for i in "%s".split(",")] if i]',
+            values = {},
+            default = None)
+
         self.options.extend([buffer_size, alix_led_support, time_format,
-            interacting_devices, enable_rssi_log])
+            interacting_devices, enable_rssi_log, excluded_devices])
 
     def _get_option_by_name(self, name):
         """
@@ -149,6 +157,15 @@ class Configuration(object):
         else:
             return None
 
+    def _parse_int(self, integer):
+        """
+        Parse the argument as an integer. Return the integer value on success,
+        None on ValueError.
+        """
+        try:
+            return int(integer)
+        except ValueError:
+            return None
 
 class _ConfigurationParser(ConfigParser.ConfigParser, object):
     """

@@ -60,6 +60,7 @@ class ScanManager(object):
         self.config = configuration.Configuration(self, self.main.configfile)
         self.info_logger = logger.InfoLogger(self, self.get_info_log_location())
         self.time_format = self.config.get_value('time_format')
+        self.excluded_devices = self.config.get_value('excluded_devices')
 
     def init(self):
         """
@@ -154,6 +155,20 @@ class ScanManager(object):
         if not os.path.exists(path):
             os.makedirs(path, mode)
 
+    def is_excluded(self, dev_id, mac):
+        """
+        Check if the given device is excluded from scanning.
+
+        @param  dev_id   The device ID of the Bluetooth adapter.
+                            F. ex.: 0 in the case of hci0
+        @param  mac      The MAC-address of the device.
+        """
+        if dev_id in self.excluded_devices:
+            self.log_info("Ignoring Bluetooth adapter %s (excluded)" % mac)
+            return True
+        else:
+            return False
+
     def log_info(self, message):
         """
         Write messages to the info log.
@@ -240,29 +255,34 @@ class DefaultScanManager(ScanManager):
 
     def _bluetooth_adapter_added(self, path=None):
         adapter = ScanManager._bluetooth_adapter_added(self, path)
-        adapter.SetProperty('Discoverable', False)
-        self._start_discover(adapter, int(str(path).split('/')[-1].strip(
-            'hci')))
+        dev_id = int(str(path).split('/')[-1].strip('hci'))
+        addr = adapter.GetProperties()['Address']
+        if not self.is_excluded(dev_id, addr):
+            adapter.SetProperty('Discoverable', False)
+            self._start_discover(adapter, dev_id)
 
     def run(self):
         for adapter in self._dbus_bluez_manager.ListAdapters():
             adap_obj = self._dbus_systembus.get_object('org.bluez', adapter)
             adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
-            adap_iface.SetProperty('Discoverable', False)
-            self.debug("Found Bluetooth adapter with address %s" %
-                adap_iface.GetProperties()['Address'])
-            time.sleep(0.1)
-            self._start_discover(adap_iface, int(str(adapter).split(
-                '/')[-1].strip('hci')))
+            dev_id = int(str(adapter).split('/')[-1].strip('hci'))
+            addr = adap_iface.GetProperties()['Address']
+            self.debug("Found Bluetooth adapter with address %s" % addr)
+            if not self.is_excluded(dev_id, addr):
+                adap_iface.SetProperty('Discoverable', False)
+                time.sleep(0.1)
+                self._start_discover(adap_iface, dev_id)
 
     def scan_with_all(self):
         for adapter in self._dbus_bluez_manager.ListAdapters():
             adap_obj = self._dbus_systembus.get_object('org.bluez', adapter)
             adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
             time.sleep(0.1)
-            if not adap_iface.GetProperties()['Discovering']:
-                self._start_discover(adap_iface, int(str(adapter).split(
-                    '/')[-1].strip('hci')))
+            dev_id = int(str(adapter).split('/')[-1].strip('hci'))
+            addr = adap_iface.GetProperties()['Address']
+            if not self.is_excluded(dev_id, addr):
+                if not adap_iface.GetProperties()['Discovering']:
+                    self._start_discover(adap_iface, dev_id)
 
     def _dev_prop_changed(self, property, value):
         """
