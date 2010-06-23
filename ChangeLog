@@ -1,3 +1,12 @@
+gyrid 0.3.1:
+    * ADD: Option to exclude certain adapters from scanning,
+           based on their HCI device ID.
+    * FIX: After a previous discovery ends, restart scanning with
+           the correct adapter directly.
+    * UPD: IEEE OUI data.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 23 Jun 2010 21:14:00 +0200
+
 gyrid 0.3:
     * ADD: Detection and logging of RSSI values.
     * ADD: Scanning with multiple adapters simultaneously.
