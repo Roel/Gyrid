@@ -139,6 +139,8 @@ class Configuration(object):
             else:
                 if not optionObj.hidden:
                     raise ValueError("No valid value.")
+                else:
+                    config = None
         except:
             self.mgr.main.log_error('Warning',
                 "Issue concerning option '%s' : " % option + \
@@ -154,10 +156,10 @@ class Configuration(object):
                 {'option': optionObj.name, 'value': config} + \
                 "[Using default value: %s]" % optionObj.default)
 
-        if optionObj.default != None:
-            return eval(optionObj.type % optionObj.default)
-        else:
+        if optionObj.default == None and optionObj.type == 'str("%s")':
             return None
+        else:
+            return eval(optionObj.type % optionObj.default)
 
     def _parse_int(self, integer):
         """
