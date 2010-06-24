@@ -205,17 +205,19 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
         """
         default = '# Gyrid configuration file\n[Gyrid]\n\n'
         for option in self.configuration.options:
-            default += "\n# ".join(textwrap.wrap("# %s" % option.description, 78))
-            if option.values:
-                default += '\n#  Values:'
-                for key in option.values.items():
-                    if key[0] == option.default:
-                        defaultValue = '(default) '
-                    else:
-                        defaultValue = ''
-                    default += '\n#  %s - %s%s' % \
-                        (key[0], defaultValue, key[1])
-            default += '\n%s = %s\n\n' % (option.name, option.default)
+            if not option.hidden:
+                default += "\n# ".join(textwrap.wrap(
+                    "# %s" % option.description, 78))
+                if option.values:
+                    default += '\n#  Values:'
+                    for key in option.values.items():
+                        if key[0] == option.default:
+                            defaultValue = '(default) '
+                        else:
+                            defaultValue = ''
+                        default += '\n#  %s - %s%s' % \
+                            (key[0], defaultValue, key[1])
+                default += '\n%s = %s\n\n' % (option.name, option.default)
         return default.rstrip('\n')
 
     def get_value(self, option):
@@ -235,7 +237,8 @@ class _Option(object):
     """
     Class for an option.
     """
-    def __init__(self, name, description, default, values, type='str("%s")'):
+    def __init__(self, name, description, default, values, type='str("%s")',
+            hidden=False):
         """
         Initialisation.
 
@@ -251,6 +254,8 @@ class _Option(object):
         Optional
         @param  type          (str)   The type of the value of the option.
                   F.ex. 'str("%s")' (default), 'int(str(%s))'.
+        @param  hidden        (bool)  If this is a hidden option, one that is
+                  not written out to the config file. Defaults to False.
         """
         #Mandatory
         self.name = name
@@ -260,6 +265,7 @@ class _Option(object):
 
         #Optional
         self.type = type
+        self.hidden = hidden
 
     def values_has_key(self, key):
         """
