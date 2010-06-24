@@ -183,14 +183,13 @@ class Main(daemon.Daemon):
             if not self.debug_mode:
                 print("Starting Gyrid" + debugstr + ".")
 
+        self.mgr.init()
+        self.mgr.run()
+
         try:
-            self.mgr.init()
-            self.mgr.run()
-        finally:
-            try:
-                self.main_loop.run()
-            except KeyboardInterrupt:
-                self.stop(stop_daemon=False)
+            self.main_loop.run()
+        except KeyboardInterrupt:
+            self.stop(stop_daemon=False)
 
     def _catch_sigterm(self, signum, frame):
         """
