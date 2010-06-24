@@ -24,6 +24,7 @@ import re
 import signal
 import sys
 import time
+import threading
 import traceback
 
 import daemon
@@ -47,6 +48,7 @@ class Main(daemon.Daemon):
         self.errorlogfile = errorlogfile
         self.errorlog = open(self.errorlogfile, 'a')
 
+        self._install_thread_excepthook()
         sys.excepthook = self._handle_exception
         signal.signal(signal.SIGTERM, self._catch_sigterm)
 
@@ -121,7 +123,30 @@ class Main(daemon.Daemon):
         self.log_error('Error', exc)
         sys.stderr.write("Error: unhandled exception: %s, %s\n\n" % \
             (etype.__name__, evalue))
-        sys.stderr.write(' '.join(traceback.format_exception(etype, evalue, etraceback)))
+        sys.stderr.write(' '.join(traceback.format_exception(etype, evalue,
+            etraceback)))
+
+    def _install_thread_excepthook(self):
+        """
+        Workaround for sys.excepthook thread bug
+        (http://bugs.python.org/issue1230540)
+
+        From
+        http://spyced.blogspot.com/2007/06/workaround-for-sysexcepthook-bug.html
+        """
+        init_old = threading.Thread.__init__
+        def init(self, *args, **kwargs):
+            init_old(self, *args, **kwargs)
+            run_old = self.run
+            def run_with_except_hook(*args, **kw):
+                try:
+                    run_old(*args, **kw)
+                except (KeyboardInterrupt, SystemExit):
+                    raise
+                except:
+                    sys.excepthook(*sys.exc_info())
+            self.run = run_with_except_hook
+        threading.Thread.__init__ = init
 
     def log_error(self, level, message):
         self.errorlog.write("%(tijd)s %(level)s: %(message)s\n" % \
@@ -151,7 +176,6 @@ class Main(daemon.Daemon):
             self.mgr.log_info("Started" + debugstr)
             if not self.debug_mode:
                 print("Starting Gyrid" + debugstr + ".")
-
         try:
             self.mgr.init()
             self.mgr.run()
