@@ -149,6 +149,12 @@ class Main(daemon.Daemon):
         threading.Thread.__init__ = init
 
     def log_error(self, level, message):
+        """
+        Write the given message to the error log.
+
+        @param  level    The level of the message, f. ex. Warning or Error
+        @param  message  The message to write.
+        """
         self.errorlog.write("%(tijd)s %(level)s: %(message)s\n" % \
             {'tijd': time.strftime('%Y%m%d-%H%M%S-%Z'),
              'level': level, 'message': message})
@@ -176,6 +182,7 @@ class Main(daemon.Daemon):
             self.mgr.log_info("Started" + debugstr)
             if not self.debug_mode:
                 print("Starting Gyrid" + debugstr + ".")
+
         try:
             self.mgr.init()
             self.mgr.run()
