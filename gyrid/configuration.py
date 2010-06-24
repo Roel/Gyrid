@@ -89,6 +89,7 @@ class Configuration(object):
             type = '[m for m in [self.mgr.is_valid_mac(i) ' + \
                 'for i in "%s".split(",")] if m]',
             values = {},
+            hidden = True,
             default = None)
 
         enable_rssi_log = _Option(name = 'enable_rssi_log',
