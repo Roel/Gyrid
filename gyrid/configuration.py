@@ -137,7 +137,8 @@ class Configuration(object):
             if value != None:
                 config = eval(optionObj.type % value)
             else:
-                raise ValueError("No valid value.")
+                if not optionObj.hidden:
+                    raise ValueError("No valid value.")
         except:
             self.mgr.main.log_error('Warning',
                 "Issue concerning option '%s' : " % option + \
