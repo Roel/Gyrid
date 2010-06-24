@@ -1,3 +1,11 @@
+gyrid 0.3.2:
+    * FIX: Catch exceptions raised inside threads.
+    * FIX: excluded_devices option.
+    * UPD: Hide interacting_devices option. Sending reports via Bluetooth
+           is currently untested and unsupported.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 24 Jun 2010 21:26:58 +0200
+
 gyrid 0.3.1:
     * ADD: Option to exclude certain adapters from scanning,
            based on their HCI device ID.
