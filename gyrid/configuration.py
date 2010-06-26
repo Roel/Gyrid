@@ -103,7 +103,7 @@ class Configuration(object):
             description = 'A list of HCI device-ID\'s to exclude from ' +
                 'scanning. For example: 0 to exclude hci0.',
             type = '[j for j in [self._parse_int(i) ' +
-                'for i in "%s".split(",")] if j]',
+                'for i in "%s".split(",")] if j != None]',
             values = {},
             default = None)
 
