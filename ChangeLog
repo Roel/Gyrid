@@ -1,3 +1,9 @@
+gyrid 0.3.3
+    * FIX: excluded_devices option so that it detects 0 as a valid
+           value.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Sun, 27 Jun 2010 20:25:08 +0200
+
 gyrid 0.3.2:
     * FIX: Catch exceptions raised inside threads.
     * FIX: excluded_devices option.
