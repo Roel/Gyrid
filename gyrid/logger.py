@@ -178,12 +178,13 @@ class ScanLogger(RSSILogger):
         """
         if not self.lock.acquire(False):
             #Failed to lock
-            if mac_address not in self.pool:
-                self.write(timestamp, mac_address, device_class, 'in')
             self.temp_pool[mac_address] = [timestamp, device_class]
         else:
             try:
                 if len(self.temp_pool) > 0:
+                    for mac in self.temp_pool:
+                        if mac not in self.pool:
+                            self.write(timestamp, mac, device_class, 'in')
                     self.pool.update(self.temp_pool)
                     self.mgr.debug("%s: " % self.mac + \
                         "%i devices in temporary pool, merging" % \
