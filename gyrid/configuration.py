@@ -101,7 +101,8 @@ class Configuration(object):
 
         excluded_devices = _Option(name = 'excluded_devices',
             description = 'A list of HCI device-ID\'s to exclude from ' +
-                'scanning. For example: 0 to exclude hci0.',
+                'scanning. For example: 0 to exclude hci0, None to enable ' +
+                'all devices.',
             type = '[j for j in [self._parse_int(i) ' +
                 'for i in "%s".split(",")] if j != None]',
             values = {},
