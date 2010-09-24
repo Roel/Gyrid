@@ -17,7 +17,7 @@ Depends: ${misc:Depends}, ${python:Depends},
  python-dbus (>= 0.82),
  python-gobject (>= 2.14) | python-gtk2 (>= 2.12),
  bluez (>= 4.32) | bluez-utils (>= 4.32),
- obex-data-server (= 0.4.5-1ugent3)
+ obex-data-server (>= 1:0.4.5-1ugent3)
 Description: Bluetooth device scanner and logger daemon
  Gyrid scans the neighbourhood for Bluetooth devices and
  logs all hardware addresses and device classes found.
