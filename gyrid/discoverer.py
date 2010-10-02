@@ -234,8 +234,7 @@ class Discoverer(object):
                 while self.mgr.reporter.is_busy(address):
                     time.sleep(1)
 
-        if self.mgr.debug_mode or (self.mgr.track_mode and \
-            address.upper() == self.mgr.track_mode.upper()):
+        if self.mgr.debug_mode:
             import tools.deviceclass
             import tools.macvendor
 

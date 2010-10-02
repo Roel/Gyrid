@@ -54,7 +54,6 @@ class ScanManager(object):
         self.main = main
         self.debug_mode = False
         self.debug_silent = False
-        self.track_mode = None
         self.startup_time = int(time.time())
         self.active_adapters = []
 
@@ -109,14 +108,6 @@ class ScanManager(object):
         """
         self.debug_mode = debug
         self.debug_silent = silent
-
-    def set_track_mode(self, mac):
-        """
-        Enable or disable track mode.
-
-        @param  mac    The MAC-address to track, None to disable track mode.
-        """
-        self.track_mode = self.is_valid_mac(mac)
 
     def _bluetooth_adapter_added(self, path=None):
         """

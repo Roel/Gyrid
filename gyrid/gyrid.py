@@ -78,7 +78,6 @@ class Main(daemon.Daemon):
 
         argerr = False
         self.debug_mode = False
-        self.track_mode = False
         if len(args) == 2:
             if args[1] == 'start':
                 self.start()
@@ -92,19 +91,10 @@ class Main(daemon.Daemon):
                 start_restart()
             else:
                 argerr = True
-        elif len(args) == 3:
-            if args[1] == 'track' and \
-                self.mgr.is_valid_mac(args[2]):
-                self.track_mode = True
-                self.mgr.set_track_mode(args[2])
-                start_restart()
-            elif args[1] == 'debug' and \
-                args[2] == '--no-log':
+        elif len(args) == 3 and args[1] == 'debug' and args[2] == '--no-log':
                 self.debug_mode = True
                 self.mgr.set_debug_mode(True, True)
                 start_restart()
-            else:
-                argerr = True
         else:
             argerr = True
 
@@ -112,7 +102,7 @@ class Main(daemon.Daemon):
             self.log_error('Error', 'Wrong set of arguments %s' % str(args))
             sys.stderr.write('Gyrid: Error: Wrong set of arguments.\n')
             sys.stderr.write('Gyrid: Usage: %s start|stop|' % args[0] + \
-                'restart|force-reload|debug|track [track:MAC-address]\n')
+                'restart|force-reload|debug\n')
             sys.exit(2)
 
     def _handle_exception(self, etype, evalue, etraceback):
@@ -170,8 +160,6 @@ class Main(daemon.Daemon):
         """
         if self.debug_mode:
             debugstr = " in debug mode"
-        elif self.track_mode:
-            debugstr = " in track mode"
         else:
             debugstr = ""
         if restart:
