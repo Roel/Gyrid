@@ -33,7 +33,8 @@ import sys
 try:
     from gyrid import gyrid
 except ImportError:
-    sys.stderr.write("Error: Importing Gyrid failed. Is the program properly installed?\n")
+    sys.stderr.write(
+        "Error: Importing Gyrid failed. Is the program properly installed?\n")
     sys.exit(1)
 
 LOGDIR = '/var/log/gyrid/'
@@ -50,7 +51,8 @@ if __name__ == '__main__':
         elif (os.path.exists(file)) and (os.access(file, os.W_OK) == False):
             sys.stderr.write("Gyrid: Error: Needs write access to %s\n" % file)
             access = False
-        elif (not os.path.exists(file)) and (os.access(os.path.dirname(file), os.W_OK) == False):
+        elif (not os.path.exists(file)) and (os.access(os.path.dirname(file),
+            os.W_OK) == False):
             sys.stderr.write("Gyrid: Error: Needs write access to %s\n" % file)
             access = False
 
