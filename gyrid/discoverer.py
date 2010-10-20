@@ -247,7 +247,8 @@ class Discoverer(object):
             d = {'mac': address, 'dc': device, 'vendor': vendor,
                  'time': str(timestamp), 'rssi': rssi, 'sc': self.mac}
 
-            self.mgr.debug("%(sc)s: Found device %(mac)s [%(dc)s (%(vendor)s)] " % d + \
+            self.mgr.debug(
+                "%(sc)s: Found device %(mac)s [%(dc)s (%(vendor)s)] " % d + \
                 "with RSSI %(rssi)d" % d, force=True)
 
         self.logger.update_device(int(timestamp), address, device_class)
