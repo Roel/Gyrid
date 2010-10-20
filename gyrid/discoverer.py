@@ -141,7 +141,7 @@ class Discoverer(object):
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, flt)
 
         # send the command!
-        bluez.hci_send_cmd(sock, bluez.OGF_HOST_CTL,
+        bluez.hci_send_cmd(self.sock, bluez.OGF_HOST_CTL,
                 bluez.OCF_WRITE_INQUIRY_MODE, struct.pack("B", mode))
 
         pkt = self.sock.recv(255)
