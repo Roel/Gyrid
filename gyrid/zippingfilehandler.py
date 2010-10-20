@@ -143,7 +143,8 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
                         macs[mac][2] == 'in' and \
                         move == 'out' and \
                         macs[mac][1] == dc:
-                    output_file.write(','.join([str(i) for i in [tijd, mac, dc, 'pass']]) + '\n')
+                    output_file.write(','.join([str(i) for i in [tijd, mac,
+                        dc, 'pass']]) + '\n')
                     if self.mgr.interactive_mode:
                         self.mgr.stats_generator.add_time(0)
                         self.mgr.stats_generator.add_line()
@@ -151,7 +152,8 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
                 else:
                     output_file.write(','.join([str(i) for i in [macs[mac][0],
                         mac, macs[mac][1], macs[mac][2]]]) + '\n')
-                    output_file.write(','.join([str(i) for i in [tijd, mac, dc, move]]) + '\n')
+                    output_file.write(','.join([str(i) for i in [tijd, mac,
+                        dc, move]]) + '\n')
                     if self.mgr.interactive_mode:
                         self.mgr.stats_generator.add_time(time_diff(
                             macs[mac][0], tijd, time_format))
