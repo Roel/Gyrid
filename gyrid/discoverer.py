@@ -48,8 +48,6 @@ class Discoverer(object):
         self.mac = mac
         self.buffer_size = int(math.ceil(
             self.mgr.config.get_value('buffer_size')/1.28))
-        self.interacting_devices = self.mgr.config.get_value(
-            'interacting_devices')
         self.done = False
 
     def init(self):
@@ -226,13 +224,6 @@ class Discoverer(object):
                                 discovery.
         """
         timestamp = time.time()
-
-        if self.mgr.interactive_mode and \
-            (address in self.interacting_devices) and \
-            self.mgr.reporter.needs_report(address):
-            if self.mgr.reporter.connect(address):
-                while self.mgr.reporter.is_busy(address):
-                    time.sleep(1)
 
         if self.mgr.debug_mode:
             import tools.deviceclass

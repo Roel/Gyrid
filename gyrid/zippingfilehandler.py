@@ -121,10 +121,6 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
                     time.mktime(time.strptime(time1, time_format))))
 
         macs = {}
-        if self.mgr.interactive_mode:
-            self.mgr.stats_generator.init()
-            time_format = self.mgr.config.get_value('time_format')
-            time_now = time.strftime(time_format)
 
         for line in input_file:
             linelist = line.split(',')
@@ -134,9 +130,6 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
                 dc = linelist[2].strip()
                 move = linelist[3].strip()
 
-                if self.mgr.interactive_mode:
-                    self.mgr.stats_generator.add_mac(mac)
-
                 if not mac in macs:
                     macs[mac] = [tijd, dc, move]
                 elif macs[mac][0] == tijd and \
@@ -144,18 +137,11 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
                         move == 'out' and \
                         macs[mac][1] == dc:
                     output_file.write(','.join([str(i) for i in [tijd, mac, dc, 'pass']]) + '\n')
-                    if self.mgr.interactive_mode:
-                        self.mgr.stats_generator.add_time(0)
-                        self.mgr.stats_generator.add_line()
                     del(macs[mac])
                 else:
                     output_file.write(','.join([str(i) for i in [macs[mac][0],
                         mac, macs[mac][1], macs[mac][2]]]) + '\n')
                     output_file.write(','.join([str(i) for i in [tijd, mac, dc, move]]) + '\n')
-                    if self.mgr.interactive_mode:
-                        self.mgr.stats_generator.add_time(time_diff(
-                            macs[mac][0], tijd, time_format))
-                        self.mgr.stats_generator.add_line(2)
                     del(macs[mac])
 
             else:
@@ -164,10 +150,3 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         for mac in macs:
             output_file.write(','.join([str(i) for i in [macs[mac][0],
                 mac, macs[mac][1], macs[mac][2]]]) + '\n')
-            if self.mgr.interactive_mode:
-                self.mgr.stats_generator.add_time(time_diff(
-                    macs[mac][0], time_now, time_format))
-                self.mgr.stats_generator.add_line()
-
-        if self.mgr.interactive_mode:
-            self.mgr.stats_generator.log(self.timeTuple)

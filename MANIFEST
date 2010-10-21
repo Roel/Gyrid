@@ -4,7 +4,6 @@ gyrid/daemon.py
 gyrid/discoverer.py
 gyrid/gyrid.py
 gyrid/logger.py
-gyrid/reporter.py
 gyrid/scanmanager.py
 gyrid/zippingfilehandler.py
 gyrid/tools/__init__.py

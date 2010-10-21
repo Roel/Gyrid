@@ -30,7 +30,6 @@ import time
 import configuration
 import discoverer
 import logger
-import reporter
 
 def threaded(f):
     """
@@ -69,13 +68,6 @@ class ScanManager(object):
         """
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()
-
-        self.interactive_mode = \
-            len(self.config.get_value('interacting_devices')) > 0
-        if self.interactive_mode:
-            self.reporter = reporter.Reporter(self)
-            report_generator = reporter.ReportGenerator(self.reporter)
-            self.stats_generator = reporter.StatsGenerator(report_generator)
 
         bluez_obj = self._dbus_systembus.get_object('org.bluez', '/')
         self._dbus_bluez_manager = dbus.Interface(bluez_obj,
@@ -196,14 +188,6 @@ class ScanManager(object):
         """
         raise NotImplementedError
 
-    def get_stats_location(self):
-        """
-        Get the location of the file used to store the statistics.
-
-        Implement this method in a subclass.
-        """
-        raise NotImplementedError
-
     def run(self):
         """
         Implement this method in a subclass.
@@ -241,9 +225,6 @@ class DefaultScanManager(ScanManager):
 
     def get_info_log_location(self):
         return self.base_location + 'messages.log'
-
-    def get_stats_location(self):
-        return self.base_location + 'stats.txt'
 
     def _bluetooth_adapter_added(self, path=None):
         adapter = ScanManager._bluetooth_adapter_added(self, path)

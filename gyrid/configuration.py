@@ -78,20 +78,6 @@ class Configuration(object):
             values = {'%Y%m%d-%H%M%S-%Z': 'Use the YYYYMMDD-HHMMSS-TZ format.'},
             default = '%Y%m%d-%H%M%S-%Z')
 
-        interacting_devices = _Option(name = 'interacting_devices',
-            description = 'A list of the MAC-addresses of the devices which ' +
-                'are allowed to receive reports from the scanner ' +
-                '(comma separated, in the 00:11:22:33:44:55 format). ' +
-                'Bear in mind that sending reports pauses device discovery: ' +
-                'the listed devices should only enable Bluetooth when ' +
-                'wanting to receive a report. Devices can receive at most ' +
-                'one report each hour.',
-            type = '[m for m in [self.mgr.is_valid_mac(i) ' + \
-                'for i in "%s".split(",")] if m]',
-            values = {},
-            hidden = True,
-            default = None)
-
         enable_rssi_log = _Option(name = 'enable_rssi_log',
             description = 'Enable logging of received RSSI data.',
             type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
@@ -109,7 +95,7 @@ class Configuration(object):
             default = None)
 
         self.options.extend([buffer_size, alix_led_support, time_format,
-            interacting_devices, enable_rssi_log, excluded_devices])
+            enable_rssi_log, excluded_devices])
 
     def _get_option_by_name(self, name):
         """
