@@ -58,7 +58,7 @@ class InfoLogger(object):
     def write_info(self, info):
         """
         Append a timestamp and the information to the logfile on a new line
-        and flush the file.
+        and flush the file. Try sending the info over the network.
 
         @param  info   The information to write.
         """
@@ -66,6 +66,10 @@ class InfoLogger(object):
             self.logger.info(",".join([time.strftime(
                 self.time_format,
                 time.localtime()), info]))
+        self.mgr.net_send_line(",".join(['INFO',
+                time.strftime('%s',
+                time.localtime()),
+                info]))
 
 class RSSILogger(InfoLogger):
     """
@@ -104,6 +108,7 @@ class RSSILogger(InfoLogger):
     def write(self, timestamp, mac_address, device_class, rssi):
         """
         Append the parameters to the logfile on a new line and flush the file.
+        Try sending the data over the network.
 
         @param  timestamp      UNIX timestamp.
         @param  mac_address    Hardware address of the Bluetooth device.
@@ -116,6 +121,11 @@ class RSSILogger(InfoLogger):
                 time.localtime(timestamp)),
                 str(mac_address),
                 str(rssi)]))
+        self.mgr.net_send_line(",".join(['SIGHT_RSSI',
+            str(self.mac),
+            str(timestamp),
+            str(mac_address),
+            str(rssi)]))
 
 class ScanLogger(RSSILogger):
     """
@@ -154,6 +164,7 @@ class ScanLogger(RSSILogger):
     def write(self, timestamp, mac_address, device_class, moving):
         """
         Append the parameters to the logfile on a new line and flush the file.
+        Try sending the data over the network.
 
         @param  timestamp      UNIX timestamp.
         @param  mac_address    Hardware address of the Bluetooth device.
@@ -164,6 +175,12 @@ class ScanLogger(RSSILogger):
             self.logger.info(",".join([time.strftime(
                 self.time_format,
                 time.localtime(timestamp)),
+                str(mac_address),
+                str(device_class),
+                str(moving)]))
+        self.mgr.net_send_line(",".join(['SIGHT_CELL',
+                str(self.mac),
+                str(timestamp),
                 str(mac_address),
                 str(device_class),
                 str(moving)]))

@@ -23,6 +23,7 @@ import dbus
 import dbus.mainloop.glib
 import os
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -30,7 +31,7 @@ import time
 import configuration
 import discoverer
 import logger
-import reporter
+import network
 
 def threaded(f):
     """
@@ -54,7 +55,6 @@ class ScanManager(object):
         self.main = main
         self.debug_mode = False
         self.debug_silent = False
-        self.track_mode = None
         self.startup_time = int(time.time())
         self.active_adapters = []
 
@@ -71,12 +71,17 @@ class ScanManager(object):
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._dbus_systembus = dbus.SystemBus()
 
-        self.interactive_mode = \
-            len(self.config.get_value('interacting_devices')) > 0
-        if self.interactive_mode:
-            self.reporter = reporter.Reporter(self)
-            report_generator = reporter.ReportGenerator(self.reporter)
-            self.stats_generator = reporter.StatsGenerator(report_generator)
+        if len(self.config.get_value('network_server_host')) > 0:
+            dir = os.path.dirname(os.path.abspath(__file__))
+            m_path = dir[:dir.rfind('/')] + '/network_middleware.py'
+            if not os.path.isfile(m_path):
+                m_path = '/usr/share/gyrid/network_middleware.py'
+
+            self.network_middleware = subprocess.Popen(
+                ["/usr/bin/python", m_path])
+            time.sleep(2)
+
+            self.network = network.Network(self)
 
         bluez_obj = self._dbus_systembus.get_object('org.bluez', '/')
         self._dbus_bluez_manager = dbus.Interface(bluez_obj,
@@ -85,6 +90,17 @@ class ScanManager(object):
         self._dbus_systembus.add_signal_receiver(self._bluetooth_adapter_added,
             bus_name = "org.bluez",
             signal_name = "AdapterAdded")
+
+    def net_send_line(self, line):
+        """
+        Try to send the given line over the socket to the Gyrid networking
+        component via the network module. This is failsafe, also when networking
+        support is disabled.
+
+        @param   line   The line to send.
+        """
+        if 'network' in self.__dict__:
+            self.network.send_line(line)
 
     def is_valid_mac(self, string):
         """
@@ -110,14 +126,6 @@ class ScanManager(object):
         self.debug_mode = debug
         self.debug_silent = silent
 
-    def set_track_mode(self, mac):
-        """
-        Enable or disable track mode.
-
-        @param  mac    The MAC-address to track, None to disable track mode.
-        """
-        self.track_mode = self.is_valid_mac(mac)
-
     def _bluetooth_adapter_added(self, path=None):
         """
         Called automatically when a Bluetooth adapter is added to the system.
@@ -141,9 +149,10 @@ class ScanManager(object):
             extra_time = ""
             if False in [i in self.time_format for i in ['%H', '%M', '%S']]:
                 extra_time = " (%H:%M:%S)"
-            sys.stdout.write("%s%s Gyrid: %s.\n" % \
-                (time.strftime(self.config.get_value('time_format')),
-                time.strftime(extra_time), message))
+            d = {'time': time.strftime(self.config.get_value('time_format')),
+                 'extra_time': time.strftime(extra_time),
+                 'message': message}
+            sys.stdout.write("%(time)s%(extra_time)s Gyrid: %(message)s.\n" % d)
 
     def makedirs(self, path, mode=0755):
         """
@@ -205,14 +214,6 @@ class ScanManager(object):
         """
         raise NotImplementedError
 
-    def get_stats_location(self):
-        """
-        Get the location of the file used to store the statistics.
-
-        Implement this method in a subclass.
-        """
-        raise NotImplementedError
-
     def run(self):
         """
         Implement this method in a subclass.
@@ -250,9 +251,6 @@ class DefaultScanManager(ScanManager):
 
     def get_info_log_location(self):
         return self.base_location + 'messages.log'
-
-    def get_stats_location(self):
-        return self.base_location + 'stats.txt'
 
     def _bluetooth_adapter_added(self, path=None):
         adapter = ScanManager._bluetooth_adapter_added(self, path)
