@@ -70,5 +70,6 @@ setup(name = "gyrid",
       author_email = "roel.huybrechts@ugent.be",
       license = "GPLv3",
       packages = ["gyrid", "gyrid/tools"],
-      data_files = [("/etc/init.d", ['init/gyrid'])],
+      data_files = [("/etc/init.d", ['init/gyrid']),
+                    ("/usr/share/gyrid", ['network_middleware.py'])],
       cmdclass = {'install_data': InstallData})

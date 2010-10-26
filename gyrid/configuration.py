@@ -94,8 +94,34 @@ class Configuration(object):
             values = {},
             default = None)
 
+        network_server_host = _Option(name = 'network_server_host',
+            description = 'The network host of the server to talk to. ' +
+                'This can be an IP-address or a domain name. Disable ' +
+                'networking support when None.',
+            type = '[i for i in "%s".split(",") if i != "None"]',
+            values = {},
+            default = None)
+
+        network_server_port = _Option(name = 'network_server_port',
+            description = 'The TCP port to be used on the server.',
+            type = 'self._parse_int(%s)',
+            values = {},
+            default = 2583)
+
+        network_ssl_client_crt = _Option(name = 'network_ssl_client_crt',
+            description = 'Path to the SSL client certificate.',
+            values = {},
+            default = '/usr/share/gyrid/ssl/client.crt')
+
+        network_ssl_client_key = _Option(name = 'network_ssl_client_key',
+            description = 'Path to the SSL client key.',
+            values = {},
+            default = '/usr/share/gyrid/ssl/client.key')
+
         self.options.extend([buffer_size, alix_led_support, time_format,
-            enable_rssi_log, excluded_devices])
+            enable_rssi_log, excluded_devices, network_server_host,
+            network_server_port, network_ssl_client_crt,
+            network_ssl_client_key])
 
     def _get_option_by_name(self, name):
         """

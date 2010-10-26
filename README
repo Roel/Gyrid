@@ -5,5 +5,6 @@ a timestamp and their device class (which is a number that indicates whether
 the device is a phone, a carkit, etc.).
 
 The idea behind this is scientifical. When multiple of these scanners are placed
-at known positions, the logfiles can be combined afterwards into a (geo)database
-and used for further analysis.
+at known positions, the logfiles can be combined into a (geo)database and used
+for further analysis. This can be done in realtime via a network server or in
+postprocessing.
