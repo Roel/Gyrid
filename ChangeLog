@@ -1,3 +1,14 @@
+gyrid 0.4:
+    * ADD: networking support, talking to a remote server either on the LAN
+           or via the internet.
+    * REM: track mode, use a combination of tail and grep on the logfile
+           instead
+    * REM: Bluetooth reporting functionality, it has never really worked
+    * FIX: logging while device pool is locked
+    * FIX: error in writing inquiry mode on Bluetooth 2.1 devices
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 27 Oct 2010 11:09:29 +0200
+
 gyrid 0.3.3
     * FIX: excluded_devices option so that it detects 0 as a valid
            value.
