@@ -5,11 +5,11 @@ gyrid \- A Bluetooth device scanner and logger daemon.
 .B /etc/init.d/gyrid
 start|stop|restart|debug
 .SH DESCRIPTION
-Gyrid continuously scans the neighborhood for Bluetooth-enabled devices which are publicly visible, given there is a Bluetooth adapter connected.
+Gyrid continuously scans the neighborhood for Bluetooth-enabled devices which are publicly visible, given there is a Bluetooth adapter connected. It can scan with multiple adapters simultaneously too.
 
-The MAC-addresses of the discovered devices are saved to a logfile including a timestamp and their device class (which is a number that indicates whether the device is a phone, a carkit, etc.).
+The MAC-addresses of the discovered devices are saved to a logfile including a timestamp and their device class (which is a number that indicates whether the device is a phone, a carkit, etc.). Optionally, the RSSI value of each detection can be saved as well.
 
-The idea behind this is scientifical. When multiple of these scanners are placed at known positions, the logfiles can be combined afterwards into a (geo)database for further research.
+The idea behind this is scientifical. When multiple of these scanners are placed at known positions, the logfiles can be combined into a (geo)database and used for further analysis. This can be done in realtime via a network server or in postprocessing.
 .SH OPTIONS
 .TP
 .B start
