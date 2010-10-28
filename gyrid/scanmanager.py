@@ -242,10 +242,12 @@ class DefaultScanManager(ScanManager):
         ScanManager.__init__(self, main)
 
     def get_scan_log_location(self, mac):
+        mac = mac.replace(':','')
         self.makedirs(self.base_location + mac)
         return self.base_location + mac + '/scan.log'
 
     def get_rssi_log_location(self, mac):
+        mac = mac.replace(':','')
         self.makedirs(self.base_location + mac)
         return self.base_location + mac + '/rssi.log'
 
