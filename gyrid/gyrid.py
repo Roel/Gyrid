@@ -201,4 +201,5 @@ class Main(daemon.Daemon):
                     print("Stopping Gyrid.")
             daemon.Daemon.stop(self)
         else:
+            self.mgr.log_info("Stopped")
             sys.exit(0)
