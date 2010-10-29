@@ -122,9 +122,9 @@ class RSSILogger(InfoLogger):
                 str(mac_address),
                 str(rssi)]))
         self.mgr.net_send_line(",".join(['SIGHT_RSSI',
-            str(self.mac),
+            str(self.mac.replace(':','')),
             str(timestamp),
-            str(mac_address),
+            str(mac_address.replace(':','')),
             str(rssi)]))
 
 class ScanLogger(RSSILogger):
@@ -179,9 +179,9 @@ class ScanLogger(RSSILogger):
                 str(device_class),
                 str(moving)]))
         self.mgr.net_send_line(",".join(['SIGHT_CELL',
-                str(self.mac),
+                str(self.mac.replace(':','')),
                 str(timestamp),
-                str(mac_address),
+                str(mac_address.replace(':','')),
                 str(device_class),
                 str(moving)]))
 
