@@ -174,14 +174,9 @@ class InetClient(LineReceiver):
         @param   data   The line to send.
         """
         data = str(data).strip()
-        if data.startswith('SMSG,'):
-            LineReceiver.sendLine(self, data)
-        elif data.startswith('INFO,'):
-            LineReceiver.sendLine(self, data)
-        elif data.startswith('SIGHT_CELL,'):
-            LineReceiver.sendLine(self, data[data.find(',')+1:])
-        elif data.startswith('SIGHT_RSSI,') and self.factory.rssi_enabled:
-            LineReceiver.sendLine(self, data[data.find(',')+1:])
+        r = self.factory.filter(data)
+        if r != None:
+            LineReceiver.sendLine(self, r)
 
     def lineReceived(self, data):
         """
@@ -196,13 +191,10 @@ class InetClient(LineReceiver):
                 self.sendLine("SMSG,hostname,%s" % socket.gethostname())
             elif dl[1] == 'keepalive':
                 self.sendLine("SMSG,keepalive,ok")
-            elif dl[1] == 'rssi_enabled':
-                if len(dl) > 2 and dl[2].lower() == 'true':
-                    self.factory.rssi_enabled = True
-                elif len(dl) > 2 and dl[2].lower() == 'false':
-                    self.factory.rssi_enabled = False
-                self.sendLine("SMSG,rssi_enabled,%s" % str(
-                    self.factory.rssi_enabled))
+            else:
+                r = self.factory.set_config(dl)
+                if r != None:
+                    self.sendLine(r)
 
 class InetClientFactory(ReconnectingClientFactory):
     """
@@ -218,7 +210,62 @@ class InetClientFactory(ReconnectingClientFactory):
         self.client = None
         self.maxDelay = 120
 
-        self.rssi_enabled = False
+        self.init()
+
+    def init(self):
+        """
+        Initialise per-connection variables.
+        """
+        self.config = {'enable_rssi': False,
+                       'enable_sensor_mac': True}
+
+    def lstrip_fields(self, string, number):
+        """
+        Strip fields from a commaseparated string.
+
+        @param   string  The csv string.
+        @param   number  The number of fields to strip.
+        """
+        try:
+            return string.split(',',number)[number:][0]
+        except IndexError:
+            return ''
+
+    def filter(self, data):
+        """
+        Filter outgoing data according to the configuration options.
+
+        @param   data  The data to filter.
+        @param         The filtered data, None if nothing should go out.
+        """
+        if data.startswith('SIGHT'):
+            if data.startswith('SIGHT_RSSI') and \
+                not self.config['enable_rssi']:
+                return None
+            elif self.config['enable_sensor_mac']:
+                return self.lstrip_fields(data, 1)
+            else:
+                return self.lstrip_fields(data, 2)
+        else:
+            return data
+
+    def set_config(self, list):
+        """
+        Set the value of a configuration option.
+
+        @param   list     A list of the fields contained in the received
+                            CSV-string.
+        @return           The string that should be sent to the client,
+                            None if nothing should go out.
+        """
+        if len(list) > 1 and list[1] in self.config:
+            if len(list) > 2 and list[2].lower() == 'true':
+                self.config[list[1]] = True
+            elif len(list) > 2 and list[2].lower() == 'false':
+                self.config[list[1]] = False
+            return "SMSG,%s,%s" % (list[1], self.config[list[1]])
+        else:
+            return None
 
     def buildProtocol(self, addr):
         """
@@ -235,7 +282,7 @@ class InetClientFactory(ReconnectingClientFactory):
         ReconnectingClientFactory.clientConnectionLost(
             self, connector, reason)
 
-        self.rssi_enabled = False
+        self.init()
 
         if 'ssl handshake failure' in str(reason):
             self.network.exit_code = 3
