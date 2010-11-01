@@ -217,19 +217,8 @@ class InetClientFactory(ReconnectingClientFactory):
         Initialise per-connection variables.
         """
         self.config = {'enable_rssi': False,
-                       'enable_sensor_mac': True}
-
-    def lstrip_fields(self, string, number):
-        """
-        Strip fields from a commaseparated string.
-
-        @param   string  The csv string.
-        @param   number  The number of fields to strip.
-        """
-        try:
-            return string.split(',',number)[number:][0]
-        except IndexError:
-            return ''
+                       'enable_sensor_mac': True,
+                       'enable_timestamp': True}
 
     def filter(self, data):
         """
@@ -238,16 +227,27 @@ class InetClientFactory(ReconnectingClientFactory):
         @param   data  The data to filter.
         @param         The filtered data, None if nothing should go out.
         """
-        if data.startswith('SIGHT'):
-            if data.startswith('SIGHT_RSSI') and \
-                not self.config['enable_rssi']:
-                return None
-            elif self.config['enable_sensor_mac']:
-                return self.lstrip_fields(data, 1)
-            else:
-                return self.lstrip_fields(data, 2)
+        if data.startswith('SIGHT_CELL'):
+            data = dict(zip(['sensor_mac', 'timestamp', 'mac',
+                'deviceclass', 'move'], data.split(',')[1:]))
+        elif data.startswith('SIGHT_RSSI') and not self.config['enable_rssi']:
+            return None
+        elif data.startswith('SIGHT_RSSI'):
+            data = dict(zip(['sensor_mac', 'timestamp', 'mac', 'rssi'],
+                data.split(',')[1:]))
         else:
             return data
+
+        try:
+            for item in self.config:
+                if self.config[item] == False:
+                    data[item.lstrip('enable_')] = ''
+        except KeyError:
+            pass
+
+        return ','.join([data[j] for j in [i for i in ['sensor_mac',
+            'timestamp', 'mac', 'deviceclass', 'move',
+            'rssi'] if i in data] if data[j]])
 
     def set_config(self, list):
         """
