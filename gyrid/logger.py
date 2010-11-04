@@ -145,7 +145,9 @@ class ScanLogger(RSSILogger):
         RSSILogger.__init__(self, mgr, mac)
 
         self.started = False
-        self.alix_led_support = self.mgr.config.get_value('alix_led_support')
+        self.alix_led_support = (self.mgr.config.get_value(
+            'alix_led_support') and (False not in [os.path.exists(
+            '/sys/class/leds/alix:%i' % i) for i in [2, 3]]))
 
         self.pool = {}
         self.temp_pool = {}
@@ -238,9 +240,7 @@ class ScanLogger(RSSILogger):
         Switch the state of the LED (on/off) with the specified id.
         Checks if such a LED exists on the system before trying to set it.
         """
-        if self.alix_led_support and \
-                (False not in [os.path.exists('/sys/class/leds/alix:%i' % i) \
-                for i in [1, 2, 3]]):
+        if 2 <= id <= 3 and self.alix_led_support:
             swap = {0: 1, 1: 0}
 
             file = open('/sys/class/leds/alix:%i/brightness' % id, 'r')
