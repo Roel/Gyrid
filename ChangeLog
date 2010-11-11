@@ -1,3 +1,14 @@
+gyrid 0.4.1:
+    * FIX: strip colons from directory names
+    * FIX: stop logging while in debug mode
+    * FIX: net: strip colons from MAC-addresses
+    * FIX: make ALIX LED switching more efficient
+    * ADD: net: make sensor's MAC optional
+    * ADD: net: make timestamp optional
+    * UPD: manpage
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 11 Nov 2010 16:34:40 +0100
+
 gyrid 0.4:
     * ADD: networking support, talking to a remote server either on the LAN
            or via the internet.
