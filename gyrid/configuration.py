@@ -85,6 +85,15 @@ class Configuration(object):
                 'Disable RSSI logging.'},
             default = True)
 
+        minimum_rssi = _Option(name = 'minimum_rssi',
+            description = 'The minimum RSSI value for a detection to be ' +
+                'recorded. None to record all detections. This is a ' +
+                'potentially dangerous option as it can greatly reduce ' +
+                'the amount of data recorded. Use with care.',
+            type = 'self._parse_int(%s)',
+            values = {},
+            default = None)
+
         excluded_devices = _Option(name = 'excluded_devices',
             description = 'A list of HCI device-ID\'s to exclude from ' +
                 'scanning. For example: 0 to exclude hci0, None to enable ' +
@@ -119,8 +128,8 @@ class Configuration(object):
             default = '/usr/share/gyrid/ssl/client.key')
 
         self.options.extend([buffer_size, alix_led_support, time_format,
-            enable_rssi_log, excluded_devices, network_server_host,
-            network_server_port, network_ssl_client_crt,
+            enable_rssi_log, minimum_rssi, excluded_devices,
+            network_server_host, network_server_port, network_ssl_client_crt,
             network_ssl_client_key])
 
     def _get_option_by_name(self, name):
@@ -181,7 +190,7 @@ class Configuration(object):
         """
         try:
             return int(integer)
-        except ValueError:
+        except (ValueError, TypeError):
             return None
 
 class _ConfigurationParser(ConfigParser.ConfigParser, object):

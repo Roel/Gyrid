@@ -48,6 +48,7 @@ class Discoverer(object):
         self.mac = mac
         self.buffer_size = int(math.ceil(
             self.mgr.config.get_value('buffer_size')/1.28))
+        self.minimum_rssi = self.mgr.config.get_value('minimum_rssi')
         self.done = False
 
     def init(self):
@@ -223,23 +224,24 @@ class Discoverer(object):
         @param  rssi           The RSSI (RX power level) value of the
                                 discovery.
         """
-        timestamp = time.time()
+        if not (self.minimum_rssi and rssi < self.minimum_rssi):
+            timestamp = time.time()
 
-        if self.mgr.debug_mode:
-            import tools.deviceclass
-            import tools.macvendor
+            if self.mgr.debug_mode:
+                import tools.deviceclass
+                import tools.macvendor
 
-            device = ', '.join([str(tools.deviceclass.get_major_class(
-                device_class)), str(tools.deviceclass.get_minor_class(
-                device_class))])
-            vendor = tools.macvendor.get_vendor(address)
+                device = ', '.join([str(tools.deviceclass.get_major_class(
+                    device_class)), str(tools.deviceclass.get_minor_class(
+                    device_class))])
+                vendor = tools.macvendor.get_vendor(address)
 
-            d = {'mac': address, 'dc': device, 'vendor': vendor,
-                 'time': str(timestamp), 'rssi': rssi, 'sc': self.mac}
+                d = {'mac': address, 'dc': device, 'vendor': vendor,
+                     'time': str(timestamp), 'rssi': rssi, 'sc': self.mac}
 
-            self.mgr.debug(
-                "%(sc)s: Found device %(mac)s [%(dc)s (%(vendor)s)] " % d + \
-                "with RSSI %(rssi)d" % d, force=True)
+                self.mgr.debug(
+                    "%(sc)s: Found device %(mac)s [%(dc)s " % d + \
+                    "(%(vendor)s)] with RSSI %(rssi)d" % d, force=True)
 
-        self.logger.update_device(int(timestamp), address, device_class)
-        self.logger_rssi.write(int(timestamp), address, device_class, rssi)
+            self.logger.update_device(int(timestamp), address, device_class)
+            self.logger_rssi.write(int(timestamp), address, device_class, rssi)

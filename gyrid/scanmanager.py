@@ -83,6 +83,11 @@ class ScanManager(object):
 
             self.network = network.Network(self)
 
+        if self.config.get_value('minimum_rssi'):
+            self.log_info("Using a minimum RSSI value of %i, " % \
+                self.config.get_value('minimum_rssi') + \
+                "detections with a lower RSSI value are ignored")
+
         bluez_obj = self._dbus_systembus.get_object('org.bluez', '/')
         self._dbus_bluez_manager = dbus.Interface(bluez_obj,
             'org.bluez.Manager')
