@@ -1,3 +1,9 @@
+gyrid 0.4.2:
+    * ADD: option to record only detections with a RSSI above
+           a certain threshold
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Mon, 15 Nov 2010 19:37:52 +0100
+
 gyrid 0.4.1:
     * FIX: strip colons from directory names
     * FIX: stop logging while in debug mode
