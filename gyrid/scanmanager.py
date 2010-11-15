@@ -83,7 +83,7 @@ class ScanManager(object):
 
             self.network = network.Network(self)
 
-        if self.config.get_value('minimum_rssi'):
+        if self.config.get_value('minimum_rssi') != None:
             self.log_info("Using a minimum RSSI value of %i, " % \
                 self.config.get_value('minimum_rssi') + \
                 "detections with a lower RSSI value are ignored")

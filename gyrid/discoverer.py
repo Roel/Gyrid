@@ -224,7 +224,7 @@ class Discoverer(object):
         @param  rssi           The RSSI (RX power level) value of the
                                 discovery.
         """
-        if not (self.minimum_rssi and rssi < self.minimum_rssi):
+        if not (self.minimum_rssi != None and rssi < self.minimum_rssi):
             timestamp = time.time()
 
             if self.mgr.debug_mode:
