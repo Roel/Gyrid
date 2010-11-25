@@ -84,11 +84,24 @@ class Discoverer(object):
                 return 1
 
             if result != 0:
-                s = 'Error while setting inquiry mode on device %i' % \
-                    self.device_id
-                self.mgr.main.log_error('Error', '%s.' % s)
-                self.mgr.debug(s)
-                return 1
+                s = 'Adapter %s does not support RSSI enabled ' % self.mac \
+                    + 'inquiries, disabling RSSI detections'
+                self.mgr.log_info(s)
+                try:
+                    result = self._write_inquiry_mode(0)
+                except:
+                    s = 'Error writing inquiry mode on device %i' % \
+                        self.device_id
+                    self.mgr.main.log_error('Error', '%s.' % s)
+                    self.mgr.debug(s)
+                    return 1
+
+                if result != 0:
+                    s = 'Error setting inquiry mode on ' + \
+                        'device %i' % self.device_id
+                    self.mgr.main.log_error('Error', '%s.' % s)
+                    self.mgr.debug(s)
+                    return 1
 
         return 0
 
@@ -192,6 +205,17 @@ class Discoverer(object):
                     devclass_raw = pkt[1+8*nrsp+3*i:1+8*nrsp+3*i+3]
                     devclass = struct.unpack ("I", "%s\0" % devclass_raw)[0]
                     self.device_discovered(addr, devclass, rssi)
+            elif event == bluez.EVT_INQUIRY_RESULT:
+                pkt = pkt[3:]
+                nrsp = struct.unpack("B", pkt[0])[0]
+                for i in range(nrsp):
+                    addr = bluez.ba2str(pkt[1+6*i:1+6*i+6])
+                    devclass_raw = struct.unpack("BBB",
+                            pkt[1+9*nrsp+3*i:1+9*nrsp+3*i+3])
+                    devclass = (devclass_raw[2] << 16) | \
+                            (devclass_raw[1] << 8) | \
+                            devclass_raw[0]
+                    self.device_discovered(addr, devclass, None)
             elif event == bluez.EVT_INQUIRY_COMPLETE:
                 done = True
             elif event == bluez.EVT_CMD_STATUS:
@@ -222,9 +246,11 @@ class Discoverer(object):
         @param  address        Hardware address of the Bluetooth device.
         @param  device_class   Device class of the Bluetooth device.
         @param  rssi           The RSSI (RX power level) value of the
-                                discovery.
+                                discovery. None when none recorded.
         """
-        if not (self.minimum_rssi != None and rssi < self.minimum_rssi):
+        if rssi == None or \
+            not (self.minimum_rssi != None and rssi < self.minimum_rssi):
+
             timestamp = time.time()
 
             if self.mgr.debug_mode:
@@ -235,13 +261,17 @@ class Discoverer(object):
                     device_class)), str(tools.deviceclass.get_minor_class(
                     device_class))])
                 vendor = tools.macvendor.get_vendor(address)
+                rssi_s = ' with RSSI %d' % rssi if rssi != None else ''
 
                 d = {'mac': address, 'dc': device, 'vendor': vendor,
-                     'time': str(timestamp), 'rssi': rssi, 'sc': self.mac}
+                     'time': str(timestamp), 'rssi': rssi_s, 'sc': self.mac}
 
                 self.mgr.debug(
                     "%(sc)s: Found device %(mac)s [%(dc)s " % d + \
-                    "(%(vendor)s)] with RSSI %(rssi)d" % d, force=True)
+                    "(%(vendor)s)]%(rssi)s" % d, force=True)
 
             self.logger.update_device(int(timestamp), address, device_class)
-            self.logger_rssi.write(int(timestamp), address, device_class, rssi)
+
+            if rssi != None:
+                self.logger_rssi.write(int(timestamp), address, device_class,
+                    rssi)
