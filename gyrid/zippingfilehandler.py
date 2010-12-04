@@ -113,7 +113,7 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
             Return the difference in seconds between time1 and time2, both
             specified in time_format.
             """
-            if '%s' in time_format:
+            if time_format == '%s':
                 return abs(int(time2)-int(time1))
             else:
                 return abs(int(
