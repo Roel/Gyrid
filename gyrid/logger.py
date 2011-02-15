@@ -240,7 +240,8 @@ class ScanLogger(RSSILogger):
         Switch the state of the LED (on/off) with the specified id.
         Checks if such a LED exists on the system before trying to set it.
         """
-        if 2 <= id <= 3 and self.alix_led_support:
+        if 2 <= id <= 3 and self.alix_led_support \
+            and not os.path.exists('/tmp/gyrid-led-disabled'):
             swap = {0: 1, 1: 0}
 
             file = open('/sys/class/leds/alix:%i/brightness' % id, 'r')
