@@ -17,7 +17,7 @@ Depends: ${misc:Depends}, ${python:Depends},
  python-dbus (>= 0.82),
  python-gobject (>= 2.14) | python-gtk2 (>= 2.12),
  python-openssl (>= 0.7),
- python-twisted (>= 8.1.0),
+ python-twisted-core (>= 8.1.0),
  bluez (>= 4.32) | bluez-utils (>= 4.32)
 Description: Bluetooth device scanner and logger daemon
  Gyrid scans the neighbourhood for Bluetooth devices and
