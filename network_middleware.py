@@ -62,11 +62,15 @@ class Network(object):
 
         inet_factory = InetClientFactory(self)
         local_factory = LocalServerFactory(self, inet_factory)
+        self.enable_ssl = True
         self.host = self.config.get_value('network_server_host')
         self.port = self.config.get_value('network_server_port')
         self.local_port = 25830
 
-        if False in [os.path.isfile(self.config.get_value(
+        if False not in ['None' == self.config.get_value(
+            'network_ssl_client_%s' % i) for i in ['crt', 'key']]:
+            self.enable_ssl = False
+        elif False in [os.path.isfile(self.config.get_value(
             'network_ssl_client_%s' % i)) for i in ['crt', 'key']]:
             self.exit_code = 2
             self.exit()
@@ -80,9 +84,13 @@ class Network(object):
                     self.exit_code = 1
                     self.exit()
             else:
-                reactor.connectSSL(self.host[0], self.port, inet_factory,
-                    InetCtxFactory(self))
-                reactor.run()
+                if self.enable_ssl:
+                    reactor.connectSSL(self.host[0], self.port, inet_factory,
+                        InetCtxFactory(self))
+                    reactor.run()
+                else:
+                    reactor.connectTCP(self.host[0], self.port, inet_factory)
+                    reactor.run()
 
     def exit(self):
         """

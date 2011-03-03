@@ -118,12 +118,14 @@ class Configuration(object):
             default = 2583)
 
         network_ssl_client_crt = _Option(name = 'network_ssl_client_crt',
-            description = 'Path to the SSL client certificate.',
+            description = 'Path to the SSL client certificate. None to ' + \
+                'disable SSL.',
             values = {},
             default = '/usr/share/gyrid/ssl/client.crt')
 
         network_ssl_client_key = _Option(name = 'network_ssl_client_key',
-            description = 'Path to the SSL client key.',
+            description = 'Path to the SSL client key. None to ' + \
+                'disable SSL.',
             values = {},
             default = '/usr/share/gyrid/ssl/client.key')
 
