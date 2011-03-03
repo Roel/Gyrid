@@ -1,3 +1,8 @@
+gyrid 0.4.4:
+    * ADD: option to disable SSL on client-server connection
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 03 Mar 2011 16:18:20 +0100
+
 gyrid 0.4.3:
     * FIX: time difference function in zippingfilehandler
     * FIX: record non-RSSI inquiries on adapter that don't support RSSI
