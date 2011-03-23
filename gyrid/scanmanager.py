@@ -69,6 +69,7 @@ class ScanManager(object):
         starting up.
         """
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        dbus.mainloop.glib.threads_init()
         self._dbus_systembus = dbus.SystemBus()
 
         if len(self.config.get_value('network_server_host')) > 0:
