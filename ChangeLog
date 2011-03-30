@@ -1,3 +1,9 @@
+gyrid 0.4.5:
+    * FIX: Initialise DBus threading on startup.
+    * FIX: Save loggers between discoveries.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 30 Mar 2011 11:19:02 +0200
+
 gyrid 0.4.4:
     * ADD: option to disable SSL on client-server connection
 
