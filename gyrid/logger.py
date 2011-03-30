@@ -226,6 +226,8 @@ class ScanLogger(RSSILogger):
         if not 'poolchecker' in self.__dict__:
             self.poolchecker = PoolChecker(self.mgr, self)
         self.mgr.debug("%s: Started pool checker" % self.mac)
+        self.pool.clear()
+        self.temp_pool.clear()
         self.poolchecker.start()
 
     def stop(self):

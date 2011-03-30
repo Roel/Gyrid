@@ -89,6 +89,8 @@ class ScanManager(object):
                 self.config.get_value('minimum_rssi') + \
                 "detections with a lower RSSI value are ignored")
 
+        self.loggers = {}
+
         bluez_obj = self._dbus_systembus.get_object('org.bluez', '/')
         self._dbus_bluez_manager = dbus.Interface(bluez_obj,
             'org.bluez.Manager')
@@ -317,8 +319,13 @@ class DefaultScanManager(ScanManager):
                     self._dev_prop_changed, path_keyword='path')
             else:
                 self.active_adapters.append(address)
-                _logger = logger.ScanLogger(self, address)
-                _logger_rssi = logger.RSSILogger(self, address)
+                if address not in self.loggers:
+                    _logger = logger.ScanLogger(self, address)
+                    _logger_rssi = logger.RSSILogger(self, address)
+                    self.loggers[address] = [_logger, _logger_rssi]
+                else:
+                    _logger = self.loggers[address][0]
+                    _logger_rssi = self.loggers[address][1]
                 _discoverer = discoverer.Discoverer(self, _logger, _logger_rssi,
                     device_id, address)
 
