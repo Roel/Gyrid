@@ -112,11 +112,11 @@ class FakeScanManager(object):
         """
         Initialisation.
         """
-        def main():
-            def log_error(level, message):
+        class Main:
+            def log_error(self, level, message):
                 pass
 
-        self.main = main
+        self.main = Main()
 
     def is_valid_mac(self, string):
         """
