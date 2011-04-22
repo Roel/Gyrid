@@ -237,6 +237,25 @@ class ScanLogger(RSSILogger):
         self.poolchecker.stop()
         del(self.poolchecker)
 
+        self._set_led(2, 0)
+        self._set_led(3, 0)
+
+    def _set_led(self, id, state):
+        """
+        Set the state of the LED (on/off) with the specified id.
+        Checks if such a LED exists on the system before trying to set it.
+
+        @param  id     The id of the LED (either 2 or 3).
+        @param  state  The new state (0 means off, 1 means on)
+        """
+        if 2 <= id <= 3 and self.alix_led_support \
+            and not os.path.exists('/tmp/gyrid-led-disabled') \
+            and 0 <= state <= 1:
+
+            file = open('/sys/class/leds/alix:%i/brightness' % id, 'w')
+            file.write(str(state))
+            file.close()
+
     def switch_led(self, id):
         """
         Switch the state of the LED (on/off) with the specified id.
@@ -250,9 +269,7 @@ class ScanLogger(RSSILogger):
             current_state = int(file.read()[0])
             file.close()
 
-            file = open('/sys/class/leds/alix:%i/brightness' % id, 'w')
-            file.write(str(swap[current_state]))
-            file.close()
+            self._set_led(id, swap[current_state])
 
 class PoolChecker(threading.Thread):
     """
