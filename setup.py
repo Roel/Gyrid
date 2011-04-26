@@ -64,12 +64,13 @@ class InstallData(install_data):
         self.data_files.append((dest, ['%(build)s/%(fileLower)s.gz' % str]))
 
 setup(name = "gyrid",
-      version = "0.4.5",
+      version = "0.4.6",
       description = "Bluetooth device scanner daemon.",
       author = "Roel Huybrechts",
       author_email = "roel.huybrechts@ugent.be",
       license = "GPLv3",
       packages = ["gyrid", "gyrid/tools"],
       data_files = [("/etc/init.d", ['init/gyrid']),
-                    ("/usr/share/gyrid", ['network_middleware.py'])],
+                    ("/usr/share/gyrid", ['network_middleware.py']),
+                    ("/usr/share/doc/gyrid", ['README.net-api'])],
       cmdclass = {'install_data': InstallData})
