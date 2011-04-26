@@ -270,8 +270,8 @@ class Discoverer(object):
                     "%(sc)s: Found device %(mac)s [%(dc)s " % d + \
                     "(%(vendor)s)]%(rssi)s" % d, force=True)
 
-            self.logger.update_device(int(timestamp), address, device_class)
+            self.logger.update_device(timestamp, address, device_class)
 
             if rssi != None:
-                self.logger_rssi.write(int(timestamp), address, device_class,
+                self.logger_rssi.write(timestamp, address, device_class,
                     rssi)

@@ -37,14 +37,16 @@ import os
 import socket
 import sys
 import threading
+import time
+import zlib
 
 import gyrid.configuration as configuration
 
 from OpenSSL import SSL
 
-from twisted.internet import ssl, reactor
+from twisted.internet import reactor, ssl, task
 from twisted.internet.error import CannotListenError
-from twisted.internet.protocol import ReconnectingClientFactory, Factory
+from twisted.internet.protocol import Factory, ReconnectingClientFactory
 from twisted.protocols.basic import LineReceiver
 
 class Network(object):
@@ -175,16 +177,58 @@ class InetClient(LineReceiver):
         self.network.client = self
         self.factory = factory
 
-    def sendLine(self, data):
+    def connectionMade(self):
         """
-        Send a line to the Gyrid server.
+        Called when a new connection has been made.
+        Close the cache.
+        """
+        if not self.factory.cache.closed:
+            self.factory.cache.flush()
+            self.factory.cache.close()
 
-        @param   data   The line to send.
+        try:
+            self.factory.cachesize_loop.stop()
+        except AssertionError:
+            pass
+
+        self.factory.connected = True
+
+    def connectionLost(self, reason):
+        """
+        Called when the connection has been lost.
+        Open cache file and write await_ack buffer to cache.
+        """
+        if self.factory.config['enable_cache'] and self.factory.cache.closed \
+            and not self.factory.cache_full:
+            self.factory.cache = open(self.factory.cache_file, 'a')
+
+            for v in self.factory.await_ack.values():
+                self.factory.cache.write('%s\n' % v)
+            self.factory.cache.flush()
+            self.factory.await_ack.clear()
+
+        self.factory.connected = False
+
+    def sendLine(self, data, await_ack=True):
+        """
+        Send a line to the Gyrid server. When not connected,
+        store the data in the cache.
+
+        @param   data        The line to send.
+        @param   await_ack   Whether the line should be added to the
+                             await_ack buffer.
         """
         data = str(data).strip()
-        r = self.factory.filter(data)
-        if r != None:
-            LineReceiver.sendLine(self, r)
+        if self.factory.config['enable_cache'] and not self.factory.connected \
+            and not self.factory.cache.closed and not self.factory.cache_full:
+            self.factory.cache.write(data + '\n')
+        else:
+            r = self.factory.filter(data)
+            if r != None:
+                LineReceiver.sendLine(self, r)
+                if await_ack and not r.startswith('MSG') \
+                    and self.factory.config['enable_cache']:
+                    self.factory.await_ack[self.factory.checksum(r)] = data
 
     def lineReceived(self, data):
         """
@@ -192,17 +236,65 @@ class InetClient(LineReceiver):
 
         @param   data   The received data.
         """
-        data = data.strip()
+        data = data.strip().lower()
         dl = data.split(',')
-        if dl[0] == 'SMSG':
+        if dl[0] == 'msg':
             if dl[1] == 'hostname':
-                self.sendLine("SMSG,hostname,%s" % socket.gethostname())
-            elif dl[1] == 'keepalive':
-                self.sendLine("SMSG,keepalive,ok")
+                self.sendLine("MSG,hostname,%s" % socket.gethostname())
+            elif self.factory.config['enable_keepalive'] > 0 and \
+                len(dl) == 2 and dl[1] == 'keepalive':
+                self.factory.last_keepalive = int(time.time())
+                self.sendLine("MSG,keepalive")
+            elif dl[1] == 'cache' and len(dl) == 3:
+                if dl[2] == 'push':
+                    reactor.callInThread(self.pushCache)
+                elif dl[2] == 'clear':
+                    self.clearCache()
             else:
-                r = self.factory.set_config(dl)
+                r = self.factory.setConfig(dl)
                 if r != None:
                     self.sendLine(r)
+            if dl[1] == 'enable_keepalive' and len(dl) > 2 and dl[2] > 0:
+                self.factory.keepalive_loop.start(
+                    self.factory.config['enable_keepalive'], now=False)
+        elif dl[0] == 'ack' and len(dl) == 2:
+            if dl[1] in self.factory.await_ack:
+                del(self.factory.await_ack[dl[1]])
+
+    def pushCache(self):
+        """
+        Push trough the cached data. Clears the cache afterwards.
+        """
+        if not self.factory.cache.closed:
+            self.factory.cache.flush()
+            self.factory.cache.close()
+
+        self.factory.cache = open(self.factory.cache_file, 'r')
+        for line in self.factory.cache:
+            line = line.strip()
+            r = self.factory.filter(line)
+            if r != None and self.factory.config['enable_cache']:
+                self.factory.await_ack[self.factory.checksum(r)] = line
+        self.factory.cache.close()
+
+        self.clearCache()
+
+        for line in self.factory.await_ack.values():
+            self.sendLine(line, await_ack=False)
+
+    def clearCache(self):
+        """
+        Clears the cache file.
+        """
+        if not self.factory.cache.closed:
+            self.factory.cache.flush()
+            self.factory.cache.close()
+
+        self.factory.cache = open(self.factory.cache_file, 'w')
+        self.factory.cache.truncate()
+        self.factory.cache.close()
+
+        self.factory.cache_full = False
 
 class InetClientFactory(ReconnectingClientFactory):
     """
@@ -218,15 +310,73 @@ class InetClientFactory(ReconnectingClientFactory):
         self.client = None
         self.maxDelay = 120
 
+        self.connected = False
+        self.cache_full = False
+        self.cache_file = '/var/tmp/gyrid-network.cache'
+        self.cache = open(self.cache_file, 'a')
+        self.await_ack = {}
+
+        self.keepalive_loop = task.LoopingCall(self.keepalive)
+        self.cachesize_loop = task.LoopingCall(self.checkCacheSize)
+
+        self.buildProtocol(None)
         self.init()
 
     def init(self):
         """
         Initialise per-connection variables.
+        Starts and stops looping calls.
         """
+        self.last_keepalive = -1
+
         self.config = {'enable_rssi': False,
                        'enable_sensor_mac': True,
-                       'enable_timestamp': True}
+                       'enable_cache': True,
+                       'enable_keepalive': -1}
+
+        self.cachesize_loop.start(10)
+        try:
+            self.keepalive_loop.stop()
+        except AssertionError:
+            pass
+
+    def checksum(self, data):
+        """
+        Calculate the CRC32 checksum for the given data string.
+
+        @param   data   The data to process.
+        @return         The CRC32 checksum.
+        """
+        return hex(abs(zlib.crc32(data)))[2:]
+
+    def checkCacheSize(self):
+        """
+        Check the size of the cache and disable caching when full (25MB).
+        """
+        if not self.cache.closed:
+            self.cache.flush()
+
+        if os.path.isfile(self.cache_file) and \
+            os.path.getsize(self.cache_file) > (25*1048576):
+            self.cache.flush()
+            self.cache.close()
+            self.cache_full = True
+            try:
+                self.cachesize_loop.stop()
+            except AssertionError:
+                pass
+
+    def keepalive(self):
+        """
+        Checks if a keepalive has been received recently and closes
+        the connection otherwise.
+        """
+        t = self.config['enable_keepalive']
+        if self.last_keepalive < int(time.time() - (t+0.1*t)):
+            self.connected = False
+            if self.client:
+                self.client.transport._writeDisconnected = True
+                self.client.transport.loseConnection()
 
     def filter(self, data):
         """
@@ -257,7 +407,7 @@ class InetClientFactory(ReconnectingClientFactory):
             'timestamp', 'mac', 'deviceclass', 'move',
             'rssi'] if i in data] if data[j]])
 
-    def set_config(self, list):
+    def setConfig(self, list):
         """
         Set the value of a configuration option.
 
@@ -271,7 +421,16 @@ class InetClientFactory(ReconnectingClientFactory):
                 self.config[list[1]] = True
             elif len(list) > 2 and list[2].lower() == 'false':
                 self.config[list[1]] = False
-            return "SMSG,%s,%s" % (list[1], self.config[list[1]])
+            elif len(list) > 2:
+                try:
+                    self.config[list[1]] = int(list[2])
+                except ValueError:
+                    try:
+                        self.config[list[1]] = float(list[2])
+                    except ValueError:
+                        self.config[list[1]] = str(list[2])
+
+            return "MSG,%s,%s" % (list[1], self.config[list[1]])
         else:
             return None
 
@@ -286,6 +445,7 @@ class InetClientFactory(ReconnectingClientFactory):
     def clientConnectionLost(self, connector, reason):
         """
         Called when the connection to the server is lost.
+        Re-initialise per-connection variables and looping calls.
         """
         ReconnectingClientFactory.clientConnectionLost(
             self, connector, reason)

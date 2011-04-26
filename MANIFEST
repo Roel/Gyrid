@@ -17,4 +17,5 @@ network_middleware.py
 setup.py
 ChangeLog
 README
+README.net-api
 COPYING

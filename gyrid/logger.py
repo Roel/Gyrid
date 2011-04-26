@@ -67,8 +67,7 @@ class InfoLogger(object):
                 self.time_format,
                 time.localtime()), info]))
         self.mgr.net_send_line(",".join(['INFO',
-                time.strftime('%s',
-                time.localtime()),
+                "%0.2f" % time.time(),
                 info]))
 
 class RSSILogger(InfoLogger):
@@ -123,7 +122,7 @@ class RSSILogger(InfoLogger):
                 str(rssi)]))
         self.mgr.net_send_line(",".join(['SIGHT_RSSI',
             str(self.mac.replace(':','')),
-            str(timestamp),
+            "%0.2f" % timestamp,
             str(mac_address.replace(':','')),
             str(rssi)]))
 
@@ -182,7 +181,7 @@ class ScanLogger(RSSILogger):
                 str(moving)]))
         self.mgr.net_send_line(",".join(['SIGHT_CELL',
                 str(self.mac.replace(':','')),
-                str(timestamp),
+                "%0.2f" % timestamp,
                 str(mac_address.replace(':','')),
                 str(device_class),
                 str(moving)]))

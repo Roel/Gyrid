@@ -1,0 +1,150 @@
+The Gyrid network API
+---------------------
+
+Gyrid can talk to a network server to send Bluetooth log information directly
+to another host in the network. To use this functionality, a few options should
+be set in the configuration file:
+
+ * network_server_host: This option specifies the network server to talk to,
+    which can be either an IP-address or a domain name. If this option is set to
+    'None' (which is the default) network functionality is disabled altogether.
+
+ * network_server_port: This option specifies the port to connect to on the
+    server.
+
+ * network_ssl_client_crt and network_ssl_client_key: These options specify the
+    paths of the SSL client certificate and key respectively. Set both to 'None'
+    to disable SSL encryption. (SSL encryption is recommended when connecting
+    over a WAN (i.e. the internet)).
+
+When the network_server_host option is set, Gyrid starts a middleware script
+that makes the connection to the remote host. This connection is maintained
+inbetween Gyrid restarts. The connection will be established automatically and
+will autoreconnect at least every two minutes.
+
+
+Data format
+-----------
+
+All traffic sent through the connection are lines ('\r\n' line-endings) in CSV
+format. Service messages ment for the server/client start either with "MSG," or
+"ACK," (see further).
+
+Informational messages from the Gyrid daemon start with "INFO," and are of the
+following format:
+ * <- "INFO,timestamp,message"
+    f.ex.: "INFO,1303460352.64,Started scanning with adapter 00:1A:7D:0A:C2:65"
+
+    timestamp: UNIX timestamp as a two-decimal floating point value.
+
+Data lines can be of two formats, either in/out sensor data or rssi-data. The
+first is always transferred, the latter is disabled by default (see further).
+
+ * In/out sensor data has the following format:
+    <- "[sensor_mac,]timestamp,mac,deviceclass,move"
+     f.ex.: "001A7D0AC265,1303460353.35,001E75B7069A,5898756,in"
+
+    sensor_mac: The MAC-address of the sensor that detected the device, for
+        example "001122334455". This can be disabled (see further).
+
+    timestamp: UNIX timestamp of the detection as a two-decimal floating point
+        value.
+
+    mac: The MAC-address of the detected device.
+
+    deviceclass: The Bluetooth device class of the detected device as in integer
+        value.
+
+    move: Whether the device moved "in" or "out" the sensor's range.
+
+ * RSSI-data has the following format:
+    <- "[sensor_mac,]timestamp,mac,rssi"
+     f.ex.: "001A7D0AC265,1303460353.35,001E75B7069A,-47"
+
+    sensor_mac: The MAC-address of the sensor that detected the device, for
+        example "001122334455". This can be disabled (see further).
+
+    timestamp: UNIX timestamp of the detection as a two-decimal floating point
+        value.
+
+    mac: The MAC-address of the detected device.
+
+    rssi: The RSSI value of the detection as an integer value.
+
+
+Serverside implementation details
+---------------------------------
+
+When a connection is established the server should perform a few tasks to set up
+connection details. There are several options that can be set by the server
+which control the format of data that is sent by the client.
+
+ * -> "MSG,hostname" asks for the hostname of the connecting client
+   <- "MSG,hostname,voyage101"
+
+ * -> "MSG,enable_rssi,true/false" sets the option to receive RSSI detections
+        next to in/out data. Defaults to False. The client replies this line as
+        confirmation.
+   <- "MSG,enable_rssi,true/false"
+
+ * -> "MSG,enable_sensor_mac,true/false" sets the option to receive the
+        MAC-address of the sensor in addition to the information of the detected
+        devices. Defaults to True. The client replies this line as confirmation.
+   <- "MSG,enable_sensor_mac,true/false"
+
+
+A client/server-side keepalive mechanism is implemented to ensure connection is
+closed within a reasonable time after the link has been lost. When a connection
+is established, the server can set the keepalive time (K) to be used in seconds.
+The client then expects keepalive messages from the server every K seconds and
+closes the connection when a keepalive is missed (this can take up to 2*K
+seconds). The client replies at each keepalive received in order for the server
+to be able to close the connection in a similar way. The keepalive mechanism is
+disabled by default, but it is highly recommended to enable it on connection
+initialisation.
+
+ * -> "MSG,enable_keepalive,30" sets the keepalive option to 30 seconds. The
+        client expects a keepalive message from the server every 30 seconds and
+        closes the connection when no keepalive has been received. The client
+        replies this line as confirmation.
+   <- "MSG,enable_keepalive,30"
+
+ * -> "MSG,keepalive" sends a keepalive message to the client. This has to be
+        sent at the interval specified in the previous option. The client
+        replies with a keepalive message to the server.
+   <- "MSG,keepalive"
+
+
+A caching mechanism is implemented clientside. When the connection to the server
+is lost or hasn't been established yet, data is cached clientside to be sent
+later. The server must confirm each received data line (i.e. lines not
+starting with "MSG,") by replying a CRC32 checksum. Lines which are not
+confirmed remain in the client's cache.
+
+The confirmation to send is the hexadecimal, absolute (positive) representation
+of the CRC32 checksum (without the starting '0x').
+
+ * <- "001A7D0AC265,1303460353.35,001E75B7069A,-47"
+   -> "ACK,440e8786"
+
+The caching mechanism can be disabled on connection initialisation. This is
+possibly dangerous as data recorded while the network is down will not be
+recoverable. Only to be used when historic data is not needed.
+
+ * -> "MSG,enable_cache,false" disables client-side caching of data. This
+        eliminates the need for server ack'ing of received data. The client
+        replies this line as confirmation.
+   <- "MSG,enable_cache,False"
+
+
+Upon connection the server must ask the client to either push the cached data
+or clear the cache (where the first implies the second). Make sure to set the
+connection details first (i.e.: ask for the cache after the last configuration
+confirmation is received serverside).
+
+ * -> "MSG,cache,push" tells the client to start pushing through the cache.
+
+ * -> "MSG,cache,clear" tells the client to clear the cache without transfer.
+        This is possibly dangerous as data recorded while the network is down
+        will not be recoverable. Only to be used when historic data is not
+        needed.
