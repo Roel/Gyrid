@@ -75,6 +75,8 @@ class Network(threading.Thread):
                         "bad SSL credentials")
                     self.stop()
                     del(self.mgr.network)
+                elif self.mgr.network_middleware.poll() != None:
+                    self.mgr.init_network_middleware()
                 elif self.mgr.network_middleware.poll() == None:
                     time.sleep(60)
 

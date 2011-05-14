@@ -72,16 +72,7 @@ class ScanManager(object):
         dbus.mainloop.glib.threads_init()
         self._dbus_systembus = dbus.SystemBus()
 
-        if len(self.config.get_value('network_server_host')) > 0:
-            dir = os.path.dirname(os.path.abspath(__file__))
-            m_path = dir[:dir.rfind('/')] + '/network_middleware.py'
-            if not os.path.isfile(m_path):
-                m_path = '/usr/share/gyrid/network_middleware.py'
-
-            self.network_middleware = subprocess.Popen(
-                ["/usr/bin/python", m_path])
-            time.sleep(2)
-
+        if self.init_network_middleware() == True:
             self.network = network.Network(self)
 
         if self.config.get_value('minimum_rssi') != None:
@@ -98,6 +89,26 @@ class ScanManager(object):
         self._dbus_systembus.add_signal_receiver(self._bluetooth_adapter_added,
             bus_name = "org.bluez",
             signal_name = "AdapterAdded")
+
+    def init_network_middleware(self):
+        """
+        Start the network middleware.
+
+        @return  true   When the middleware is started,
+                 false  when the middleware is not started.
+        """
+        if len(self.config.get_value('network_server_host')) > 0:
+            dir = os.path.dirname(os.path.abspath(__file__))
+            m_path = dir[:dir.rfind('/')] + '/network_middleware.py'
+            if not os.path.isfile(m_path):
+                m_path = '/usr/share/gyrid/network_middleware.py'
+
+            self.network_middleware = subprocess.Popen(
+                ["/usr/bin/python", m_path])
+            time.sleep(2)
+            return True
+        else:
+            return False
 
     def net_send_line(self, line):
         """
