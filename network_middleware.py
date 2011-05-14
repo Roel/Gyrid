@@ -220,13 +220,15 @@ class InetClient(LineReceiver):
         """
         data = str(data).strip()
         if self.factory.config['enable_cache'] and not self.factory.connected \
-            and not self.factory.cache.closed and not self.factory.cache_full:
+            and not self.factory.cache.closed and not self.factory.cache_full \
+            and not data.startswith('MSG') and not data.startswith('STATE'):
             self.factory.cache.write(data + '\n')
         else:
             r = self.factory.filter(data)
             if r != None:
                 LineReceiver.sendLine(self, r)
                 if await_ack and not r.startswith('MSG') \
+                    and not r.startswith('STATE') \
                     and self.factory.config['enable_cache']:
                     self.factory.await_ack[self.factory.checksum(r)] = data
 
@@ -332,7 +334,8 @@ class InetClientFactory(ReconnectingClientFactory):
         self.config = {'enable_rssi': False,
                        'enable_sensor_mac': True,
                        'enable_cache': True,
-                       'enable_keepalive': -1}
+                       'enable_keepalive': -1,
+                       'enable_state_inquiry': False}
 
         self.cachesize_loop.start(10)
         try:
@@ -383,18 +386,25 @@ class InetClientFactory(ReconnectingClientFactory):
         Filter outgoing data according to the configuration options.
 
         @param   data  The data to filter.
-        @param         The filtered data, None if nothing should go out.
+        @return        The filtered data, None if nothing should go out.
         """
-        if data.startswith('SIGHT_CELL'):
+        if data.startswith('MSG'):
+            return data
+        elif data.startswith('SIGHT_CELL'):
             data = dict(zip(['sensor_mac', 'timestamp', 'mac',
                 'deviceclass', 'move'], data.split(',')[1:]))
-        elif data.startswith('SIGHT_RSSI') and not self.config['enable_rssi']:
-            return None
-        elif data.startswith('SIGHT_RSSI'):
+        elif data.startswith('SIGHT_RSSI') and self.config['enable_rssi']:
             data = dict(zip(['sensor_mac', 'timestamp', 'mac', 'rssi'],
                 data.split(',')[1:]))
+        elif data.startswith('STATE') and ('new_inquiry' in data) and \
+            self.config['enable_state_inquiry']:
+            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'info'],
+                data.split(',')))
+        elif data.startswith('INFO'):
+            data = dict(zip(['type', 'timestamp', 'info'],
+                data.split(',')))
         else:
-            return data
+            return None
 
         try:
             for item in self.config:
@@ -403,9 +413,9 @@ class InetClientFactory(ReconnectingClientFactory):
         except KeyError:
             pass
 
-        return ','.join([data[j] for j in [i for i in ['sensor_mac',
+        return ','.join([data[j] for j in [i for i in ['type', 'sensor_mac',
             'timestamp', 'mac', 'deviceclass', 'move',
-            'rssi'] if i in data] if data[j]])
+            'rssi', 'info'] if i in data] if data[j]])
 
     def setConfig(self, list):
         """

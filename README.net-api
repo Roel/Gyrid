@@ -37,6 +37,20 @@ following format:
 
     timestamp: UNIX timestamp as a two-decimal floating point value.
 
+Additionally, status messages starting with "STATE," can be received. These are
+disabled by default and have to be enabled individually. They are of the
+following format:
+ * <- "STATE,[sensor_mac,]timestamp,message"
+
+    sensor_mac: The MAC-address of the sensor that detected the device, for
+        example "001122334455". This can be disabled (see further).
+
+    timestamp: UNIX timestamp as a two-decimal floating point value.
+
+    message:
+      - "new_inquiry": The specified sensor started a new inquiry.
+            This can be toggled with "MSG,enable_state_inquiry,true/false"
+
 Data lines can be of two formats, either in/out sensor data or rssi-data. The
 first is always transferred, the latter is disabled by default (see further).
 
@@ -117,9 +131,9 @@ initialisation.
 
 A caching mechanism is implemented clientside. When the connection to the server
 is lost or hasn't been established yet, data is cached clientside to be sent
-later. The server must confirm each received data line (i.e. lines not
-starting with "MSG,") by replying a CRC32 checksum. Lines which are not
-confirmed remain in the client's cache.
+later. The server must confirm each received data or info line (i.e. lines not
+starting with "MSG," or "STATE,") by replying a CRC32 checksum. Lines which are
+not confirmed remain in the client's cache.
 
 The confirmation to send is the hexadecimal, absolute (positive) representation
 of the CRC32 checksum (without the starting '0x').
