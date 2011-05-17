@@ -1,3 +1,10 @@
+gyrid 0.4.7
+
+    * FIX: Net: restart middleware when not running.
+    * ADD: Net: inquiry state notification.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Sat, 14 May 2011 18:00:33 +0200
+
 gyrid 0.4.6
 
     * FIX: Start Gyrid earlier in boot process.
