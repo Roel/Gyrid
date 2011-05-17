@@ -51,6 +51,10 @@ following format:
       - "new_inquiry": The specified sensor started a new inquiry.
             This can be toggled with "MSG,enable_state_inquiry,true/false"
 
+      - "started_scanning" or "stopped_scanning": The specified sensor started
+            or stopped scanning. This can be toggled with
+            "MSG,enable_state_scanning,true/false"
+
 Data lines can be of two formats, either in/out sensor data or rssi-data. The
 first is always transferred, the latter is disabled by default (see further).
 

@@ -335,6 +335,7 @@ class InetClientFactory(ReconnectingClientFactory):
                        'enable_sensor_mac': True,
                        'enable_cache': True,
                        'enable_keepalive': -1,
+                       'enable_state_scanning': False,
                        'enable_state_inquiry': False}
 
         self.cachesize_loop.start(10)
@@ -398,6 +399,10 @@ class InetClientFactory(ReconnectingClientFactory):
                 data.split(',')[1:]))
         elif data.startswith('STATE') and ('new_inquiry' in data) and \
             self.config['enable_state_inquiry']:
+            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'info'],
+                data.split(',')))
+        elif data.startswith('STATE') and ('_scanning' in data) and \
+            self.config['enable_state_scanning']:
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'info'],
                 data.split(',')))
         elif data.startswith('INFO'):

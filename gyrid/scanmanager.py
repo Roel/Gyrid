@@ -342,10 +342,14 @@ class DefaultScanManager(ScanManager):
 
                 if _discoverer.init() == 0:
                     self.log_info("Started scanning with adapter %s" % address)
+                    self.net_send_line("STATE,%s,%0.2f,started_scanning" % (
+                        self.mac.replace(':',''), time.time()))
                     _logger.start()
                     end_cause = _discoverer.find()
                     self.log_info("Stopped scanning with adapter %s%s" % \
                         (address, end_cause))
+                    self.net_send_line("STATE,%s,%0.2f,stopped_scanning" % (
+                        self.mac.replace(':',''), time.time()))
                 if address in self.active_adapters:
                     self.active_adapters.remove(address)
                 del(_discoverer)
