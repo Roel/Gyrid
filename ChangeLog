@@ -1,3 +1,12 @@
+gyrid 0.4.8
+
+    * FIX: Net: add some checks before trying to send lines.
+    * ADD: Net: sensor started/stopped scanning status messages.
+    * ADD: Net: uptime status messages.
+    * ADD: Net: Gyrid daemon connected/disconnected status messages.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 18 May 2011 21:39:03 +0200
+
 gyrid 0.4.7
 
     * FIX: Net: restart middleware when not running.
