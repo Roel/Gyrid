@@ -60,7 +60,7 @@ class Network(threading.Thread):
         try:
             self.s.connect(('127.0.0.1', 25830))
             self.mgr.debug("Connected to the networking component")
-            self.send_line("LOCAL,gyrid_uptime,%i" % self.startup_time)
+            self.send_line("LOCAL,gyrid_uptime,%i" % self.mgr.startup_time)
         except socket.error, e:
             if e[0] == 9:
                 self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
