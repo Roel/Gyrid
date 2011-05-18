@@ -74,7 +74,6 @@ class ScanManager(object):
 
         if self.init_network_middleware() == True:
             self.network = network.Network(self)
-            self.net_send_line("LOCAL,gyrid_uptime,%i" % self.startup_time)
 
         if self.config.get_value('minimum_rssi') != None:
             self.log_info("Using a minimum RSSI value of %i, " % \
