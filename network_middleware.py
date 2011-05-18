@@ -148,8 +148,9 @@ class LocalServer(LineReceiver):
         """
         Called when the Gyrid daemon connected to this middleware.
         """
-        self.factory.inet_factory.client.sendLine(
-            'MSG,gyrid,connected')
+        if self.factory.inet_factory.client:
+            self.factory.inet_factory.client.sendLine(
+                'MSG,gyrid,connected')
 
     def connectionLost(self, reason):
         """
@@ -157,8 +158,9 @@ class LocalServer(LineReceiver):
 
         @param  reason  The reason of disconnection.
         """
-        self.factory.inet_factory.client.sendLine(
-            'MSG,gyrid,disconnected')
+        if self.factory.inet_factory.client:
+            self.factory.inet_factory.client.sendLine(
+                'MSG,gyrid,disconnected')
 
     def lineReceived(self, data):
         """
@@ -249,7 +251,7 @@ class InetClient(LineReceiver):
             self.factory.cache.write(data + '\n')
         else:
             r = self.factory.filter(data)
-            if r != None:
+            if r != None and self.transport != None:
                 LineReceiver.sendLine(self, r)
                 if await_ack and not r.startswith('MSG') \
                     and not r.startswith('STATE') \
