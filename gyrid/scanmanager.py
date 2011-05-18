@@ -74,6 +74,7 @@ class ScanManager(object):
 
         if self.init_network_middleware() == True:
             self.network = network.Network(self)
+            self.net_send_line("LOCAL,gyrid_uptime,%i" % self.startup_time)
 
         if self.config.get_value('minimum_rssi') != None:
             self.log_info("Using a minimum RSSI value of %i, " % \
@@ -343,13 +344,13 @@ class DefaultScanManager(ScanManager):
                 if _discoverer.init() == 0:
                     self.log_info("Started scanning with adapter %s" % address)
                     self.net_send_line("STATE,%s,%0.2f,started_scanning" % (
-                        self.mac.replace(':',''), time.time()))
+                        address.replace(':',''), time.time()))
                     _logger.start()
                     end_cause = _discoverer.find()
                     self.log_info("Stopped scanning with adapter %s%s" % \
                         (address, end_cause))
                     self.net_send_line("STATE,%s,%0.2f,stopped_scanning" % (
-                        self.mac.replace(':',''), time.time()))
+                        address.replace(':',''), time.time()))
                 if address in self.active_adapters:
                     self.active_adapters.remove(address)
                 del(_discoverer)

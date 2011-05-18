@@ -69,6 +69,12 @@ class Network(object):
         self.port = self.config.get_value('network_server_port')
         self.local_port = 25830
 
+        f = open('/proc/uptime', 'r')
+        self.host_up_since = int(time.time()) - int(float(f.readline().strip().split()[0]))
+        f.close()
+
+        self.gyrid_up_since = None
+
         if False not in ['None' == self.config.get_value(
             'network_ssl_client_%s' % i) for i in ['crt', 'key']]:
             self.enable_ssl = False
@@ -138,12 +144,30 @@ class LocalServer(LineReceiver):
     """
     The interacting class of the local server.
     """
+    def connectionMade(self):
+        """
+        Called when the Gyrid daemon connected to this middleware.
+        """
+        self.factory.inet_factory.client.sendLine(
+            'MSG,gyrid,connected')
+
+    def connectionLost(self, reason):
+        """
+        Called when the Gyrid daemon disconnected from this middleware.
+
+        @param  reason  The reason of disconnection.
+        """
+        self.factory.inet_factory.client.sendLine(
+            'MSG,gyrid,disconnected')
+
     def lineReceived(self, data):
         """
         Called when a line has been received, send the data via the inet
         client to the Gyrid server.
         """
-        if self.factory.inet_factory.client:
+        if data.startswith('LOCAL') and self.factory.inet_factory.client:
+            self.factory.inet_factory.client.processLocalData(data)
+        elif self.factory.inet_factory.client:
             self.factory.inet_factory.client.sendLine(data)
 
 class LocalServerFactory(Factory):
@@ -259,9 +283,30 @@ class InetClient(LineReceiver):
             if dl[1] == 'enable_keepalive' and len(dl) > 2 and dl[2] > 0:
                 self.factory.keepalive_loop.start(
                     self.factory.config['enable_keepalive'], now=False)
+            elif dl[1] == 'enable_uptime' and self.factory.config[
+                'enable_uptime'] == True \
+                and self.network.host_up_since != None \
+                and self.network.gyrid_up_since != None:
+                self.sendLine("MSG,uptime,%i,%i" % \
+                    (self.network.gyrid_up_since, self.network.host_up_since))
         elif dl[0] == 'ack' and len(dl) == 2:
             if dl[1] in self.factory.await_ack:
                 del(self.factory.await_ack[dl[1]])
+
+    def processLocalData(self, data):
+        """
+        Process data meant for local variables.
+
+        @param  data   The data to process.
+        """
+        data = data.strip().lower().split(',')
+        if len(data) >= 3 and data[1] == 'gyrid_uptime':
+            self.network.gyrid_up_since = int(float(data[2]))
+            if self.factory.config['enable_uptime'] \
+                and self.network.host_up_since != None \
+                and self.network.gyrid_up_since != None:
+                self.sendLine("MSG,uptime,%i,%i" % \
+                    (self.network.gyrid_up_since, self.network.host_up_since))
 
     def pushCache(self):
         """
@@ -335,6 +380,7 @@ class InetClientFactory(ReconnectingClientFactory):
                        'enable_sensor_mac': True,
                        'enable_cache': True,
                        'enable_keepalive': -1,
+                       'enable_uptime': False,
                        'enable_state_scanning': False,
                        'enable_state_inquiry': False}
 

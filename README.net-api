@@ -27,8 +27,13 @@ Data format
 -----------
 
 All traffic sent through the connection are lines ('\r\n' line-endings) in CSV
-format. Service messages ment for the server/client start either with "MSG," or
-"ACK," (see further).
+format. Service messages meant for the server/client start either with "MSG,"
+or "ACK," (see further).
+
+When the connection between the middleware and the Gyrid daemon has been lost
+or is established, the following messages are sent respectively:
+ * <- "MSG,gyrid,disconnected"
+   <- "MSG,gyrid,connected"
 
 Informational messages from the Gyrid daemon start with "INFO," and are of the
 following format:
@@ -109,6 +114,14 @@ which control the format of data that is sent by the client.
         MAC-address of the sensor in addition to the information of the detected
         devices. Defaults to True. The client replies this line as confirmation.
    <- "MSG,enable_sensor_mac,true/false"
+
+ * -> "MSG,enable_uptime,true/false" sets the option to receive uptime
+        timestamps from both the Gyrid daemon as the host system. Defaults to
+        False. The client replies this line as confirmation.
+        When set to True, the client sends a line with the following format:
+        "MSG,uptime,gyrid_startup_timestamp,hostsystem_startup_timestamp";
+        this line is resent when the Gyrid daemon is restarted.
+   <- "MSG,enable_uptime,true/false"
 
 
 A client/server-side keepalive mechanism is implemented to ensure connection is
