@@ -2,6 +2,7 @@
 #
 # This file belongs to Gyrid.
 # Copyright (C) 2011  Mathias Versichele
+# Copyright (C) 2011  Roel Huybrechts
 #
 # Gyrid is a Bluetooth device scanner daemon.
 #
@@ -73,7 +74,7 @@ class Discoverer(gyrid.discoverer.Discoverer):
                 t = datetime.datetime.strptime(splits[0], "%Y%m%d-%H%M%S-%Z")
                 tline = int(t.strftime("%s"))
                 macline = splits[1]
-                rssiline = splits[2]
+                rssiline = int(splits[2])
 
                 if linecount > 1:
                     time.sleep((tline - tprevious) * 1.0)
