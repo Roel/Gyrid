@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import random
 import time
 import datetime
 
@@ -27,8 +26,12 @@ import gyrid.discoverer
 
 class Discoverer(gyrid.discoverer.Discoverer):
     """
-    Discoverer that 'plays back' detections by reading them from a previously recorded rssi logfile.
-    Timestamps generated will not reflect those in the original rssi logfile but current time instead !
+    Discoverer that 'plays back' detections by reading them from a previously
+    recorded rssi logfile. Timestamps generated will not reflect those in the
+    original rssi logfile but will use current time instead!
+
+    The logfile should be an existing file, residing in /var/tmp/rssi.log
+
     Used for stresstesting.
     """
     def __init__(self, mgr, logger, logger_rssi, device_id, mac):
@@ -52,37 +55,35 @@ class Discoverer(gyrid.discoverer.Discoverer):
 
         @return  0 on success, 1 on failure.
         """
+        self.log = open('/var/tmp/rssi.log', 'r')
         return 0
 
     def find(self):
         """
-        Start 'scanning'. Continuously calls device_discovered with a fake MAC
-        address, deviceclass and RSSI value.
+        Start 'scanning'. Continuously calls device_discovered based on the
+        detections in the logfile.
         """
-        shouldrun = True
-        while shouldrun:
-            linecount = 1
+        linecount = 1
 
-            tprevious = 0
-            macprevious = ""
-            rssiprevious = 0
+        for line in self.log:
+            splits = line.split(',')
 
-            for line in open('/var/tmp/rssi.log', 'r'):
-                #print 'line', linecount, ': ', line
-                splits = line.split(',')
+            t = datetime.datetime.strptime(splits[0], "%Y%m%d-%H%M%S-%Z")
+            tline = int(t.strftime("%s"))
+            macline = splits[1]
+            rssiline = int(splits[2])
 
-                t = datetime.datetime.strptime(splits[0], "%Y%m%d-%H%M%S-%Z")
-                tline = int(t.strftime("%s"))
-                macline = splits[1]
-                rssiline = int(splits[2])
-
-                if linecount > 1:
-                    time.sleep((tline - tprevious) * 1.0)
-
-                self.device_discovered(macprevious, 0, rssiprevious)
-                linecount += 1
-                tprevious = tline
+            if linecount == 1:
                 macprevious = macline
                 rssiprevious = rssiline
-            shouldrun = False
+            else:
+                self.device_discovered(macprevious, 0, rssiprevious)
+                time.sleep((tline - tprevious) * 1.0)
+
+            linecount += 1
+            tprevious = tline
+            macprevious = macline
+            rssiprevious = rssiline
+
+        self.log.close()
         return ""
