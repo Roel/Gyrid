@@ -7,6 +7,9 @@ gyrid/logger.py
 gyrid/network.py
 gyrid/scanmanager.py
 gyrid/zippingfilehandler.py
+gyrid/testing/__init__.py
+gyrid/testing/discoverer_random.py
+gyrid/testing/discoverer_playback.py
 gyrid/tools/__init__.py
 gyrid/tools/deviceclass.py
 gyrid/tools/macvendor.py
