@@ -1,3 +1,10 @@
+gyrid 0.4.9
+
+    * ADD: Playback discoverer for testing purposes.
+    * UPD: Include testing package in release.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 06 Jul 2011 11:59:07 +0200
+
 gyrid 0.4.8
 
     * FIX: Net: add some checks before trying to send lines.
