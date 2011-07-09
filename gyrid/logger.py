@@ -67,7 +67,7 @@ class InfoLogger(object):
                 self.time_format,
                 time.localtime()), info]))
         self.mgr.net_send_line(",".join(['INFO',
-                "%0.2f" % time.time(),
+                "%0.3f" % time.time(),
                 info]))
 
 class RSSILogger(InfoLogger):
@@ -122,7 +122,7 @@ class RSSILogger(InfoLogger):
                 str(rssi)]))
         self.mgr.net_send_line(",".join(['SIGHT_RSSI',
             str(self.mac.replace(':','')),
-            "%0.2f" % timestamp,
+            "%0.3f" % timestamp,
             str(mac_address.replace(':','')),
             str(rssi)]))
 
@@ -181,7 +181,7 @@ class ScanLogger(RSSILogger):
                 str(moving)]))
         self.mgr.net_send_line(",".join(['SIGHT_CELL',
                 str(self.mac.replace(':','')),
-                "%0.2f" % timestamp,
+                "%0.3f" % timestamp,
                 str(mac_address.replace(':','')),
                 str(device_class),
                 str(moving)]))
@@ -323,7 +323,7 @@ class PoolChecker(threading.Thread):
                      'gone': len(to_delete)}
                 previous = current
 
-                self.mgr.debug("%s: " % self.logger.mac + 
+                self.mgr.debug("%s: " % self.logger.mac +
                     "Device pool checked: %(current)i device" % d + \
                     ("s " if current != 1 else " ") + \
                     "(%(new)i new, %(gone)i disappeared)" % d)

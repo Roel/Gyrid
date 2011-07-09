@@ -170,7 +170,7 @@ class Discoverer(object):
         Perform a Bluetooth inquiry with RSSI reception.
         """
         self.mgr.debug("%s: New inquiry" % self.mac)
-        self.mgr.net_send_line("STATE,%s,%0.2f,new_inquiry" % (
+        self.mgr.net_send_line("STATE,%s,%0.3f,new_inquiry" % (
             self.mac.replace(':',''), time.time()))
 
         # save current filter
