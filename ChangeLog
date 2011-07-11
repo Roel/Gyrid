@@ -1,3 +1,10 @@
+gyrid 0.5
+
+    * FIX: Use millisecond resolution timestamps in network module.
+    * UPD: IEEE OUI data update.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Mon, 11 Jul 2011 21:34:57 +0200
+
 gyrid 0.4.9
 
     * ADD: Playback discoverer for testing purposes.
