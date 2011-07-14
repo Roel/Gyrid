@@ -515,16 +515,16 @@ class InetClientFactory(ReconnectingClientFactory):
 
         self.init()
 
-        if 'ssl handshake failure' in str(reason):
-            self.network.exit_code = 3
-            self.network.stop()
-
     def clientConnectionFailed(self, connector, reason):
         """
         Called when the connection to the server failed.
         """
         ReconnectingClientFactory.clientConnectionFailed(
             self, connector, reason)
+
+        if 'OpenSSL.SSL.Error' in str(reason):
+            self.network.exit_code = 3
+            self.network.stop()
 
 class InetCtxFactory(ssl.ClientContextFactory):
     """
