@@ -38,9 +38,9 @@ or is established, the following messages are sent respectively:
 Informational messages from the Gyrid daemon start with "INFO," and are of the
 following format:
  * <- "INFO,timestamp,message"
-    f.ex.: "INFO,1303460352.64,Started scanning with adapter 00:1A:7D:0A:C2:65"
+    f.ex.: "INFO,1303460352.642,Started scanning with adapter 00:1A:7D:0A:C2:65"
 
-    timestamp: UNIX timestamp as a two-decimal floating point value.
+    timestamp: UNIX timestamp as a three-decimal floating point value.
 
 Additionally, status messages starting with "STATE," can be received. These are
 disabled by default and have to be enabled individually. They are of the
@@ -50,7 +50,7 @@ following format:
     sensor_mac: The MAC-address of the sensor that detected the device, for
         example "001122334455". This can be disabled (see further).
 
-    timestamp: UNIX timestamp as a two-decimal floating point value.
+    timestamp: UNIX timestamp as a three-decimal floating point value.
 
     message:
       - "new_inquiry": The specified sensor started a new inquiry.
@@ -65,29 +65,29 @@ first is always transferred, the latter is disabled by default (see further).
 
  * In/out sensor data has the following format:
     <- "[sensor_mac,]timestamp,mac,deviceclass,move"
-     f.ex.: "001A7D0AC265,1303460353.35,001E75B7069A,5898756,in"
+     f.ex.: "001A7D0AC265,1303460353.359,001E75B7069A,5898756,in"
 
     sensor_mac: The MAC-address of the sensor that detected the device, for
         example "001122334455". This can be disabled (see further).
 
-    timestamp: UNIX timestamp of the detection as a two-decimal floating point
+    timestamp: UNIX timestamp of the detection as a three-decimal floating point
         value.
 
     mac: The MAC-address of the detected device.
 
-    deviceclass: The Bluetooth device class of the detected device as in integer
+    deviceclass: The Bluetooth device class of the detected device as an integer
         value.
 
     move: Whether the device moved "in" or "out" the sensor's range.
 
  * RSSI-data has the following format:
     <- "[sensor_mac,]timestamp,mac,rssi"
-     f.ex.: "001A7D0AC265,1303460353.35,001E75B7069A,-47"
+     f.ex.: "001A7D0AC265,1303460353.359,001E75B7069A,-47"
 
     sensor_mac: The MAC-address of the sensor that detected the device, for
         example "001122334455". This can be disabled (see further).
 
-    timestamp: UNIX timestamp of the detection as a two-decimal floating point
+    timestamp: UNIX timestamp of the detection as a three-decimal floating point
         value.
 
     mac: The MAC-address of the detected device.
@@ -155,8 +155,8 @@ not confirmed remain in the client's cache.
 The confirmation to send is the hexadecimal, absolute (positive) representation
 of the CRC32 checksum (without the starting '0x').
 
- * <- "001A7D0AC265,1303460353.35,001E75B7069A,-47"
-   -> "ACK,440e8786"
+ * <- "001A7D0AC265,1303460353.359,001E75B7069A,-47"
+   -> "ACK,7be5d2ef"
 
 The caching mechanism can be disabled on connection initialisation. This is
 possibly dangerous as data recorded while the network is down will not be
