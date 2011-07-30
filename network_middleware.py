@@ -544,10 +544,14 @@ class InetCtxFactory(ssl.ClientContextFactory):
         """
         self.method = SSL.SSLv23_METHOD
         ctx = ssl.ClientContextFactory.getContext(self)
-        ctx.use_certificate_file(self.network.config.get_value(
-            'network_ssl_client_crt'))
-        ctx.use_privatekey_file(self.network.config.get_value(
-            'network_ssl_client_key'))
+        try:
+            ctx.use_certificate_file(self.network.config.get_value(
+                'network_ssl_client_crt'))
+            ctx.use_privatekey_file(self.network.config.get_value(
+                'network_ssl_client_key'))
+        except SSL.Error:
+            self.network.exit_code = 3
+            self.network.stop()
 
         return ctx
 
