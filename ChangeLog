@@ -1,3 +1,10 @@
+gyrid 0.5.1
+
+    * FIX: Only die on SSL errors if it are actually SSL errors.
+    * UPD: Allow network caching up to 250 MB instead of just 25.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Sat, 30 Jul 2011 16:26:39 +0200
+
 gyrid 0.5
 
     * FIX: Use millisecond resolution timestamps in network module.
