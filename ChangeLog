@@ -108,7 +108,7 @@ gyrid 0.3.3
 -- Roel Huybrechts <roel.huybrechts@ugent.be>  Sun, 27 Jun 2010 20:25:08 +0200
 
 gyrid 0.3.2
-²
+
     * FIX: Catch exceptions raised inside threads.
     * FIX: excluded_devices option.
     * UPD: Hide interacting_devices option. Sending reports via Bluetooth
