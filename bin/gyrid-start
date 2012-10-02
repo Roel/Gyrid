@@ -1,0 +1,58 @@
+#!/usr/bin/python
+#-*- coding: utf-8 -*-
+#
+# This file belongs to Gyrid.
+#
+# Gyrid is a Bluetooth device scanner.
+# Copyright (C) 2010-2012  Roel Huybrechts
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import sys
+
+
+try:
+    from gyrid import gyrid
+except ImportError:
+    sys.stderr.write(
+        "Error: Importing Gyrid failed. Is the program properly installed?\n")
+    sys.exit(1)
+
+LOGDIR = '/var/log/gyrid/'
+ERRORLOGFILE = '/var/log/gyrid/error.log'
+CONFIGFILE = '/etc/gyrid.conf'
+
+if __name__ == '__main__':
+    #Check for write access to LOGDIR, ERRORLOGFILE, LOCKFILE and CONFIGFILE.
+    access = True
+    for file in [LOGDIR, ERRORLOGFILE, CONFIGFILE]:
+        if not os.path.exists(os.path.dirname(file)):
+            os.makedirs(os.path.dirname(file))
+        elif (os.path.exists(file)) and (os.access(file, os.W_OK) == False):
+            sys.stderr.write("Gyrid: Error: Needs write access to %s\n" % file)
+            access = False
+        elif (not os.path.exists(file)) and (os.access(os.path.dirname(file),
+            os.W_OK) == False):
+            sys.stderr.write("Gyrid: Error: Needs write access to %s\n" % file)
+            access = False
+
+    if not access:
+        sys.exit(1)
+
+    #Create main gyrid instance.
+    main = gyrid.Main(CONFIGFILE, ERRORLOGFILE)
+
+    #Pass arguments
+    main.pass_args(*sys.argv)

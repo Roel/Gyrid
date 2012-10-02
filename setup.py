@@ -3,8 +3,8 @@
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner daemon.
-# Copyright (C) 2009  Roel Huybrechts
+# Gyrid is a Bluetooth device scanner.
+# Copyright (C) 2009-2012  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,6 +71,6 @@ setup(name = "gyrid",
       license = "GPLv3",
       packages = ["gyrid", "gyrid/tools"],
       data_files = [("/etc/init.d", ['init/gyrid']),
-                    ("/usr/share/gyrid", ['network_middleware.py']),
+                    ("/usr/share/gyrid", ['network_middleware.py', 'bin/gyrid-start']),
                     ("/usr/share/doc/gyrid", ['README.net-api'])],
       cmdclass = {'install_data': InstallData})

@@ -2,7 +2,7 @@
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner.
 # Copyright (C) 2009-2011  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -346,6 +346,7 @@ class DefaultScanManager(ScanManager):
                         address.replace(':',''), time.time()))
                     _logger.start()
                     end_cause = _discoverer.find()
+                    _logger.stop()
                     self.log_info("Stopped scanning with adapter %s%s" % \
                         (address, end_cause))
                     self.net_send_line("STATE,%s,%0.3f,stopped_scanning" % (

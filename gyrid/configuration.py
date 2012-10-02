@@ -2,7 +2,7 @@
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner.
 # Copyright (C) 2007-2011  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -70,7 +70,7 @@ class Configuration(object):
             type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
             values = {True: 'Enable support.', False: 'Disable support.'},
             default = True)
-            
+
         time_format = _Option(name = 'time_format',
             description = 'The time format to use in the logfile. This ' +
                 'string is passed to the time.strftime() function. Hint: ' +
@@ -171,7 +171,7 @@ class Configuration(object):
                 str(sys.exc_info()[1]) + \
                 " [Using default value: %s]" % optionObj.default)
             config = None
-        
+
         if config != None and optionObj.values_has_key(config):
             return config
         elif config != None:

@@ -1,18 +1,17 @@
-#!/usr/bin/python
-#-*- coding: utf-8 -*-
+#!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          gyrid
 # Required-Start:    $local_fs $remote_fs $network $syslog
 # Required-Stop:     $local_fs $remote_fs $network $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Start/stop Gyrid bluetooth scanner
+# Short-Description: Start/stop Gyrid Bluetooth scanner
 ### END INIT INFO-
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner daemon.
-# Copyright (C) 2009-2010  Roel Huybrechts
+# Gyrid is a Bluetooth device scanner.
+# Copyright (C) 2009-2012  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,40 +26,82 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
+set -e
 
-try:
-    from gyrid import gyrid
-except ImportError:
-    sys.stderr.write(
-        "Error: Importing Gyrid failed. Is the program properly installed?\n")
-    sys.exit(1)
+DAEMON=/usr/share/gyrid/gyrid-start
+PIDFILE=/var/run/gyrid.pid
+export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
 
-LOGDIR = '/var/log/gyrid/'
-ERRORLOGFILE = '/var/log/gyrid/error.log'
-LOCKFILE = '/var/run/gyrid.pid'
-CONFIGFILE = '/etc/gyrid.conf'
+is_running() {
+    if [ `ps aux | grep -e ".*python.* $DAEMON" | grep -v grep | wc -l` -lt 1 ]; then
+        return 1 #FALSE
+    else
+        return 0 #TRUE
+    fi
+}
 
-if __name__ == '__main__':
-    #Check for write access to LOGDIR, ERRORLOGFILE, LOCKFILE and CONFIGFILE.
-    access = True
-    for file in [LOGDIR, ERRORLOGFILE, LOCKFILE, CONFIGFILE]:
-        if not os.path.exists(os.path.dirname(file)):
-            os.makedirs(os.path.dirname(file))
-        elif (os.path.exists(file)) and (os.access(file, os.W_OK) == False):
-            sys.stderr.write("Gyrid: Error: Needs write access to %s\n" % file)
-            access = False
-        elif (not os.path.exists(file)) and (os.access(os.path.dirname(file),
-            os.W_OK) == False):
-            sys.stderr.write("Gyrid: Error: Needs write access to %s\n" % file)
-            access = False
+ok_fail() {
+    if [ $1 -gt 0 ]; then
+        echo "FAIL."
+        exit 1
+    else
+        echo "OK."
+        exit 0
+    fi
+}
 
-    if not access:
-        sys.exit(1)
+q_fail() {
+    if [ $1 -gt 0 ]; then
+        echo "FAIL."
+        exit 1
+    fi
+}
 
-    #Create main gyrid instance.
-    main = gyrid.Main(LOCKFILE, CONFIGFILE, ERRORLOGFILE)
+case "$1" in
+  start)
+        echo -n "Starting Gyrid ... "
+        if is_running; then
+            echo "FAIL: already running."
+            exit 1
+        else
+            start-stop-daemon --start --background --quiet --make-pidfile --pidfile $PIDFILE --exec $DAEMON
+            q_fail $?
+            sleep 1
+            if is_running; then
+                echo "OK."
+                exit 0
+            else
+                echo "FAIL."
+                exit 1
+            fi
+        fi
+	;;
+  stop)
+        echo -n "Stopping Gyrid ... "
+        if is_running; then
+            start-stop-daemon --stop --quiet --retry 30 --pidfile $PIDFILE
+            ok_fail $?
+        else
+            echo "FAIL: not running."
+            exit 1
+        fi
+	;;
+  restart)
+        echo -n "Restarting Gyrid ... "
+        if is_running; then
+            start-stop-daemon --stop --quiet --retry 30 --pidfile $PIDFILE
+            q_fail $?
+            start-stop-daemon --start --background --quiet --make-pidfile --pidfile $PIDFILE --exec $DAEMON
+            ok_fail $?
+        else
+            echo "FAIL: not running."
+            exit 1
+        fi
+	;;
 
-    #Pass arguments
-    main.pass_args(*sys.argv)
+  *)
+	echo "Usage: "$1" {start|stop|restart}"
+	exit 1
+esac
+
+exit 0

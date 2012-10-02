@@ -2,7 +2,7 @@
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner.
 # Copyright (C) 2009  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@ VENDOR_MAC = {}
 def _parse_oui(url):
     """
     Parse the file populating the VENDOR_MAC dictionary.
-    
+
     @param  url   URL of the file to parse.
     """
     if url.endswith('.gz'):
@@ -47,18 +47,18 @@ def _parse_oui(url):
             ls = line.split('\t')
             VENDOR_MAC [ls[0]] = ls[1].strip('\n')
     file.close()
-                
+
 def get_vendor(mac_address):
     """
     Retrieve the vendor company of the device with specified mac address.
-    
+
     @param  mac_address  The mac address of the device.
     """
     try:
         return VENDOR_MAC[mac_address[:8].upper()]
     except KeyError:
         return None
-        
+
 #Parse the oui file on importing
 try:
     __dir__ = os.path.dirname(os.path.abspath(__file__))

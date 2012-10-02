@@ -4,7 +4,7 @@
 # Copyright (C) 2011  Mathias Versichele
 # Copyright (C) 2011  Roel Huybrechts
 #
-# Gyrid is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

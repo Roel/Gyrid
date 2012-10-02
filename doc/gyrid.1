@@ -1,9 +1,9 @@
 .TH "gyrid" 1
 .SH NAME
-gyrid \- A Bluetooth device scanner and logger daemon.
+gyrid \- A Bluetooth device scanner and logger.
 .SH SYNOPSIS
 .B /etc/init.d/gyrid
-start|stop|restart|debug
+start|stop|restart
 .SH DESCRIPTION
 Gyrid continuously scans the neighborhood for Bluetooth-enabled devices which are publicly visible, given there is a Bluetooth adapter connected. It can scan with multiple adapters simultaneously too.
 
@@ -13,16 +13,17 @@ The idea behind this is scientifical. When multiple of these scanners are placed
 .SH OPTIONS
 .TP
 .B start
-Start the Gyrid daemon.
+Start Gyrid.
 .TP
 .B stop
-Stop the Gyrid daemon.
+Stop Gyrid.
 .TP
 .B restart
-Restart the Gyrid daemon.
-.TP
-.B debug [--no-log]
-Start Gyrid in debug mode, stopping any running Gyrid daemon. Debug mode does not daemonize the process and can be ended by issuing Ctrl+C on the console.
+Restart Gyrid.
+.SH DEBUG
+.B /usr/share/gyrid/gyrid-start debug [--no-log]
+
+To start Gyrid in debug mode, use the gyrid-start script. Debug mode does not daemonize the process and can be ended by issuing Ctrl+C on the console.
 
 Debug mode is more verbose, printing all activity to standard output. This might be useful to spot bugs or issues more easily.
 

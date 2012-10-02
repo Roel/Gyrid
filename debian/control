@@ -2,10 +2,10 @@ Source: gyrid
 Section: science
 Priority: optional
 Maintainer: Roel Huybrechts <roel.huybrechts@ugent.be>
-Build-Depends: debhelper (>= 7.0.15),
- python,
- cdbs (>= 0.4.52)
-Build-Depends-Indep: python-support (>= 0.8.4)
+Build-Depends: cdbs(>= 0.4.89),
+ debhelper (>= 8.0.0),
+ python (>= 2.6.6)
+Build-Depends-Indep: python-support (>= 1.0.10)
 XS-Python-Version: all
 Standards-Version: 3.8.4
 
@@ -13,12 +13,13 @@ Package: gyrid
 Architecture: all
 XB-Python-Version: ${python:Versions}
 Depends: ${misc:Depends}, ${python:Depends},
- python-bluez (>= 0.17),
- python-dbus (>= 0.82),
- python-gobject (>= 2.14) | python-gtk2 (>= 2.12),
- python-openssl (>= 0.7),
- python-twisted-core (>= 8.1.0),
- bluez (>= 4.32) | bluez-utils (>= 4.32)
+ bluez (>= 4.99),
+ dpkg (>= 1.15.8.13),
+ python-bluez (>= 0.18),
+ python-dbus (>= 0.83.1),
+ python-gobject (>= 2.21.4),
+ python-openssl (>= 0.10),
+ python-twisted-core (>= 10.1.0)
 Description: Bluetooth device scanner and logger daemon
  Gyrid scans the neighbourhood for Bluetooth devices and
  logs all hardware addresses and device classes found.

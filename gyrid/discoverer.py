@@ -2,7 +2,7 @@
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner.
 # Copyright (C) 2009-2010  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -236,8 +236,10 @@ class Discoverer(object):
         """
         Start scanning.
         """
-        while not self.done:
+        while not self.done and not self.mgr.main.stopping:
             end = self._device_inquiry_with_with_rssi()
+            if self.mgr.main.stopping:
+                end = "Shutting down"
         return " (%s)" % end
 
     def device_discovered(self, address, device_class, rssi):

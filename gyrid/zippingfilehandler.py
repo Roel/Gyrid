@@ -2,7 +2,7 @@
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner.
 # Copyright (C) 2009-2010  Roel Huybrechts
 #
 # Heavily based on code by Angel Freire
@@ -35,8 +35,8 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
     """
     def __init__(self, mgr, filename, process=False):
         """
-        Initialisation. 
-        
+        Initialisation.
+
         @param  mgr         Reference to ScanManager instance.
         @param  filename    Filename to write to.
         @param  process     Whether the log should be processed on rotation.
@@ -61,7 +61,7 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         # r is the number of seconds left between now and the next hour
         r = self.interval - ((currentMinute * 60) + currentSecond)
         self.rolloverAt = currentTime + r
-    
+
     def doRollover (self):
         """
         Do the rollover, this includes processing and bzipping.
@@ -92,7 +92,7 @@ class CompressingRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         input.close()
         os.remove(dfn)
         self.mgr.debug("Rotated scanlog, created %s.bz2" % dfn)
-        
+
         self.mode = 'w'
         if self.encoding:
             self.stream = codecs.open(self.baseFilename, 'w', self.encoding)
