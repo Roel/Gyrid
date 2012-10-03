@@ -64,8 +64,8 @@ class InstallData(install_data):
         self.data_files.append((dest, ['%(build)s/%(fileLower)s.gz' % str]))
 
 setup(name = "gyrid",
-      version = "0.5.1",
-      description = "Bluetooth device scanner daemon.",
+      version = "0.6",
+      description = "Bluetooth device scanner.",
       author = "Roel Huybrechts",
       author_email = "roel.huybrechts@ugent.be",
       license = "GPLv3",

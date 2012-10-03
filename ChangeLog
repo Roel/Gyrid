@@ -1,3 +1,10 @@
+gyrid 0.6
+
+    * FIX: Remove obsolete daemon code and switch to start-stop-daemon.
+             This should work with more recent Python versions (2.5+) too.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 03 Oct 2012 10:40:54 +0200
+
 gyrid 0.5.1
 
     * FIX: Only die on SSL errors if it are actually SSL errors.
