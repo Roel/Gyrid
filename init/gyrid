@@ -33,7 +33,7 @@ PIDFILE=/var/run/gyrid.pid
 export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
 
 is_running() {
-    if [ `ps aux | grep -e ".*python.* $DAEMON" | grep -v grep | wc -l` -lt 1 ]; then
+    if [ `/bin/ps aux | /bin/grep -e ".*python.* $DAEMON" | /bin/grep -v grep | /usr/bin/wc -l` -lt 1 ]; then
         return 1 #FALSE
     else
         return 0 #TRUE
