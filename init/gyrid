@@ -10,7 +10,7 @@
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner.
+# Gyrid is a Bluetooth device scanner daemon.
 # Copyright (C) 2009-2012  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -32,6 +32,13 @@ DAEMON=/usr/share/gyrid/gyrid-start
 PIDFILE=/var/run/gyrid.pid
 export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
 
+if [ `id -u` -ne 0 ]; then
+    echo "You need root privileges to run this script."
+    exit 1
+fi
+
+. /lib/lsb/init-functions
+
 is_running() {
     if [ `/bin/ps aux | /bin/grep -e ".*python.* $DAEMON" | /bin/grep -v grep | /usr/bin/wc -l` -lt 1 ]; then
         return 1 #FALSE
@@ -42,66 +49,60 @@ is_running() {
 
 ok_fail() {
     if [ $1 -gt 0 ]; then
-        echo "FAIL."
-        exit 1
+        log_end_msg 1
     else
-        echo "OK."
-        exit 0
+        log_end_msg 0
     fi
 }
 
 q_fail() {
     if [ $1 -gt 0 ]; then
-        echo "FAIL."
-        exit 1
+        log_end_msg 1
+    fi
+}
+
+start() {
+    log_daemon_msg "Starting Gyrid Bluetooth device scanner" "gyrid"
+    if is_running; then
+        log_progress_msg "(already running)"
+        log_end_msg 0
+    else
+        start-stop-daemon --start --background --quiet --make-pidfile --pidfile $PIDFILE --exec $DAEMON
+        q_fail $?
+        sleep 1
+        if is_running; then
+            log_end_msg 0
+        else
+            log_end_msg 1
+        fi
+    fi
+}
+
+stop() {
+    log_daemon_msg "Stopping Gyrid Bluetooth device scanner" "gyrid"
+    if is_running; then
+        start-stop-daemon --stop --quiet --retry 30 --pidfile $PIDFILE
+        ok_fail $?
+    else
+        log_progress_msg "(not running)"
+        log_end_msg 0
     fi
 }
 
 case "$1" in
   start)
-        echo -n "Starting Gyrid ... "
-        if is_running; then
-            echo "FAIL: already running."
-            exit 1
-        else
-            start-stop-daemon --start --background --quiet --make-pidfile --pidfile $PIDFILE --exec $DAEMON
-            q_fail $?
-            sleep 1
-            if is_running; then
-                echo "OK."
-                exit 0
-            else
-                echo "FAIL."
-                exit 1
-            fi
-        fi
+    start
 	;;
   stop)
-        echo -n "Stopping Gyrid ... "
-        if is_running; then
-            start-stop-daemon --stop --quiet --retry 30 --pidfile $PIDFILE
-            ok_fail $?
-        else
-            echo "FAIL: not running."
-            exit 1
-        fi
+    stop
 	;;
-  restart)
-        echo -n "Restarting Gyrid ... "
-        if is_running; then
-            start-stop-daemon --stop --quiet --retry 30 --pidfile $PIDFILE
-            q_fail $?
-            start-stop-daemon --start --background --quiet --make-pidfile --pidfile $PIDFILE --exec $DAEMON
-            ok_fail $?
-        else
-            echo "FAIL: not running."
-            exit 1
-        fi
-	;;
-
+	restart)
+    stop
+    start
+  ;;
   *)
-	echo "Usage: "$1" {start|stop|restart}"
-	exit 1
+	  echo "Usage: "$1" {start|stop|restart}"
+	  exit 1
 esac
 
 exit 0

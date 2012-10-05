@@ -15,6 +15,7 @@ XB-Python-Version: ${python:Versions}
 Depends: ${misc:Depends}, ${python:Depends},
  bluez (>= 4.99),
  dpkg (>= 1.15.8.13),
+ lsb-base (>= 3.2),
  python-bluez (>= 0.18),
  python-dbus (>= 0.83.1),
  python-gobject (>= 2.21.4),
