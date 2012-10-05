@@ -103,6 +103,12 @@ class Configuration(object):
             values = {},
             default = None)
 
+        blacklist_file = _Option(name = 'blacklist_file',
+            description = 'Path to the blacklist file containing Bluetooth ' +
+                'MAC-addresses excluded from registration.',
+            values = {},
+            default = '/usr/share/gyrid/blacklist')
+
         network_server_host = _Option(name = 'network_server_host',
             description = 'The network host of the server to talk to. ' +
                 'This can be an IP-address or a domain name. Disable ' +
@@ -130,7 +136,7 @@ class Configuration(object):
             default = '/usr/share/gyrid/ssl/client.key')
 
         self.options.extend([buffer_size, alix_led_support, time_format,
-            enable_rssi_log, minimum_rssi, excluded_devices,
+            enable_rssi_log, minimum_rssi, excluded_devices, blacklist_file,
             network_server_host, network_server_port, network_ssl_client_crt,
             network_ssl_client_key])
 

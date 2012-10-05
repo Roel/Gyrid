@@ -253,8 +253,10 @@ class Discoverer(object):
         @param  rssi           The RSSI (RX power level) value of the
                                 discovery. None when none recorded.
         """
-        if rssi == None or \
-            not (self.minimum_rssi != None and rssi < self.minimum_rssi):
+        if (rssi == None or \
+            not (self.minimum_rssi != None and rssi < self.minimum_rssi)) \
+            and (True not in (address.upper().startswith(
+                black_mac.upper()) for black_mac in self.mgr.blacklist)):
 
             timestamp = time.time()
 

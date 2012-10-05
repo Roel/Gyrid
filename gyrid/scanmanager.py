@@ -80,6 +80,7 @@ class ScanManager(object):
                 self.config.get_value('minimum_rssi') + \
                 "detections with a lower RSSI value are ignored")
 
+        self.read_blacklist()
         self.loggers = {}
 
         bluez_obj = self._dbus_systembus.get_object('org.bluez', '/')
@@ -110,6 +111,30 @@ class ScanManager(object):
         else:
             return False
 
+    def read_blacklist(self):
+        """
+        Read the blacklist file and save values in class variable.
+        When the file does not exist, the blacklist is cleared.
+        """
+        path = self.config.get_value('blacklist_file')
+        if os.path.isfile(path):
+            self.blacklist = set()
+            file = open(path, 'r')
+            macs_listed = 0
+            for line in file:
+                l = line.strip()
+                macs = self.is_start_mac(l)
+                if macs > 0:
+                    self.blacklist.add(l)
+                    macs_listed += macs
+            file.close()
+            if macs_listed > 0:
+                self.log_info("Using blacklist file, detections " + \
+                    "of %i " % macs_listed + \
+                    "listed MAC-address(es) are ignored")
+        else:
+            self.blacklist = set()
+
     def net_send_line(self, line):
         """
         Try to send the given line over the socket to the Gyrid networking
@@ -130,10 +155,26 @@ class ScanManager(object):
         """
         string = string.strip().upper()
         if len(string) == 17 and \
-            re.match("([0-F][0-F]:){5}[0-F][0-F]", string):
+            re.match(r"([0-F][0-F]:){5}[0-F][0-F]", string):
             return string
         else:
             return False
+
+    def is_start_mac(self, string):
+        """
+        Determine if the given string is the start of a valid MAC-address.
+        Returns the number of possible valid MAC-addresses covered.
+        Returns 0 if the string is not a valid start of a MAC-address.
+
+        @param  string   The string to test.
+        @return          The number of valid MAC-addresses covered.
+        """
+        string = string.strip().upper()
+        for i in range(6):
+            if (i*3)+2 <= len(string) <= (i*3)+3 and \
+                re.match(r"^([0-F][0-F]:){%i}[0-F][0-F]:?$" % i, string):
+                    return 256**(5-i)
+        return 0
 
     def set_debug_mode(self, debug, silent):
         """
