@@ -235,6 +235,9 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
         @param  force   Force writing of default configuration, even if the
                           file already exists. Defaults to False.
         """
+        if force and os.path.isfile(self.config_file_location):
+            os.rename(self.config_file_location,
+                self.config_file_location + '.bad')
 
         if force or not os.path.isfile(self.config_file_location):
             file = open(self.config_file_location, "w")
