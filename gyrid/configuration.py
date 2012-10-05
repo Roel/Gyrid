@@ -209,14 +209,21 @@ class _ConfigurationParser(ConfigParser.ConfigParser, object):
         self.configuration = configuration
         self.config_file_location = self.configuration.configfile
         self.update_config_file()
-        ConfigParser.ConfigParser.read(self, self.config_file_location)
+        try:
+            ConfigParser.ConfigParser.read(self, self.config_file_location)
+        except ConfigParser.ParsingError:
+            self.update_config_file(force=True)
+            ConfigParser.ConfigParser.read(self, self.config_file_location)
 
-    def update_config_file(self):
+    def update_config_file(self, force=False):
         """
         If no configuration file exists, copy a new default one.
+
+        @param  force   Force writing of default configuration, even if the
+                          file already exists. Defaults to False.
         """
 
-        if not os.path.isfile(self.config_file_location):
+        if force or not os.path.isfile(self.config_file_location):
             file = open(self.config_file_location, "w")
             file.write(self._generate_default())
             file.close()
