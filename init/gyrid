@@ -10,7 +10,7 @@
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner daemon.
+# Gyrid is a Bluetooth device scanner.
 # Copyright (C) 2009-2012  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -101,8 +101,8 @@ case "$1" in
     start
   ;;
   *)
-	  echo "Usage: "$1" {start|stop|restart}"
-	  exit 1
+    echo "Usage: "$1" {start|stop|restart}"
+    exit 1
 esac
 
 exit 0
