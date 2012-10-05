@@ -362,6 +362,7 @@ class InetClientFactory(ReconnectingClientFactory):
         self.connected = False
         self.cache_full = False
         self.cache_file = '/var/tmp/gyrid-network.cache'
+        self.cache_maxsize = self.network.config.get_value('network_cache_limit')
         self.cache = open(self.cache_file, 'a')
         self.await_ack = {}
 
@@ -403,13 +404,13 @@ class InetClientFactory(ReconnectingClientFactory):
 
     def checkCacheSize(self):
         """
-        Check the size of the cache and disable caching when full (250MB).
+        Check the size of the cache and disable caching when full.
         """
         if not self.cache.closed:
             self.cache.flush()
 
         if os.path.isfile(self.cache_file) and \
-            os.path.getsize(self.cache_file) > (250*1048576):
+            os.path.getsize(self.cache_file) > (self.cache_maxsize * 1048576):
             self.cache.flush()
             self.cache.close()
             self.cache_full = True

@@ -129,10 +129,17 @@ class Configuration(object):
             values = {},
             default = '/usr/share/gyrid/ssl/client.key')
 
+        network_cache_limit = _Option('network_cache_limit',
+            description = 'Maximum size of the network cache file ' +
+                'in megabytes (MB). Defaults to 250 MB. When this maximum ' +
+                'size is reached, caching is suspended.',
+            values = {},
+            default = 250)
+
         self.options.extend([buffer_size, alix_led_support, time_format,
             enable_rssi_log, minimum_rssi, excluded_devices,
             network_server_host, network_server_port, network_ssl_client_crt,
-            network_ssl_client_key])
+            network_ssl_client_key, network_cache_limit])
 
     def _get_option_by_name(self, name):
         """
