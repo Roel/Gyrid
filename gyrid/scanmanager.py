@@ -286,6 +286,9 @@ class ScanManager(object):
 
         Dims the lights on shutdown.
         """
+        if 'network' in self.__dict__:
+            self.network.stop()
+
         if self.config.get_value('alix_led_support') and \
                 (False not in [os.path.exists('/sys/class/leds/alix:%i' % i) \
                 for i in [1, 2, 3]]):
