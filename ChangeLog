@@ -1,3 +1,12 @@
+gyrid 0.6.1
+
+    * FIX: Depend on bluetooth subsystem in init script.
+    * FIX: Write a new default configuration when current one fails to parse.
+    * ADD: Option to configure network caching limit.
+    * UPD: Switch to LSB init functions in init script.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 05 Oct 2012 14:41:22 +0200
+
 gyrid 0.6
 
     * FIX: Remove obsolete daemon code and switch to start-stop-daemon.
