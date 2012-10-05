@@ -33,6 +33,10 @@ With the optional --no-log flag set, no logs are written to disk.
 /etc/gyrid.conf
 Configuration file where a few options can be specified. The default configuration file documents all options.
 .TP
+/usr/share/gyrid/blacklist
+File where blacklisted MAC-addresses can be listed, which will be exluded from registration. One can list either a full address or only the starting part.
+In the latter case, all addresses starting with that part will be blacklisted.
+.TP
 /var/log/gyrid/
 This is the directory where all logfiles are stored.
 .SH BUGS
