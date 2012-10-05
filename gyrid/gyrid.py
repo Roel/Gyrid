@@ -157,4 +157,5 @@ class Main(object):
         """
         self.stopping = True
         self.mgr.log_info("Shutting down")
+        self.mgr.stop()
         sys.exit(0)
