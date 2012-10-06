@@ -1,3 +1,9 @@
+gyrid 0.6.1-1
+
+    * ADD: Blacklist to exclude certain MAC-addresses from registration.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 05 Oct 2012 17:51:32 +0200
+
 gyrid 0.6.1
 
     * FIX: Depend on bluetooth subsystem in init script.
