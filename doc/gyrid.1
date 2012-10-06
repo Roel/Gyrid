@@ -30,10 +30,10 @@ Debug mode is more verbose, printing all activity to standard output. This might
 With the optional --no-log flag set, no logs are written to disk.
 .SH FILES
 .TP
-/etc/gyrid.conf
+/etc/gyrid/gyrid.conf
 Configuration file where a few options can be specified. The default configuration file documents all options.
 .TP
-/usr/share/gyrid/blacklist
+/etc/gyrid/blacklist.conf
 File where blacklisted MAC-addresses can be listed, which will be exluded from registration. One can list either a full address or only the starting part.
 In the latter case, all addresses starting with that part will be blacklisted.
 .TP

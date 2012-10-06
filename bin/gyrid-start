@@ -32,7 +32,7 @@ except ImportError:
 
 LOGDIR = '/var/log/gyrid/'
 ERRORLOGFILE = '/var/log/gyrid/error.log'
-CONFIGFILE = '/etc/gyrid.conf'
+CONFIGFILE = '/etc/gyrid/gyrid.conf'
 
 if __name__ == '__main__':
     #Check for write access to LOGDIR, ERRORLOGFILE, LOCKFILE and CONFIGFILE.

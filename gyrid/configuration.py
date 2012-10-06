@@ -107,7 +107,7 @@ class Configuration(object):
             description = 'Path to the blacklist file containing Bluetooth ' +
                 'MAC-addresses excluded from registration.',
             values = {},
-            default = '/usr/share/gyrid/blacklist')
+            default = '/etc/gyrid/blacklist.conf')
 
         network_server_host = _Option(name = 'network_server_host',
             description = 'The network host of the server to talk to. ' +
