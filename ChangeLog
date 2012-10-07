@@ -1,8 +1,9 @@
 gyrid 0.6.1-1
 
+    * FIX: Make init script more LSB compliant.
     * ADD: Blacklist to exclude certain MAC-addresses from registration.
 
--- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 05 Oct 2012 17:51:32 +0200
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Sun, 07 Oct 2012 15:39:35 +0200
 
 gyrid 0.6.1
 
