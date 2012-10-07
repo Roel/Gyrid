@@ -29,8 +29,8 @@
 set -e
 
 DAEMON=/usr/share/gyrid/gyrid-start
-PIDFILE=/var/run/gyrid.pid
-export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
+PIDFILE=/run/gyrid.pid
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
 
 if [ `id -u` -ne 0 ]; then
     echo "You need root privileges to run this script."
@@ -40,7 +40,7 @@ fi
 . /lib/lsb/init-functions
 
 is_running() {
-    if [ `/bin/ps aux | /bin/grep -e ".*python.* $DAEMON" | /bin/grep -v grep | /usr/bin/wc -l` -lt 1 ]; then
+    if [ `ps aux | grep -e ".*python.* $DAEMON" | grep -v grep | wc -l` -lt 1 ]; then
         return 1 #FALSE
     else
         return 0 #TRUE
@@ -61,7 +61,8 @@ q_fail() {
     fi
 }
 
-start() {
+case "$1" in
+  start)
     log_daemon_msg "Starting Gyrid Bluetooth device scanner" "gyrid"
     if is_running; then
         log_progress_msg "(already running)"
@@ -76,32 +77,40 @@ start() {
             log_end_msg 1
         fi
     fi
-}
-
-stop() {
+	;;
+  stop)
     log_daemon_msg "Stopping Gyrid Bluetooth device scanner" "gyrid"
     if is_running; then
         start-stop-daemon --stop --quiet --retry 30 --pidfile $PIDFILE
         ok_fail $?
+        rm -f $PIDFILE
     else
         log_progress_msg "(not running)"
         log_end_msg 0
     fi
-}
-
-case "$1" in
-  start)
-    start
 	;;
-  stop)
-    stop
-	;;
-	restart)
-    stop
-    start
+  restart)
+    $0 stop
+    $0 start
+  ;;
+  force-reload)
+    $0 stop
+    $0 start
+  ;;
+  status)
+    if is_running; then
+        PID=`ps aux | grep -e ".*python.* $DAEMON" | grep -v grep | awk '{ print $2 }'`
+        log_success_msg "Gyrid Bluetooth device scanner is running with pid $PID"
+    elif [ -f $PIDFILE ]; then
+        log_success_msg "Gyrid Bluetooth device scanner is not running, but pid file exists"
+        exit 1
+    else
+        log_success_msg "Gyrid Bluetooth device scanner is not running"
+        exit 3
+    fi
   ;;
   *)
-    echo "Usage: "$1" {start|stop|restart}"
+    echo "Usage: "$1" {start|stop|restart|force-reload}"
     exit 1
 esac
 
