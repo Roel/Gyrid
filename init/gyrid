@@ -26,8 +26,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set -e
-
 DAEMON=/usr/share/gyrid/gyrid-start
 PIDFILE=/run/gyrid.pid
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
@@ -37,10 +35,13 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
+test -f $DAEMON || exit 0
+
 . /lib/lsb/init-functions
 
 is_running() {
-    if [ `ps aux | grep -e ".*python.* $DAEMON" | grep -v grep | wc -l` -lt 1 ]; then
+    start-stop-daemon --status --pidfile $PIDFILE
+    if [ $? -gt 0 ]; then
         return 1 #FALSE
     else
         return 0 #TRUE
@@ -99,8 +100,7 @@ case "$1" in
   ;;
   status)
     if is_running; then
-        PID=`ps aux | grep -e ".*python.* $DAEMON" | grep -v grep | awk '{ print $2 }'`
-        log_success_msg "Gyrid Bluetooth device scanner is running with pid $PID"
+        log_success_msg "Gyrid Bluetooth device scanner is running with pid `cat $PIDFILE`"
     elif [ -f $PIDFILE ]; then
         log_success_msg "Gyrid Bluetooth device scanner is not running, but pid file exists"
         exit 1
@@ -110,7 +110,7 @@ case "$1" in
     fi
   ;;
   *)
-    echo "Usage: "$1" {start|stop|restart|force-reload}"
+    echo "Usage: "$1" {start|stop|restart|force-reload|status}"
     exit 1
 esac
 
