@@ -2,5 +2,4 @@
 /etc/gyrid
 /var/log
 /var/log/gyrid
-/var/run
 /var/tmp
