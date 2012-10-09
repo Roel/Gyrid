@@ -75,6 +75,7 @@ case "$1" in
         if is_running; then
             log_end_msg 0
         else
+            rm -f $PIDFILE
             log_end_msg 1
         fi
     fi
