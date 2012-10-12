@@ -140,6 +140,159 @@ class FakeScanManager(object):
         else:
             return False
 
+class AckItem(object):
+    """
+    Class that defines an item in the AckMap.
+    """
+
+    # The maximum value of the timer after which the item is resent.
+    max_misses = 5
+
+    def __init__(self, ackmap, data, timer=0):
+        """
+        Initialisation.
+
+        @param   ackmap   Reference to the AckMap instance.
+        @param   data     The data to store.
+        @param   timer    The initial value of the timer. An item is resent
+                             when this value is negative or exceeds
+                             AckItem.max_misses.
+        """
+        self.ackmap = ackmap
+        self.data = data
+        self.timer = timer
+        self.checksum = AckMap.checksum(data)
+
+    def __str__(self):
+        """
+        String representation.
+        """
+        return str(self.data)
+
+    def incrementTimer(self):
+        """
+        Increment the timer by a value of 1.
+        """
+        if self.timer >= 0:
+            self.timer += 1
+
+    def checkResend(self):
+        """
+        Check if the data should be resent, and do so when required.
+        """
+        if self.timer > 10 * AckItem.max_misses:
+            # Protection against cache overflow when a line repeatedly fails to be ack'ed.
+            self.ackmap.shouldClearItem(self.checksum)
+
+        elif self.timer < 0 or (self.timer % AckItem.max_misses == 0):
+            client = self.ackmap.factory.client
+            if client != None:
+                client.sendLine(self.data, await_ack=False)
+
+class AckMap(object):
+    """
+    Class that stores the temporary cache, waiting for ack'ing by the server.
+    """
+    @staticmethod
+    def checksum(data):
+        """
+        Calculate the CRC32 checksum for the given data string.
+
+        @param   data   The data to process.
+        @return         The CRC32 checksum.
+        """
+        return hex(abs(zlib.crc32(data)))[2:]
+
+    def __init__(self, factory):
+        """
+        Initialisation. Start the checker loop which checks old cached lines
+        and resends when necessary.
+
+        @param   factory   Refence to InetClientFactory instance.
+        """
+        self.factory = factory
+        self.ackmap = {}
+        self.to_delete = set()
+
+        self.check_loop = task.LoopingCall(self.__check)
+        reactor.callLater(30, self.restartChecker)
+
+    def restartChecker(self):
+        """
+        Start or restart the checker loop based on the current keepalive interval.
+        """
+        interval = self.factory.config['enable_keepalive']
+        self.interval = interval if interval > 0 else 60
+
+        self.stopChecker()
+        self.check_loop.start(interval, now=False)
+
+    def stopChecker(self):
+        """
+        Stop the checker loop.
+        """
+        try:
+            self.check_loop.stop()
+        except AssertionError:
+            pass
+
+    def __str__(self):
+        """
+        String representation to write the entire AckMap to disk, for example.
+        """
+        return '\n'.join((str(i) for i in self.ackmap.values()))
+
+    def addItem(self, data, timer=0):
+        """
+        Add an item to the map.
+
+        @param   data    The data to add.
+        @param   timer   Initial value of the timeout timer value used to
+                           determine which data is old.
+        """
+        fdata = self.factory.filter(data)
+        cksm = AckMap.checksum(fdata)
+        if cksm not in self.ackmap:
+            self.ackmap[cksm] = AckItem(self, data, timer)
+
+    def clearItem(self, checksum):
+        """
+        Clear the item with the given checksum from the cache, i.e. when it
+        has been ack'ed by the server.
+
+        @param   checksum   The checksum to check.
+        """
+        if checksum in self.ackmap:
+            del(self.ackmap[checksum])
+
+    def shouldClearItem(self, checksum):
+        """
+        Add the item with the given checksum to the to-clear list. It will
+        be cleared on the next check.
+
+        @param   checksum   The checksum to check.
+        """
+        self.to_delete.add(checksum)
+
+    def clear(self):
+        """
+        Clear the entire map.
+        """
+        self.ackmap.clear()
+
+    def __check(self):
+        """
+        Called automatically by the checker loop; should not be called
+        directly. Checks each item in the map and resends when necessary.
+        """
+        for c in self.to_delete:
+            self.clearItem(c)
+        self.to_delete.clear()
+
+        for v in self.ackmap.values():
+            v.incrementTimer()
+            v.checkResend()
+
 class LocalServer(LineReceiver):
     """
     The interacting class of the local server.
@@ -227,11 +380,9 @@ class InetClient(LineReceiver):
         if self.factory.config['enable_cache'] and self.factory.cache.closed \
             and not self.factory.cache_full:
             self.factory.cache = open(self.factory.cache_file, 'a')
-
-            for v in self.factory.await_ack.values():
-                self.factory.cache.write('%s\n' % v)
+            self.factory.cache.write(str(self.factory.ackmap))
             self.factory.cache.flush()
-            self.factory.await_ack.clear()
+            self.factory.ackmap.clear()
 
         self.factory.connected = False
 
@@ -256,7 +407,7 @@ class InetClient(LineReceiver):
                 if await_ack and not r.startswith('MSG') \
                     and not r.startswith('STATE') \
                     and self.factory.config['enable_cache']:
-                    self.factory.await_ack[self.factory.checksum(r)] = data
+                    self.factory.ackmap.addItem(data)
 
     def lineReceived(self, data):
         """
@@ -292,8 +443,7 @@ class InetClient(LineReceiver):
                 self.sendLine("MSG,uptime,%i,%i" % \
                     (self.network.gyrid_up_since, self.network.host_up_since))
         elif dl[0] == 'ack' and len(dl) == 2:
-            if dl[1] in self.factory.await_ack:
-                del(self.factory.await_ack[dl[1]])
+            self.factory.ackmap.clearItem(dl[1])
 
     def processLocalData(self, data):
         """
@@ -323,13 +473,10 @@ class InetClient(LineReceiver):
             line = line.strip()
             r = self.factory.filter(line)
             if r != None and self.factory.config['enable_cache']:
-                self.factory.await_ack[self.factory.checksum(r)] = line
+                self.factory.ackmap.addItem(line, -1)
         self.factory.cache.close()
 
         self.clearCache()
-
-        for line in self.factory.await_ack.values():
-            self.sendLine(line, await_ack=False)
 
     def clearCache(self):
         """
@@ -364,7 +511,7 @@ class InetClientFactory(ReconnectingClientFactory):
         self.cache_file = '/var/tmp/gyrid-network.cache'
         self.cache_maxsize = self.network.config.get_value('network_cache_limit')
         self.cache = open(self.cache_file, 'a')
-        self.await_ack = {}
+        self.ackmap = AckMap(self)
 
         self.keepalive_loop = task.LoopingCall(self.keepalive)
         self.cachesize_loop = task.LoopingCall(self.checkCacheSize)
@@ -392,15 +539,6 @@ class InetClientFactory(ReconnectingClientFactory):
             self.keepalive_loop.stop()
         except AssertionError:
             pass
-
-    def checksum(self, data):
-        """
-        Calculate the CRC32 checksum for the given data string.
-
-        @param   data   The data to process.
-        @return         The CRC32 checksum.
-        """
-        return hex(abs(zlib.crc32(data)))[2:]
 
     def checkCacheSize(self):
         """
