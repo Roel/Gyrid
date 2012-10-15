@@ -58,7 +58,7 @@ class Network(object):
         Initialisation. Everything happens basically here.
         """
         self.config = configuration.Configuration(FakeScanManager(),
-            '/etc/gyrid.conf')
+            '/etc/gyrid/gyrid.conf')
         atexit.register(self.exit)
         self.exit_code = 0
 
