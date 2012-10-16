@@ -402,7 +402,7 @@ class InetClient(LineReceiver):
                 if await_ack and not r.startswith('MSG') \
                     and not r.startswith('STATE') \
                     and self.factory.config['enable_cache']:
-                    self.factory.ackmap.addItem(AckItem(data))
+                    self.factory.ackmap.addItem(AckItem(r))
 
     def lineReceived(self, data):
         """
@@ -468,7 +468,7 @@ class InetClient(LineReceiver):
             line = line.strip()
             r = self.factory.filter(line)
             if r != None and self.factory.config['enable_cache']:
-                self.factory.ackmap.addItem(AckItem(line, -1))
+                self.factory.ackmap.addItem(AckItem(r, -1))
         self.factory.cache.close()
 
         self.clearCache()
