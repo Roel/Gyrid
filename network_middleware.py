@@ -400,7 +400,6 @@ class InetClient(LineReceiver):
             r = self.factory.filter(data)
             if r != None and self.transport != None:
                 LineReceiver.sendLine(self, r)
-                print "> " + r
                 if await_ack and not r.startswith('MSG') \
                     and not r.startswith('STATE') \
                     and self.factory.config['enable_cache']:
