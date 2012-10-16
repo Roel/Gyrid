@@ -185,11 +185,15 @@ class AckItem(object):
                 self.ackmap.shouldClearItem(self.checksum)
 
             elif self.timer < 0 or (self.timer % AckItem.max_misses == 0):
-                self.data = self.data.replace('SIGHT', 'CACHE')
-                self.checksum = AckMap.checksum(self.data)
-                client = self.ackmap.factory.client
-                if client != None:
-                    client.sendLine(self.data, await_ack=False)
+                data = self.data.replace('SIGHT', 'CACHE')
+                if self.data != data:
+                    self.ackmap.shouldClearItem(self.checksum)
+                    self.checksum = AckMap.checksum(self.data)
+                    self.ackmap.addItem(AckItem(self.data, self.timer))
+                else:
+                    client = self.ackmap.factory.client
+                    if client != None:
+                        client.sendLine(self.data, await_ack=False)
 
 class AckMap(object):
     """
