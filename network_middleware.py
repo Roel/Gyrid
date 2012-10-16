@@ -225,7 +225,7 @@ class AckMap(object):
         self.interval = interval if interval > 0 else 60
 
         self.stopChecker()
-        self.check_loop.start(interval, now=False)
+        self.check_loop.start(self.interval, now=False)
 
     def stopChecker(self):
         """
