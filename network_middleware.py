@@ -148,17 +148,16 @@ class AckItem(object):
     # The maximum value of the timer after which the item is resent.
     max_misses = 5
 
-    def __init__(self, ackmap, data, timer=0):
+    def __init__(self, data, timer=0):
         """
         Initialisation.
 
-        @param   ackmap   Reference to the AckMap instance.
         @param   data     The data to store.
         @param   timer    The initial value of the timer. An item is resent
                              when this value is negative or exceeds
                              AckItem.max_misses.
         """
-        self.ackmap = ackmap
+        self.ackmap = None
         self.data = data
         self.timer = timer
         self.checksum = AckMap.checksum(data)
@@ -180,14 +179,15 @@ class AckItem(object):
         """
         Check if the data should be resent, and do so when required.
         """
-        if self.timer > 10 * AckItem.max_misses:
-            # Protection against cache overflow when a line repeatedly fails to be ack'ed.
-            self.ackmap.shouldClearItem(self.checksum)
+        if self.ackmap != None:
+            if self.timer > 10 * AckItem.max_misses:
+                # Protection against cache overflow when a line repeatedly fails to be ack'ed.
+                self.ackmap.shouldClearItem(self.checksum)
 
-        elif self.timer < 0 or (self.timer % AckItem.max_misses == 0):
-            client = self.ackmap.factory.client
-            if client != None:
-                client.sendLine(self.data, await_ack=False)
+            elif self.timer < 0 or (self.timer % AckItem.max_misses == 0):
+                client = self.ackmap.factory.client
+                if client != None:
+                    client.sendLine(self.data, await_ack=False)
 
 class AckMap(object):
     """
@@ -242,18 +242,13 @@ class AckMap(object):
         """
         return '\n'.join((str(i) for i in self.ackmap.values()))
 
-    def addItem(self, data, timer=0):
+    def addItem(self, ackItem):
         """
         Add an item to the map.
-
-        @param   data    The data to add.
-        @param   timer   Initial value of the timeout timer value used to
-                           determine which data is old.
         """
-        fdata = self.factory.filter(data)
-        cksm = AckMap.checksum(fdata)
-        if cksm not in self.ackmap:
-            self.ackmap[cksm] = AckItem(self, data, timer)
+        if ackItem.checksum not in self.ackmap:
+            self.ackmap[ackItem.checksum] = ackItem
+        self.ackmap[ackItem.checksum].ackmap = self
 
     def clearItem(self, checksum):
         """
@@ -380,7 +375,7 @@ class InetClient(LineReceiver):
         if self.factory.config['enable_cache'] and self.factory.cache.closed \
             and not self.factory.cache_full:
             self.factory.cache = open(self.factory.cache_file, 'a')
-            self.factory.cache.write(str(self.factory.ackmap))
+            self.factory.cache.write(str(self.factory.ackmap) + '\n')
             self.factory.cache.flush()
             self.factory.ackmap.clear()
 
@@ -404,10 +399,11 @@ class InetClient(LineReceiver):
             r = self.factory.filter(data)
             if r != None and self.transport != None:
                 LineReceiver.sendLine(self, r)
+                print "> " + r
                 if await_ack and not r.startswith('MSG') \
                     and not r.startswith('STATE') \
                     and self.factory.config['enable_cache']:
-                    self.factory.ackmap.addItem(data)
+                    self.factory.ackmap.addItem(AckItem(data))
 
     def lineReceived(self, data):
         """
@@ -473,7 +469,7 @@ class InetClient(LineReceiver):
             line = line.strip()
             r = self.factory.filter(line)
             if r != None and self.factory.config['enable_cache']:
-                self.factory.ackmap.addItem(line, -1)
+                self.factory.ackmap.addItem(AckItem(line, -1))
         self.factory.cache.close()
 
         self.clearCache()
