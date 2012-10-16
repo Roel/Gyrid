@@ -233,8 +233,9 @@ class ScanLogger(RSSILogger):
         """
         Stop the poolchecker.
         """
-        self.poolchecker.stop()
-        del(self.poolchecker)
+        if 'poolchecker' in self.__dict__:
+            self.poolchecker.stop()
+            del(self.poolchecker)
 
         self._set_led(2, 0)
         self._set_led(3, 0)
