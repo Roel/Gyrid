@@ -62,10 +62,14 @@ following format:
 
 Data lines can be of two formats, either in/out sensor data or rssi-data. The
 first is always transferred, the latter is disabled by default (see further).
+They either start with "SIGHT", which indicates live data, or with "CACHE",
+which indicates data that has been cached by the client.
 
- * In/out sensor data has the following format:
-    <- "[sensor_mac,]timestamp,mac,deviceclass,move"
-     f.ex.: "001A7D0AC265,1303460353.359,001E75B7069A,5898756,in"
+ * In/out sensor data starts with "SIGHT_CELL" or "CACHE_CELL" and has the
+    following format:
+    <- "SIGHT_CELL,[sensor_mac,]timestamp,mac,deviceclass,move"
+    <- "CACHE_CELL,[sensor_mac,]timestamp,mac,deviceclass,move"
+     f.ex.: "SIGHT_CELL,001A7D0AC265,1303460353.359,001E75B7069A,5898756,in"
 
     sensor_mac: The MAC-address of the sensor that detected the device, for
         example "001122334455". This can be disabled (see further).
@@ -80,9 +84,11 @@ first is always transferred, the latter is disabled by default (see further).
 
     move: Whether the device moved "in" or "out" the sensor's range.
 
- * RSSI-data has the following format:
-    <- "[sensor_mac,]timestamp,mac,rssi"
-     f.ex.: "001A7D0AC265,1303460353.359,001E75B7069A,-47"
+ * RSSI-data starts with "SIGHT_RSSI" or "CACHE_RSSI" and has the following
+    format:
+    <- "SIGHT_RSSI,[sensor_mac,]timestamp,mac,rssi"
+    <- "CACHE_RSSI,[sensor_mac,]timestamp,mac,rssi"
+     f.ex.: "SIGHT_RSSI,001A7D0AC265,1303460353.359,001E75B7069A,-47"
 
     sensor_mac: The MAC-address of the sensor that detected the device, for
         example "001122334455". This can be disabled (see further).
@@ -155,8 +161,8 @@ not confirmed remain in the client's cache.
 The confirmation to send is the hexadecimal, absolute (positive) representation
 of the CRC32 checksum (without the starting '0x').
 
- * <- "001A7D0AC265,1303460353.359,001E75B7069A,-47"
-   -> "ACK,7be5d2ef"
+ * <- "SIGHT_RSSI,001A7D0AC265,1303460353.359,001E75B7069A,-47"
+   -> "ACK,29e9bd8c"
 
 The caching mechanism can be disabled on connection initialisation. This is
 possibly dangerous as data recorded while the network is down will not be

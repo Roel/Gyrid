@@ -185,6 +185,7 @@ class AckItem(object):
                 self.ackmap.shouldClearItem(self.checksum)
 
             elif self.timer < 0 or (self.timer % AckItem.max_misses == 0):
+                self.data = self.data.replace('SIGHT', 'CACHE')
                 client = self.ackmap.factory.client
                 if client != None:
                     client.sendLine(self.data, await_ack=False)
@@ -569,17 +570,18 @@ class InetClientFactory(ReconnectingClientFactory):
         """
         Filter outgoing data according to the configuration options.
 
-        @param   data  The data to filter.
-        @return        The filtered data, None if nothing should go out.
+        @param   data    The data to filter.
+        @return          The filtered data, None if nothing should go out.
         """
         if data.startswith('MSG'):
             return data
-        elif data.startswith('SIGHT_CELL'):
-            data = dict(zip(['sensor_mac', 'timestamp', 'mac',
-                'deviceclass', 'move'], data.split(',')[1:]))
-        elif data.startswith('SIGHT_RSSI') and self.config['enable_rssi']:
-            data = dict(zip(['sensor_mac', 'timestamp', 'mac', 'rssi'],
-                data.split(',')[1:]))
+        elif data.startswith('SIGHT_CELL') or data.startswith('CACHE_CELL'):
+            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac',
+                'deviceclass', 'move'], data.split(',')))
+        elif (data.startswith('SIGHT_RSSI') or data.startswith('CACHE_RSSI')) \
+                and self.config['enable_rssi']:
+            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac', 'rssi'],
+                data.split(',')))
         elif data.startswith('STATE') and ('new_inquiry' in data) and \
             self.config['enable_state_inquiry']:
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'info'],
