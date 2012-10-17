@@ -168,6 +168,13 @@ class AckItem(object):
         """
         return str(self.data)
 
+    def __eq__(self, item):
+        return (item.data == self.data and
+                item.checksum == self.checksum)
+
+    def __hash__(self):
+        return int(self.checksum, 16)
+
     def incrementTimer(self):
         """
         Increment the timer by a value of 1.
@@ -182,18 +189,14 @@ class AckItem(object):
         if self.ackmap != None:
             if self.timer > 10 * AckItem.max_misses:
                 # Protection against cache overflow when a line repeatedly fails to be ack'ed.
-                self.ackmap.shouldClearItem(self.checksum)
+                self.ackmap.clearItem(self.checksum)
 
             elif self.timer < 0 or (self.timer % AckItem.max_misses == 0):
-                data = self.data.replace('SIGHT', 'CACHE')
-                if self.data != data:
-                    self.ackmap.shouldClearItem(self.checksum)
-                    self.checksum = AckMap.checksum(self.data)
-                    self.ackmap.addItem(AckItem(self.data, self.timer))
-                else:
-                    client = self.ackmap.factory.client
-                    if client != None:
-                        client.sendLine(self.data, await_ack=False)
+                self.data = self.data.replace('SIGHT', 'CACHE')
+                self.checksum = AckMap.checksum(self.data)
+                client = self.ackmap.factory.client
+                if client != None:
+                    client.sendLine(self.data, filter=False, await_ack=False)
 
 class AckMap(object):
     """
@@ -217,21 +220,28 @@ class AckMap(object):
         @param   factory   Refence to InetClientFactory instance.
         """
         self.factory = factory
-        self.ackmap = {}
-        self.to_delete = set()
+        self.ackmap = set()
 
         self.check_loop = task.LoopingCall(self.__check)
-        reactor.callLater(30, self.restartChecker)
 
     def restartChecker(self):
         """
         Start or restart the checker loop based on the current keepalive interval.
         """
+        self.stopChecker()
+        self.startChecker()
+
+    def startChecker(self):
+        """
+        Start the checker loop.
+        """
         interval = self.factory.config['enable_keepalive']
         self.interval = interval if interval > 0 else 60
 
-        self.stopChecker()
-        self.check_loop.start(self.interval, now=False)
+        try:
+            self.check_loop.start(self.interval, now=False)
+        except AssertionError:
+            pass
 
     def stopChecker(self):
         """
@@ -246,15 +256,14 @@ class AckMap(object):
         """
         String representation to write the entire AckMap to disk, for example.
         """
-        return '\n'.join((str(i) for i in self.ackmap.values()))
+        return '\n'.join((str(i) for i in self.ackmap))
 
     def addItem(self, ackItem):
         """
         Add an item to the map.
         """
-        if ackItem.checksum not in self.ackmap:
-            self.ackmap[ackItem.checksum] = ackItem
-        self.ackmap[ackItem.checksum].ackmap = self
+        ackItem.ackmap = self
+        self.ackmap.add(ackItem)
 
     def clearItem(self, checksum):
         """
@@ -263,17 +272,14 @@ class AckMap(object):
 
         @param   checksum   The checksum to check.
         """
-        if checksum in self.ackmap:
-            del(self.ackmap[checksum])
+        item = None
+        for i in self.ackmap:
+            if i.checksum == checksum:
+                item = i
+                break
 
-    def shouldClearItem(self, checksum):
-        """
-        Add the item with the given checksum to the to-clear list. It will
-        be cleared on the next check.
-
-        @param   checksum   The checksum to check.
-        """
-        self.to_delete.add(checksum)
+        if item != None:
+            self.ackmap.difference_update([item])
 
     def clear(self):
         """
@@ -286,11 +292,7 @@ class AckMap(object):
         Called automatically by the checker loop; should not be called
         directly. Checks each item in the map and resends when necessary.
         """
-        for c in self.to_delete:
-            self.clearItem(c)
-        self.to_delete.clear()
-
-        for v in self.ackmap.values():
+        for v in self.ackmap:
             v.incrementTimer()
             v.checkResend()
 
@@ -372,6 +374,7 @@ class InetClient(LineReceiver):
             pass
 
         self.factory.connected = True
+        self.factory.ackmap.startChecker()
 
     def connectionLost(self, reason):
         """
@@ -387,7 +390,7 @@ class InetClient(LineReceiver):
 
         self.factory.connected = False
 
-    def sendLine(self, data, await_ack=True):
+    def sendLine(self, data, filter=True, await_ack=True):
         """
         Send a line to the Gyrid server. When not connected,
         store the data in the cache.
@@ -397,12 +400,13 @@ class InetClient(LineReceiver):
                              await_ack buffer.
         """
         data = str(data).strip()
+        r = self.factory.filter(data) if filter else data
         if self.factory.config['enable_cache'] and not self.factory.connected \
             and not self.factory.cache.closed and not self.factory.cache_full \
             and not data.startswith('MSG') and not data.startswith('STATE'):
-            self.factory.cache.write(data + '\n')
+            if r != None:
+                self.factory.cache.write(r + '\n')
         else:
-            r = self.factory.filter(data)
             if r != None and self.transport != None:
                 LineReceiver.sendLine(self, r)
                 if await_ack and not r.startswith('MSG') \
@@ -472,9 +476,8 @@ class InetClient(LineReceiver):
         self.factory.cache = open(self.factory.cache_file, 'r')
         for line in self.factory.cache:
             line = line.strip()
-            r = self.factory.filter(line)
-            if r != None and self.factory.config['enable_cache']:
-                self.factory.ackmap.addItem(AckItem(r, -1))
+            if line != None and line != "" and self.factory.config['enable_cache']:
+                self.factory.ackmap.addItem(AckItem(line, -1))
         self.factory.cache.close()
 
         self.clearCache()
@@ -653,6 +656,7 @@ class InetClientFactory(ReconnectingClientFactory):
         """
         ReconnectingClientFactory.clientConnectionLost(
             self, connector, reason)
+        self.ackmap.stopChecker()
 
         self.init()
 
