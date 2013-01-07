@@ -274,6 +274,14 @@ class ScanManager(object):
         """
         raise NotImplementedError
 
+    def get_inquiry_log_location(self):
+        """
+        Get the location of the logfile for inquiry starttimes.
+
+        Implement this method in a subclass.
+        """
+        raise NotImplementedError
+
     def run(self):
         """
         Implement this method in a subclass.
@@ -313,6 +321,11 @@ class DefaultScanManager(ScanManager):
         mac = mac.replace(':','')
         self.makedirs(self.base_location + mac)
         return self.base_location + mac + '/rssi.log'
+
+    def get_inquiry_log_location(self, mac):
+        mac = mac.replace(':','')
+        self.makedirs(self.base_location + mac)
+        return self.base_location + mac + '/inquiry.log'
 
     def get_info_log_location(self):
         return self.base_location + 'messages.log'
@@ -377,12 +390,14 @@ class DefaultScanManager(ScanManager):
                 if address not in self.loggers:
                     _logger = logger.ScanLogger(self, address)
                     _logger_rssi = logger.RSSILogger(self, address)
-                    self.loggers[address] = [_logger, _logger_rssi]
+                    _logger_inquiry = logger.InquiryLogger(self, address)
+                    self.loggers[address] = [_logger, _logger_rssi, _logger_inquiry]
                 else:
                     _logger = self.loggers[address][0]
                     _logger_rssi = self.loggers[address][1]
+                    _logger_inquiry = self.loggers[address][2]
                 _discoverer = discoverer.Discoverer(self, _logger, _logger_rssi,
-                    device_id, address)
+                    _logger_inquiry, device_id, address)
 
                 if _discoverer.init() == 0:
                     self.log_info("Started scanning with adapter %s" % address)

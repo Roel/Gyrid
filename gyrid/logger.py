@@ -76,7 +76,7 @@ class RSSILogger(InfoLogger):
     """
     def __init__(self, mgr, mac):
         """
-        Initialisation of the logfile, pool and poolchecker.
+        Initialisation of the logfile.
 
         @param  mgr   Reference to Scanmanager instance.
         @param  mac   The MAC-address of the adapter used for scanning.
@@ -125,6 +125,35 @@ class RSSILogger(InfoLogger):
             "%0.3f" % timestamp,
             str(mac_address.replace(':','')),
             str(rssi)]))
+
+class InquiryLogger(RSSILogger):
+    """
+    The inquiry logger takes care of the logging of inquiry starttimes.
+    """
+    def __init__(self, mgr, mac):
+        """
+        Initialisation of the logfile.
+
+        @param  mgr   Reference to Scanmanager instance.
+        @param  mac   The MAC-address of the adapter used for scanning.
+        """
+        RSSILogger.__init__(self, mgr, mac)
+
+        self.enable = self.mgr.config.get_value('enable_inquiry_log')
+
+    def _get_log_id(self):
+        return '%s-inquiry' % self.mac
+
+    def _get_log_location(self):
+        return self.mgr.get_inquiry_log_location(self.mac)
+
+    def write(self, timestamp):
+        if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
+            self.logger.info(time.strftime(self.time_format, time.localtime(timestamp)))
+        self.mgr.net_send_line(",".join(['STATE',
+            str(self.mac.replace(':','')),
+            "%0.3f" % timestamp,
+            "new_inquiry"]))
 
 class ScanLogger(RSSILogger):
     """

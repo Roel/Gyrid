@@ -78,6 +78,15 @@ class Configuration(object):
             values = {'%Y%m%d-%H%M%S-%Z': 'Use the YYYYMMDD-HHMMSS-TZ format.'},
             default = '%Y%m%d-%H%M%S-%Z')
 
+        enable_inquiry_log = _Option(name = 'enable_inquiry_log',
+            description = 'Enable logging of Bluetooth inquiries. This ' +
+                'includes the starttime of each inquiry and enables to ' +
+                'determine when each sensor was active scanning.',
+            type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
+            values = {True: 'Enable inquiry logging.', False: \
+                'Disable inquiry logging.'},
+            default = True)
+
         enable_rssi_log = _Option(name = 'enable_rssi_log',
             description = 'Enable logging of received RSSI data.',
             type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
@@ -143,9 +152,9 @@ class Configuration(object):
             default = 250)
 
         self.options.extend([buffer_size, alix_led_support, time_format,
-            enable_rssi_log, minimum_rssi, excluded_devices, blacklist_file,
-            network_server_host, network_server_port, network_ssl_client_crt,
-            network_ssl_client_key, network_cache_limit])
+            enable_rssi_log, enable_inquiry_log, minimum_rssi, excluded_devices,
+            blacklist_file, network_server_host, network_server_port,
+            network_ssl_client_crt, network_ssl_client_key, network_cache_limit])
 
     def _get_option_by_name(self, name):
         """

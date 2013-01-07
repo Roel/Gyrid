@@ -29,21 +29,24 @@ class Discoverer(object):
     Bluetooth discover, this class provides device discovery. Heavily based on
     the PyBluez advanced inquiry with RSSI example.
     """
-    def __init__(self, mgr, logger, logger_rssi, device_id, mac):
+    def __init__(self, mgr, logger, logger_rssi, logger_inquiry, device_id, mac):
         """
         Initialisation of the Discoverer. Store the reference to the loggers and
         query the necessary configuration options.
 
-        @param  mgr          Reference to a Scanmanger instance.
-        @param  logger       Reference to a Logger instance.
-        @param  logger_rssi  Reference to a logger instance which records
-                               the RSSI values.
-        @param  device_id    The ID of the Bluetooth device used for scanning.
-        @param  mac          The MAC address of the Bluetooth scanning device.
+        @param  mgr             Reference to a Scanmanger instance.
+        @param  logger          Reference to a Logger instance.
+        @param  logger_rssi     Reference to a Logger instance which records
+                                  the RSSI values.
+        @param  logger_inquiry  Reference to a Logger instance which records
+                                  the inquiry status.
+        @param  device_id       The ID of the Bluetooth device used for scanning.
+        @param  mac             The MAC address of the Bluetooth scanning device.
         """
         self.mgr = mgr
         self.logger = logger
         self.logger_rssi = logger_rssi
+        self.logger_inquiry = logger_inquiry
         self.device_id = device_id
         self.mac = mac
         self.buffer_size = int(math.ceil(
@@ -169,9 +172,8 @@ class Discoverer(object):
         """
         Perform a Bluetooth inquiry with RSSI reception.
         """
+        self.logger_inquiry.write(time.time())
         self.mgr.debug("%s: New inquiry" % self.mac)
-        self.mgr.net_send_line("STATE,%s,%0.3f,new_inquiry" % (
-            self.mac.replace(':',''), time.time()))
 
         # save current filter
         old_filter = self.sock.getsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, 14)
