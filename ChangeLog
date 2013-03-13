@@ -1,3 +1,17 @@
+gyrid 0.6.2-1
+
+    * ADD: Differentiate between live and cached data when sending data
+             over the network.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 17 Oct 2012 13:11:50 +0200
+
+gyrid 0.6.2
+
+    * FIX: Make init script more LSB compliant.
+    * ADD: Resend cached items when they're not ack'ed after a certain time.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 17 Oct 2012 13:03:37 +0200
+
 gyrid 0.6.1-1
 
     * FIX: Make init script more LSB compliant.

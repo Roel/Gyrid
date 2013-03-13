@@ -1,3 +1,17 @@
+gyrid (0.6.2-1) unstable; urgency=low
+
+  * New UGent release.
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 17 Oct 2012 13:12:45 +0200
+
+gyrid (0.6.2-0) unstable; urgency=low
+
+  * New upstream release.
+  * debian/dirs:
+      - remove /var/run directory
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 17 Oct 2012 13:05:12 +0200
+
 gyrid (0.6.1-1) unstable; urgency=low
 
   * New UGent release.
