@@ -158,5 +158,5 @@ class Arduino(object):
         if self.has_been_connected:
             timestamp = int(time.time())
             self.log.info(",".join([time.strftime(self.time_format,
-                time.localtime(timestamp)), str(address), str(device_class),
+                time.localtime(timestamp)), str(address),
                 str(rssi), "%0.2f" % self.angle]))
