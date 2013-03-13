@@ -21,6 +21,12 @@ gyrid 0.6
 
 -- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 03 Oct 2012 10:40:54 +0200
 
+gyrid 0.5.1.1
+
+    * ADD: Support for Arduino rotating antenna platform.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 13 Feb 2013 12:21:11 +0100
+
 gyrid 0.5.1
 
     * FIX: Only die on SSL errors if it are actually SSL errors.

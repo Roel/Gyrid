@@ -20,6 +20,7 @@ Depends: ${misc:Depends}, ${python:Depends},
  python-dbus (>= 0.83.1),
  python-gobject (>= 2.21.4),
  python-openssl (>= 0.10),
+ python-serial (>= 2.5),
  python-twisted-core (>= 10.1.0)
 Description: Bluetooth device scanner and logger daemon
  Gyrid scans the neighbourhood for Bluetooth devices and

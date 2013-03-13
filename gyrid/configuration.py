@@ -118,6 +118,16 @@ class Configuration(object):
             values = {},
             default = '/etc/gyrid/blacklist.conf')
 
+        arduino_conffile = _Option(name = 'arduino_conffile',
+            description = 'Path to the Arduino rotating platform ' +
+                'configuration file. This should be in CSV format, ' +
+                'containing the following fields: MAC-address of the ' +
+                'scanning device, filename of the device node of the ' +
+                'corresponding Arduino (without /dev/), turning resolution ' +
+                '(i.e. in how many parts the 180 degree arc is divided).',
+            values = {},
+            default = '/etc/gyrid/arduino.conf')
+
         network_server_host = _Option(name = 'network_server_host',
             description = 'The network host of the server to talk to. ' +
                 'This can be an IP-address or a domain name. Disable ' +
@@ -154,7 +164,8 @@ class Configuration(object):
         self.options.extend([buffer_size, alix_led_support, time_format,
             enable_rssi_log, enable_inquiry_log, minimum_rssi, excluded_devices,
             blacklist_file, network_server_host, network_server_port,
-            network_ssl_client_crt, network_ssl_client_key, network_cache_limit])
+            network_ssl_client_crt, network_ssl_client_key, network_cache_limit,
+            arduino_conffile])
 
     def _get_option_by_name(self, name):
         """
