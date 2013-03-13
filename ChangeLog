@@ -1,3 +1,10 @@
+gyrid 0.7
+
+    * ADD: Inquiry logging.
+    * MERGE: Support for Arduino-based rotating platforms.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 13 Mar 2013 11:21:27 +0100
+
 gyrid 0.6.2-1
 
     * ADD: Differentiate between live and cached data when sending data

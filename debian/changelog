@@ -1,3 +1,11 @@
+gyrid (0.7-0) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control:
+      - depend on python-serial
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 13 Mar 2013 11:22:43 +0100
+
 gyrid (0.6.2-1) unstable; urgency=low
 
   * New UGent release.
