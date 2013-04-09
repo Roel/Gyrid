@@ -21,7 +21,7 @@
 
 import os
 
-from distutils.core import setup
+from distutils.core import setup, Extension
 from distutils.command.install_data import install_data
 from distutils.dep_util import newer
 from distutils.log import info
@@ -63,6 +63,10 @@ class InstallData(install_data):
             raise SystemExit('Error while gzipping %(file)s' % str)
         self.data_files.append((dest, ['%(build)s/%(fileLower)s.gz' % str]))
 
+wigy = Extension("wigy",
+            sources = ["wigy/wigy.c"],
+            libraries = ["iw"])
+
 setup(name = "gyrid",
       version = "0.7-0",
       description = "Bluetooth device scanner.",
@@ -73,4 +77,5 @@ setup(name = "gyrid",
       data_files = [("/etc/init.d", ['init/gyrid']),
                     ("/usr/share/gyrid", ['network_middleware.py', 'bin/gyrid-start']),
                     ("/usr/share/doc/gyrid", ['README.net-api'])],
-      cmdclass = {'install_data': InstallData})
+      cmdclass = {'install_data': InstallData},
+      ext_modules = [wigy])

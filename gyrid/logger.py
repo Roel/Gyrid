@@ -316,6 +316,7 @@ class PoolChecker(threading.Thread):
         self.mgr = mgr
         self.logger = logger
         self.buffer = self.logger.mgr.config.get_value('buffer_size')
+        self.buffer = 30
         self._running = True
 
     def run(self):

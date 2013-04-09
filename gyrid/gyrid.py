@@ -144,7 +144,6 @@ class Main(object):
         self.mgr.log_info("Started" + debugstr)
 
         self.mgr.init()
-        self.mgr.run()
 
         try:
             self.main_loop.run()

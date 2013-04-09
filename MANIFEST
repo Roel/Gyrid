@@ -20,6 +20,7 @@ gyrid/tools/__init__.py
 gyrid/tools/deviceclass.py
 gyrid/tools/macvendor.py
 gyrid/tools/oui_data.txt
+gyrid/wigy/wigy.c
 gyrid/zippingfilehandler.py
 init/gyrid
 network_middleware.py
