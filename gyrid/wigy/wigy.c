@@ -16,7 +16,7 @@ get_mode (PyObject * self, PyObject * args)
   char *devname;
   struct iwreq wrq;
   int mode;
-    
+
   if (!PyArg_ParseTuple(args, "s", &devname)) {
     return NULL;
   }
@@ -33,14 +33,14 @@ get_mode (PyObject * self, PyObject * args)
   }
   return Py_BuildValue("i", mode);
 }
-    
+
 static PyObject *
 set_mode (PyObject * self, PyObject * args)
 {
   char *devname;
   int mode;
   struct iwreq wrq;
-    
+
   if (!PyArg_ParseTuple(args, "si", &devname, &mode)) {
     return NULL;
   }
@@ -62,7 +62,7 @@ get_frequency (PyObject * self, PyObject * args)
 {
   char *devname;
   struct iwreq wrq;
-    
+
   if (!PyArg_ParseTuple(args, "s", &devname)) {
     return NULL;
   }
@@ -81,7 +81,7 @@ set_frequency (PyObject * self, PyObject * args)
   char *devname;
   double freq;
   struct iwreq wrq;
-    
+
   if (!PyArg_ParseTuple(args, "sd", &devname, &freq)) {
     return NULL;
   }
@@ -116,7 +116,7 @@ set_status (PyObject * self, PyObject * args)
 
   strncpy(ifr.ifr_name, devname, IF_NAMESIZE);
   if(ioctl(skfd, SIOCGIFFLAGS, &ifr) < 0) {
-    PyErr_SetString(PyExc_IOError, "getting status failed");
+    PyErr_SetString(PyExc_IOError, "setting status failed");
     return NULL;
   }
 
@@ -129,7 +129,7 @@ set_status (PyObject * self, PyObject * args)
   ioctl(skfd, SIOCSIFFLAGS, &ifr);
   ioctl(skfd, SIOCGIFFLAGS, &ifr);
   return Py_BuildValue("i", ifr.ifr_flags & IFF_UP);
-} 
+}
 
 static PyObject *
 get_status (PyObject * self, PyObject * args)
@@ -147,7 +147,7 @@ get_status (PyObject * self, PyObject * args)
     return NULL;
   }
   return Py_BuildValue("i", ifr.ifr_flags & IFF_UP);
-} 
+}
 
 static struct PyMethodDef PyEthModuleMethods[] = {
         { "get_mode",
@@ -162,12 +162,12 @@ static struct PyMethodDef PyEthModuleMethods[] = {
             (PyCFunction) get_status, METH_VARARGS, NULL },
         { "set_status",
             (PyCFunction) set_status, METH_VARARGS, NULL },
-	{ NULL, NULL, 0, NULL }	
+	{ NULL, NULL, 0, NULL }
 };
 
 void initwigy(void) {
   PyObject *m, *d;
-  
+
   m = Py_InitModule("wigy", PyEthModuleMethods);
   d = PyModule_GetDict(m);
 

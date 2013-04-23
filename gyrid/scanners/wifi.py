@@ -204,12 +204,17 @@ class WiFiScanner(core.Scanner):
         self.prs_mgmt = ManagementFrame()
 
         if device['Managed'] == 0: #keep our hands off managed devices (these are used for internet access!)
-            wigy.set_mode(self.iface, wigy.MODE_ID['Monitor'])
-            wigy.set_status(self.iface, 1)
-            wigy.set_frequency(self.iface, 2437)
-            #self.scan_wifi(iface, wprops['PermHwAddress'])
-            self.start_scanning()
-            self.loop_frequencies()
+            try:
+                wigy.set_status(self.iface, 0)
+                wigy.set_mode(self.iface, wigy.MODE_ID['Monitor'])
+                wigy.set_status(self.iface, 1)
+            except IOError, e:
+                self.mgr.debug("Failed to initialise adapter %s: %s" % (self.mac, e))
+            else:
+                #wigy.set_frequency(self.iface, 2437)
+                #self.scan_wifi(iface, wprops['PermHwAddress'])
+                self.start_scanning()
+                self.loop_frequencies()
             #self.frequency_loop(iface)
         #self.debug("Found WiFi adapter with address %s" %
         #        device.GetProperties()['Address'])
@@ -265,24 +270,47 @@ class WiFiScanner(core.Scanner):
         scapy.all.Dot11.enable_FCS(True)
         def process(pkt):
             #try:
-            #print(pkt.payload.__dict__)
+            #print(pkt.__dict__)
             #print pkt.show()
             #print "********************************************"
             if pkt.haslayer(scapy.all.RadioTap):
                 pkt_radio = pkt.getlayer(scapy.all.RadioTap)
                 
-                fmt = { 'datarate': ('9xb', '500 Kbps'),
-                     'frequency': ('10xh', 'Hz'),
-                     'ssi': ('14xb', 'dBm') }
-                for f in fmt:
-                    v = struct.unpack_from(fmt[f][0], pkt_radio.fields['notdecoded'])
-                    #print v[0], fmt[f][1]
-                ssi = str(struct.unpack_from(fmt['ssi'][0], pkt_radio.fields['notdecoded'])[0])
-                ssi += ' ' + str(struct.unpack_from(fmt['datarate'][0], pkt_radio.fields['notdecoded'])[0]*0.5)
+                radiotap_values = {}
+
+                offset = 0
+                for i in radiotap_fields:
+                    if pkt_radio.fields['present'] & i[0] == i[0]:
+                        offset += offset % i[2] # byte padding
+                        radiotap_values[i[1]] = struct.unpack_from('%ix%s' % (offset, i[3]), pkt_radio.fields['notdecoded'])[0]
+                        offset += i[2]
+
+                if 'flags' not in radiotap_values:
+                    return
+                else:
+                    f = radiotap_values['flags']
+                    if f & 0b10000 == 0b10000 and f & 0b1000000 == 0b1000000:
+                        print "Bad packet received"
+                        return
+                    elif f & 0b10000 != 0b10000:
+                        print "FCS not supported"
+
+                if 'rx_flags' in radiotap_values and radiotap_values['rx_flags'] & 0b10 == 0b10:
+                    print "Bad PLCP packet received"
+                
+                ssi = '%i' % radiotap_values.get('ant_signal_dbm', '')
+                if radiotap_values.get('ant_signal_dbm', -1) >= 0:
+                    print pkt_radio.__dict__
+                    print radiotap_values
+
+                #fcs_support = pkt_radio.fields['present'] & 0b1 == 0b1
+                #if not fcs_support:
+                #    self.mgr.debug("Warning: FCS not supported")
+            else:
+                return
+
             if pkt.haslayer(scapy.all.Dot11):
                 pkt_dot11 = pkt.getlayer(scapy.all.Dot11)
-                if not pkt_dot11.fcs:
-                    return
                 #print binascii.crc32(array.array('B', pkt_dot11[:len(pkt_dot11)-4]))
                 #print pkt_dot11[len(pkt_dot11)-4:]
                 #print pkt_dot11.sprintf('%FCfield%')#fields['FCfield'])
@@ -319,6 +347,8 @@ class WiFiScanner(core.Scanner):
                     #        _logger.update_device(timestamp, pkt_dot11.addr2, -1)
                     #return
                     #print "data frame"
+                    #if pkt_dot11.haslayer(scapy.all.IP):
+                    #    pkt.getlayer(scapy.all.IP).show()
                     if 'from-DS' in pkt_dot11.sprintf("%FCfield%") and 'to-DS' in pkt_dot11.sprintf("%FCfield%"):
                         #print "from-DS to-DS"
                         #print pkt_dot11.addr1, tools.macvendor.get_vendor(pkt_dot11.addr1)
@@ -410,7 +440,9 @@ class WiFiScanner(core.Scanner):
                     #print "**************************************************"
                 elif pkt_dot11.type & 0b01 == 0b01: # control frame
                     timestamp = time.time()
-                    if pkt_dot11.subtype & 0b1010 == 0b1010: # PS-Poll
+                    if pkt_dot11.subtype == 10: # PS-Poll
+                        #print pkt_dot11.__dict__
+                        #return
                         if valid(pkt_dot11.addr2):
                             if pkt_dot11.addr2 not in self.mobiles:
                                 self.mgr.debug("%s is MOBILE based on ps-poll %s" % (pkt_dot11.addr2, ssi))
@@ -439,8 +471,6 @@ class WiFiScanner(core.Scanner):
                             if pkt_dot11.addr2 in self.mobiles:
                                 _logger.update_device(timestamp, pkt_dot11.addr2, -1)
                 elif pkt_dot11.type & 0b00 == 0b00: # management frame
-
-                    #{'fcs': True, 'sent_time': 0, 'fields': {'FCS': '\x9d\xd7Pt', 'proto': 0L, 'FCfield': 0L, 'subtype': 4L, 'addr4': None, 'addr2': '00:26:bb:1a:ac:48', 'addr3': 'ff:ff:ff:ff:ff:ff', 'addr1': 'ff:ff:ff:ff:ff:ff', 'SC': 23920, 'type': 0L, 'ID': 0}, 'aliastypes': [<class 'scapy.layers.dot11.Dot11'>], 'post_transforms': [], 'underlayer': <RadioTap  version=0 pad=0 len=34 present=TSFT+Flags+Rate+Channel+dBm_AntSignal+Antenna+b14 notdecoded='\x88\xae\x1a_\x00\x00\x00\x00\x10\x02{\t\xa0\x00\xbe\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' |<Dot11  subtype=4L type=Management proto=0L FCfield= ID=0 addr1=ff:ff:ff:ff:ff:ff addr2=00:26:bb:1a:ac:48 addr3=ff:ff:ff:ff:ff:ff SC=23920 addr4=None FCS=0x9dd75074 |<Dot11ProbeReq  |<Dot11Elt  ID=SSID len=8 info='UGentNet' |<Dot11Elt  ID=Rates len=4 info='\x02\x04\x0b\x16' |<Dot11Elt  ID=ESRates len=8 info='\x0c\x12\x18$0H`l' |<Dot11Elt  ID=DSset len=1 info='\x06' |<Dot11Elt  ID=45 len=26 info=',\x18\x1b\xff\xff\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' |<Dot11Elt  ID=vendor len=30 info='\x00\x90L3,\x18\x1b\xff\xff\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' |>>>>>>>>>, 'fieldtype': {'FCS': <Field (Dot11).FCS>, 'proto': <Field (Dot11).proto>, 'FCfield': <Field (Dot11).FCfield>, 'subtype': <Field (Dot11).subtype>, 'addr4': <Field (Dot11).addr4>, 'addr2': <Field (Dot11).addr2>, 'addr3': <Field (Dot11).addr3>, 'addr1': <Field (Dot11).addr1>, 'SC': <Field (Dot11).SC>, 'type': <Field (Dot11).type>, 'ID': <Field (Dot11).ID>}, 'time': 1366211097.234441, 'initialized': 1, 'overloaded_fields': {'subtype': 4, 'type': 0}, 'packetfields': [], 'payload': <Dot11ProbeReq  |<Dot11Elt  ID=SSID len=8 info='UGentNet' |<Dot11Elt  ID=Rates len=4 info='\x02\x04\x0b\x16' |<Dot11Elt  ID=ESRates len=8 info='\x0c\x12\x18$0H`l' |<Dot11Elt  ID=DSset len=1 info='\x06' |<Dot11Elt  ID=45 len=26 info=',\x18\x1b\xff\xff\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' |<Dot11Elt  ID=vendor len=30 info='\x00\x90L3,\x18\x1b\xff\xff\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' |>>>>>>>, 'default_fields': {'FCS': None, 'proto': 0, 'FCfield': 0, 'subtype': 0, 'addr4': '00:00:00:00:00:00', 'addr2': '00:00:00:00:00:00', 'addr3': '00:00:00:00:00:00', 'addr1': '00:00:00:00:00:00', 'SC': 0, 'type': 0, 'ID': 0}}
 
                     timestamp = time.time()
                     #for i in pkt_dot11.payload:
@@ -485,10 +515,16 @@ class WiFiScanner(core.Scanner):
                             if pkt_dot11.addr1 in self.stations:
                                 self.mgr.debug("%s is station too !!!!1111!!!11!!!11!11!!!1111!!" % pkt_dot11.addr1)
                             _logger.update_device(timestamp, pkt_dot11.addr1, -1)
-                    elif pkt.haslayer(scapy.all.Dot11Deauth):
-                        print pkt.getlayer(scapy.all.Dot11Deauth).__dict__
-                    elif pkt.haslayer(scapy.all.Dot11Disas):
-                        print pkt.getlayer(scapy.all.Dot11Disas).__dict__
+                    elif pkt.haslayer(scapy.all.Dot11Deauth) or pkt.haslayer(scapy.all.Dot11Disas):
+                        if pkt_dot11.addr1 in self.stations or pkt_dot11.addr1 in self.mobiles:
+                            self.mgr.debug("%s detected in mgmt frame %s" % (pkt_dot11.addr1, ssi))
+                            if pkt_dot11.addr1 in self.mobiles:
+                                _logger.update_device(timestamp, pkt_dot11.addr1, -1)
+                        if pkt_dot11.addr2 in self.stations or pkt_dot11.addr2 in self.mobiles:
+                            self.mgr.debug("%s detected in mgmt frame %s" % (pkt_dot11.addr2, ssi))
+                            if pkt_dot11.addr2 in self.mobiles:
+                                _logger.update_device(timestamp, pkt_dot11.addr2, -1)
+                        print pkt.getlayer(scapy.all.Dot11Deauth).fields['reason']
                     elif pkt.haslayer(scapy.all.Dot11ATIM):
                         if valid(pkt_dot11.addr1):
                             if pkt_dot11.addr1 not in self.mobiles:
@@ -647,11 +683,27 @@ class WiFiScanner(core.Scanner):
             #    return
             #print pkt.payload
 
-#{'sent_time': 0, 'fields': {'proto': 1L, 'FCfield': 79L, 'subtype': 15L, 'addr4': None, 'addr2': '49:e7:bd:98:bb:1f', 'addr3': None, 'addr1': 'fe:9c:d4:22:4f:22', 'SC': None, 'type': 1L, 'ID': 59848}, 'aliastypes': [<class 'scapy.layers.dot11.Dot11'>], 'post_transforms': [], 'underlayer': <RadioTap  version=0 pad=0 len=26 present=TSFT+Flags+Rate+Channel+dBm_AntSignal+Antenna+b14 notdecoded='\xbf\x87\x0b\x00\x00\x00\x00\x00R\x16q\t\xa0\x00\xd3\x00\x00\x00' |<Dot11  subtype=15L type=Control proto=1L FCfield=to-DS+from-DS+MF+retry+wep ID=59848 addr1=fe:9c:d4:22:4f:22 addr2=49:e7:bd:98:bb:1f addr3=None SC=None addr4=None |<Dot11WEP  iv='\\\x17\x18' keyid=221 wepdata="\x04\x0f\xca\xe6.\xe8xc\x7f\x1b\xf2\xd2\x02@\x05\x04\xf4R\x89q\x8f'\xbf\xdeo/ \x03\xb2\xc8\xdd\xf3o\x94\xb1\xfcn\xed\x15\xd9\xcd\xd1" icv=3123401899 |>>>, 'fieldtype': {'proto': <Field (Dot11).proto>, 'FCfield': <Field (Dot11).FCfield>, 'subtype': <Field (Dot11).subtype>, 'addr4': <Field (Dot11).addr4>, 'addr2': <Field (Dot11).addr2>, 'addr3': <Field (Dot11).addr3>, 'addr1': <Field (Dot11).addr1>, 'SC': <Field (Dot11).SC>, 'type': <Field (Dot11).type>, 'ID': <Field (Dot11).ID>}, 'time': 1364375323.016097, 'initialized': 1, 'overloaded_fields': {}, 'packetfields': [], 'payload': <Dot11WEP  iv='\\\x17\x18' keyid=221 wepdata="\x04\x0f\xca\xe6.\xe8xc\x7f\x1b\xf2\xd2\x02@\x05\x04\xf4R\x89q\x8f'\xbf\xdeo/ \x03\xb2\xc8\xdd\xf3o\x94\xb1\xfcn\xed\x15\xd9\xcd\xd1" icv=3123401899 |>, 'default_fields': {'proto': 0, 'FCfield': 0, 'subtype': 0, 'addr4': '00:00:00:00:00:00', 'addr2': '00:00:00:00:00:00', 'addr3': '00:00:00:00:00:00', 'addr1': '00:00:00:00:00:00', 'SC': 0, 'type': 0, 'ID': 0}}
 
 
         def stoppercheck(pkt):
             return self.mgr.main.stopping
+
+        radiotap_fields = [(2**0, 'tsft', 8, 'Q'),
+                           (2**1, 'flags', 1, 'B'),
+                           (2**2, 'rate', 1, 'B'),
+                           (2**3, 'channel_freq', 2, 'H'),
+                           (2**3, 'channel_type', 2, '2B'),
+                           (2**4, 'fhss', 2, '2B'),
+                           (2**5, 'ant_signal_dbm', 1, 'b'),
+                           (2**6, 'ant_noise_dbm', 1, 'b'),
+                           (2**7, 'lock_quality', 2, 'H'),
+                           (2**8, 'tx_attenuation', 2, 'H'),
+                           (2**9, 'tx_attenuation_db', 2, 'H'), 
+                           (2**10, 'tx_power_dbm', 1, 'b'),
+                           (2**11, 'antenna', 1, 'B'),
+                           (2**12, 'ant_signal_db', 1, 'B'),
+                           (2**13, 'ant_noise_db', 1, 'B'),
+                           (2**14, 'rx_flags', 2, 'H') ]
 
         _logger = logger.ScanLogger(self.mgr, self.mac)
         _logger.start()
@@ -662,7 +714,10 @@ class WiFiScanner(core.Scanner):
             pass
 
         self.running = False
-        wigy.set_status(self.iface, 0)
+        try:
+            wigy.set_status(self.iface, 0)
+        except IOError:
+            pass
         _logger.stop()
 
     def stop_scanning(self):
