@@ -272,7 +272,9 @@ class Discoverer(object):
             except ValueError:
                 device_class = -1
 
-            self.hooks.device_discovered(address, device_class, rssi)
+            hwid = self.mgr.privacy_process(address)
+
+            self.hooks.device_discovered(hwid, device_class, rssi)
 
             timestamp = time.time()
 
@@ -281,20 +283,19 @@ class Discoverer(object):
                 import tools.macvendor
 
                 device = ', '.join([str(tools.deviceclass.get_major_class(
-                    device_class)), str(tools.deviceclass.get_minor_class(
+                    device_class)), str(tools.deviceclass.get_minor_lass(
                     device_class))])
-                vendor = tools.macvendor.get_vendor(address)
                 rssi_s = ' with RSSI %d' % rssi if rssi != None else ''
 
-                d = {'mac': address, 'dc': device, 'vendor': vendor,
-                     'time': str(timestamp), 'rssi': rssi_s, 'sc': self.mac}
+                d = {'hwid': hwid, 'dc': device, 'time': str(timestamp),
+                     'rssi': rssi_s, 'sc': self.mac}
 
                 self.mgr.debug(
-                    "%(sc)s: Found device %(mac)s [%(dc)s " % d + \
-                    "(%(vendor)s)]%(rssi)s" % d, force=True)
+                    "%(sc)s: Found device %(hwid)s [%(dc)s " % d + \
+                    "]%(rssi)s" % d, force=True)
 
-            self.logger.update_device(timestamp, address, device_class)
+            self.logger.update_device(timestamp, hwid, device_class)
 
             if rssi != None:
-                self.logger_rssi.write(timestamp, address, device_class,
+                self.logger_rssi.write(timestamp, hwid, device_class,
                     rssi)

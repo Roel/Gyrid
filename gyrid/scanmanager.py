@@ -84,6 +84,10 @@ class ScanManager(object):
                 self.config.get_value('minimum_rssi') + \
                 "detections with a lower RSSI value are ignored")
 
+        if self.config.get_value('enable_hashing'):
+            import hashing
+            self.hashing = hashing.Hashing(self)
+
         self.read_blacklist()
 
         bluetooth = scanners.bluetooth.Bluetooth(self)
@@ -147,6 +151,14 @@ class ScanManager(object):
         """
         if 'network' in self.__dict__:
             self.network.send_line(line)
+
+    def privacy_process(self, string):
+        """
+        Process given string to produce a more privacy robust output.
+        """
+        if 'hashing' in self.__dict__:
+            return self.hashing.hash(string)
+        return string
 
     def is_valid_mac(self, string):
         """

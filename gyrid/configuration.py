@@ -118,6 +118,19 @@ class Configuration(object):
             values = {},
             default = '/etc/gyrid/blacklist.conf')
 
+        enable_hashing = _Option(name = 'enable_hashing',
+            description = 'Enable hashing of privacy sensitive data.',
+            type = '"%s".lower().strip() in ["true", "yes", "y", "1"]',
+            values = {True: 'Enable hashing.', False: \
+                'Disable hashing.'},
+            default = True)
+
+        hash_salt = _Option(name = 'hash_salt',
+            description = 'Salt to use when hashing. This is parsed by strftime ' +
+                'to enable time-based salting.',
+            values = {},
+            default = "")
+
         arduino_conffile = _Option(name = 'arduino_conffile',
             description = 'Path to the Arduino rotating platform ' +
                 'configuration file. This should be in CSV format, ' +
@@ -165,7 +178,7 @@ class Configuration(object):
             enable_rssi_log, enable_inquiry_log, minimum_rssi, excluded_devices,
             blacklist_file, network_server_host, network_server_port,
             network_ssl_client_crt, network_ssl_client_key, network_cache_limit,
-            arduino_conffile])
+            arduino_conffile, enable_hashing, hash_salt])
 
     def _get_option_by_name(self, name):
         """

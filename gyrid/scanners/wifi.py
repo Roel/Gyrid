@@ -147,6 +147,7 @@ class WiFiScanner(core.Scanner):
         @param   path         DBus path of the NetworkManager device.
         """
         core.Scanner.__init__(self, mgr, protocol)
+        self.v = self.protocol.valid
 
         self.mac = wifidevice['PermHwAddress']
         self.iface = str(device['Interface'])
@@ -165,6 +166,7 @@ class WiFiScanner(core.Scanner):
         else:
             self.start_scanning()
             self.loop_frequencies()
+
 
     @core.threaded
     def loop_frequencies(self):
@@ -199,6 +201,21 @@ class WiFiScanner(core.Scanner):
         """
         self.mgr.log_info("Started scanning with WiFi adapter %s" % self.mac)
 
+        def v(addr):
+            return self.protocol.valid(addr)
+
+        def h(data):
+            if data == "ff:ff:ff:ff:ff:ff":
+                return "brdcst"
+            elif data == None:
+                return "none"
+            else:
+                return self.mgr.privacy_process(data)
+
+        def f(fn, timestamp, addr):
+            if addr and v(addr):
+                fn(timestamp, h(addr))
+
         def process(pkt):
             """
             Process a captured packet.
@@ -218,11 +235,11 @@ class WiFiScanner(core.Scanner):
                         offset += i[2]
 
                 if 'flags' in radiotap_values:
-                    f = radiotap_values['flags']
-                    if f & 0b10000 == 0b10000 and f & 0b1000000 == 0b1000000:
+                    fl = radiotap_values['flags']
+                    if fl & 0b10000 == 0b10000 and fl & 0b1000000 == 0b1000000:
                         self.mgr.debug("%s: Bad packet received" % self.mac)
                         return # we don't process packets that are known to be bad
-                    elif f & 0b10000 != 0b10000:
+                    elif fl & 0b10000 != 0b10000:
                         if not self.fcs_support_logged:
                             self.fcs_support_logged = True
                             self.mgr.main.log_error("%s: FCS not supported" % self.mac, 'Warning')
@@ -239,111 +256,116 @@ class WiFiScanner(core.Scanner):
                     retry = 'R'
 
                 frequency = radiotap_values.get('channel_freq', '')
+                ssi = radiotap_values.get('ant_signal_dbm', '')
 
                 if 'pw-mgt' in fcfield and d11.addr2:
-                    _logger_sta.update_device(timestamp, d11.addr2)
+                    f(_logger_sta.update_device, timestamp, d11.addr2)
 
                 if d11.type & 0b10 == 0b10: # data frame
                     if 'from-DS' in fcfield and 'to-DS' in fcfield:
                         _rawlogger.write(timestamp, frequency, 'DATA', 'from-ds;to-ds',
-                            d11.addr1, d11.addr2, radiotap_values.get('ant_signal_dbm', ''),
+                            h(d11.addr1), h(d11.addr2), ssi,
                             retry, '')
-                        _logger_acp.update_device(timestamp, d11.addr1)
-                        _logger_acp.update_device(timestamp, d11.addr2)
+                        f(_logger_acp.update_device, timestamp, d11.addr1)
+                        f(_logger_acp.update_device, timestamp, d11.addr2)
                     elif 'from-DS' in fcfield:
-                        _rawlogger.write(timestamp, frequency, 'DATA', 'from-ds', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_sta.update_device(timestamp, d11.addr1)
-                        _logger_acp.update_device(timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'DATA', 'from-ds', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_sta.update_device, timestamp, d11.addr1)
+                        f(_logger_acp.update_device, timestamp, d11.addr2)
                     elif 'to-DS' in fcfield:
-                        _rawlogger.write(timestamp, frequency, 'DATA', 'to-ds', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_acp.update_device(timestamp, d11.addr1)
-                        _logger_sta.update_device(timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'DATA', 'to-ds', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_acp.update_device, timestamp, d11.addr1)
+                        f(_logger_sta.update_device, timestamp, d11.addr2)
                     elif 'from-DS' not in fcfield and 'to-DS' not in fcfield:
-                        _rawlogger.write(timestamp, frequency, 'DATA', '', d11.addr1, d11.addr2,
-                            radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_sta.update_device(timestamp, d11.addr1)
-                        _logger_sta.update_device(timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'DATA', '', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_sta.update_device, timestamp, d11.addr1)
+                        f(_logger_sta.update_device, timestamp, d11.addr2)
 
                 elif d11.type & 0b01 == 0b01: # control frame
                     if d11.subtype == 10: # PS-Poll
-                        _rawlogger.write(timestamp, frequency, 'CTRL', 'pspoll', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_acp.update_device(timestamp, d11.addr1)
-                        _logger_sta.update_device(timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'CTRL', 'pspoll', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_acp.update_device, timestamp, d11.addr1)
+                        f(_logger_sta.update_device, timestamp, d11.addr2)
                     else:
-                        _rawlogger.write(timestamp, frequency, 'CTRL', '', d11.addr1, d11.addr2,
-                            radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_acp.seen_device(timestamp, d11.addr1)
-                        _logger_sta.seen_device(timestamp, d11.addr1)
-                        _logger_acp.seen_device(timestamp, d11.addr2)
-                        _logger_sta.seen_device(timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'CTRL', '', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_acp.seen_device, timestamp, d11.addr1)
+                        f(_logger_sta.seen_device, timestamp, d11.addr1)
+                        f(_logger_acp.seen_device, timestamp, d11.addr2)
+                        f(_logger_sta.seen_device, timestamp, d11.addr2)
 
                 elif d11.type & 0b00 == 0b00: # management frame
                     if pkt.haslayer(scapy.all.Dot11Beacon):
-                        type = d11.getlayer(scapy.all.Dot11Beacon).sprintf("%cap%")
-                        if 'IBSS' in type:
-                            type = 'IBSS'
-                            _logger_sta.update_device(timestamp, d11.addr2)
-                        elif 'ESS' in type:
-                            type = 'ESS'
-                            _logger_acp.update_device(timestamp, d11.addr2)
-                        _rawlogger.write(timestamp, frequency, 'MGMT', 'beacon', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, type)
+                        tpe = d11.getlayer(scapy.all.Dot11Beacon).sprintf("%cap%")
+                        if 'IBSS' in tpe:
+                            tpe = 'IBSS'
+                            f(_logger_sta.update_device, timestamp, d11.addr2)
+                        elif 'ESS' in tpe:
+                            tpe = 'ESS'
+                            f(_logger_acp.update_device, timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'MGMT', 'beacon', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, tpe)
                     elif pkt.haslayer(scapy.all.Dot11ProbeResp):
-                        _rawlogger.write(timestamp, frequency, 'MGMT', 'proberesp', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_acp.seen_device(timestamp, d11.addr2)
-                        _logger_sta.seen_device(timestamp, d11.addr2)
-                        _logger_sta.update_device(timestamp, d11.addr1)
+                        _rawlogger.write(timestamp, frequency, 'MGMT', 'proberesp', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_acp.seen_device, timestamp, d11.addr2)
+                        f(_logger_sta.seen_device, timestamp, d11.addr2)
+                        f(_logger_sta.update_device, timestamp, d11.addr1)
                     elif pkt.haslayer(scapy.all.Dot11ProbeReq):
-                        _rawlogger.write(timestamp, frequency, 'MGMT', 'probereq', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_acp.seen_device(timestamp, d11.addr1)
-                        _logger_sta.seen_device(timestamp, d11.addr1)
-                        _logger_sta.update_device(timestamp, d11.addr2)
+                        elt = d11.getlayer(scapy.all.Dot11Elt)
+                        ssid = ''
+                        if elt.fields['ID'] == 0:
+                            ssid = elt.fields['info']
+                        _rawlogger.write(timestamp, frequency, 'MGMT', 'probereq', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, h(ssid))
+                        f(_logger_acp.seen_device, timestamp, d11.addr1)
+                        f(_logger_sta.seen_device, timestamp, d11.addr1)
+                        f(_logger_sta.update_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11Deauth): 
-                        _rawlogger.write(timestamp, frequency, 'MGMT', 'deauth', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry,
+                        _rawlogger.write(timestamp, frequency, 'MGMT', 'deauth', h(d11.addr1),
+                            h(d11.addr2), ssi, retry,
                             pkt.getlayer(scapy.all.Dot11Deauth).fields.get('reason', ''))
-                        _logger_acp.seen_device(timestamp, d11.addr1)
-                        _logger_sta.seen_device(timestamp, d11.addr1)
-                        _logger_acp.seen_device(timestamp, d11.addr2)
-                        _logger_sta.seen_device(timestamp, d11.addr2)
+                        f(_logger_acp.seen_device, timestamp, d11.addr1)
+                        f(_logger_sta.seen_device, timestamp, d11.addr1)
+                        f(_logger_acp.seen_device, timestamp, d11.addr2)
+                        f(_logger_sta.seen_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11Disas): 
-                        _rawlogger.write(timestamp, frequency, 'MGMT', 'disas', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry,
+                        _rawlogger.write(timestamp, frequency, 'MGMT', 'disas', h(d11.addr1),
+                            h(d11.addr2), ssi, retry,
                             pkt.getlayer(scapy.all.Dot11Disas).fields.get('reason', ''))
-                        _logger_acp.seen_device(timestamp, d11.addr1)
-                        _logger_sta.seen_device(timestamp, d11.addr1)
-                        _logger_acp.seen_device(timestamp, d11.addr2)
-                        _logger_sta.seen_device(timestamp, d11.addr2)
+                        f(_logger_acp.seen_device, timestamp, d11.addr1)
+                        f(_logger_sta.seen_device, timestamp, d11.addr1)
+                        f(_logger_acp.seen_device, timestamp, d11.addr2)
+                        f(_logger_sta.seen_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11ATIM):
-                        _rawlogger.write(timestamp, frequency, 'MGMT', 'atim', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_sta.update_device(timestamp, d11.addr1)
-                        _logger_sta.update_device(timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'MGMT', 'atim', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_sta.update_device, timestamp, d11.addr1)
+                        f(_logger_sta.update_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11AssoReq):
-                        _rawlogger.write(timestamp, frequency, 'MGMT', 'assoreq', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_acp.update_device(timestamp, d11.addr1)
-                        _logger_sta.update_device(timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'MGMT', 'assoreq', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_acp.update_device, timestamp, d11.addr1)
+                        f(_logger_sta.update_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11AssoResp):
-                        _rawlogger.write(timestamp, frequency, 'MGMT', 'assoresp', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_sta.update_device(timestamp, d11.addr1)
-                        _logger_acp.update_device(timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'MGMT', 'assoresp', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_sta.update_device, timestamp, d11.addr1)
+                        f(_logger_acp.update_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11ReassoReq):
-                        _rawlogger.write(timestamp, frequency, 'MGMT', 'reassoreq', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_acp.update_device(timestamp, d11.addr1)
-                        _logger_sta.update_device(timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'MGMT', 'reassoreq', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_acp.update_device, timestamp, d11.addr1)
+                        f(_logger_sta.update_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11ReassoResp):
-                        _rawlogger.write(timestamp, frequency, 'MGMT', 'reassoresp', d11.addr1,
-                            d11.addr2, radiotap_values.get('ant_signal_dbm', ''), retry, '')
-                        _logger_sta.update_device(timestamp, d11.addr1)
-                        _logger_acp.update_device(timestamp, d11.addr2)
+                        _rawlogger.write(timestamp, frequency, 'MGMT', 'reassoresp', h(d11.addr1),
+                            h(d11.addr2), ssi, retry, '')
+                        f(_logger_sta.update_device, timestamp, d11.addr1)
+                        f(_logger_acp.update_device, timestamp, d11.addr2)
 
         def stoppercheck(pkt):
             """
