@@ -18,14 +18,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+Module implementing the Bluetooth scanning functionality.
+"""
+
 import dbus
 import dbus.mainloop.glib
 import time
 
 from gyrid import core, discoverer, logger
 
+
 class Bluetooth(core.ScanProtocol):
+    """
+    Bluetooth protocol definition.
+    """
     def __init__(self, mgr):
+        """
+        Initialisation.
+
+        @param   mgr   Reference to ScanManager instance.
+        """
         core.ScanProtocol.__init__(self, mgr)
 
         self.excluded_devices = self.mgr.config.get_value('excluded_devices')
@@ -59,6 +72,9 @@ class Bluetooth(core.ScanProtocol):
             return False
 
     def initialise_hardware(self):
+        """
+        Initialise the Bluetooth hardware already present on the system.
+        """
         for adapter in self._dbus_bluez_manager.ListAdapters():
             adap_obj = self.mgr._dbus_systembus.get_object('org.bluez', adapter)
             adap_iface = dbus.Interface(adap_obj, 'org.bluez.Adapter')
@@ -83,7 +99,18 @@ class Bluetooth(core.ScanProtocol):
         self.scanners[scanner.mac] = scanner
 
 class BluetoothScanner(core.Scanner):
+    """
+    Bluetooth scanner implementation.
+    """
     def __init__(self, mgr, protocol, device, path):
+        """
+        Initialisation of a Bluetooth adapter for scanning.
+
+        @param   mgr        Reference to ScanManager instance.
+        @param   protocol   Reference to Bluetooth ScanProtocol.
+        @param   device     BlueZ DBus interface of the Bluetooth device.
+        @param   path       BlueZ DBus path of the Bluetooth device.
+        """
         core.Scanner.__init__(self, mgr, protocol)
         self.mac = device.GetProperties()['Address']
         self.device = device
@@ -140,13 +167,13 @@ class BluetoothScanner(core.Scanner):
                     _logger_inquiry, self.dev_id, self.mac)
 
                 if _discoverer.init() == 0:
-                    self.mgr.log_info("Started scanning with adapter %s" % self.mac)
+                    self.mgr.log_info("Started scanning with Bluetooth adapter %s" % self.mac)
                     self.mgr.net_send_line("STATE,%s,%0.3f,started_scanning" % (
                         self.mac.replace(':',''), time.time()))
                     _logger.start()
                     end_cause = _discoverer.find()
                     _logger.stop()
-                    self.mgr.log_info("Stopped scanning with adapter %s%s" % \
+                    self.mgr.log_info("Stopped scanning with Bluetooth adapter %s%s" % \
                         (self.mac, end_cause))
                     self.mgr.net_send_line("STATE,%s,%0.3f,stopped_scanning" % (
                         self.mac.replace(':',''), time.time()))

@@ -70,6 +70,60 @@ class InfoLogger(object):
                 "%0.3f" % time.time(),
                 info]))
 
+class WiFiRawLogger(InfoLogger):
+    def __init__(self, mgr, mac):
+        """
+        Initialisation of the logfile.
+
+        @param  mgr   Reference to Scanmanager instance.
+        @param  mac   The MAC-address of the adapter used for scanning.
+        """
+        self.mgr = mgr
+        self.mac = mac
+        InfoLogger.__init__(self, mgr, self._get_log_location())
+
+        #self.enable = self.mgr.config.get_value('enable_wifiraw_log')
+        self.enable = True
+
+    def _get_log_id(self):
+        return '%s-wifiraw' % self.mac
+
+    def _get_log_location(self):
+        return self.mgr.get_wifiraw_log_location(self.mac)
+
+    def _get_log_processing(self):
+        return False
+
+    def _get_logger(self):
+        logger = logging.getLogger(self._get_log_id())
+        handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
+            self._get_log_location(), self._get_log_processing())
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(handler)
+        return logger
+
+    def write(self, timestamp, frequency, type, subtype, addr1, addr2, rssi, retry, info):
+        """
+        Append the parameters to the logfile on a new line and flush the file.
+        Try sending the data over the network.
+
+        @param  timestamp      UNIX timestamp.
+        @param  mac_address    Hardware address of the Bluetooth device.
+        @param  device_class   Device class of the Bluetooth device.
+        @param  rssi           The RSSI value of the received Bluetooth signal.
+        """
+        if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
+            a = [time.strftime(self.time_format, time.localtime(timestamp))]
+            a.extend([str(i) for i in [frequency, type, subtype, addr1, addr2, rssi, retry, info]])
+
+            self.logger.info(",".join(a))
+            #self.mgr.net_send_line(",".join(['SIGHT_RSSI',
+            #    str(self.mac.replace(':','')),
+            #    "%0.3f" % timestamp,
+            #    str(mac_address.replace(':','')),
+            #    str(rssi)]))
+
+
 class RSSILogger(InfoLogger):
     """
     The RSSI logger takes care of the logging of RSSI-enabled queries.
@@ -306,7 +360,7 @@ class PoolChecker(threading.Thread):
     devices that have not been seen for x amount of time from the pool.
     It is a subclass of threading.Thread to start in a new thread automatically.
     """
-    def __init__(self, mgr, logger):
+    def __init__(self, mgr, logger, buffer=None):
         """
         Initialisation of the thread.
 
@@ -315,8 +369,10 @@ class PoolChecker(threading.Thread):
         threading.Thread.__init__(self)
         self.mgr = mgr
         self.logger = logger
-        self.buffer = self.logger.mgr.config.get_value('buffer_size')
-        self.buffer = 30
+        if buffer == None:
+            self.buffer = self.logger.mgr.config.get_value('buffer_size')
+        else:
+            self.buffer = 30
         self._running = True
 
     def run(self):
@@ -370,3 +426,157 @@ class PoolChecker(threading.Thread):
         """
         self._running = False
         self.mgr.debug("%s: Stopped pool checker" % self.logger.mac)
+
+class WiFiPoolChecker(threading.Thread):
+    """
+    The PoolChecker checks the device_pool at regular intervals to delete
+    devices that have not been seen for x amount of time from the pool.
+    It is a subclass of threading.Thread to start in a new thread automatically.
+    """
+    def __init__(self, mgr, logger):
+        """
+        Initialisation of the thread.
+
+        @param   logger   Reference to Logger instance.
+        """
+        threading.Thread.__init__(self)
+        self.mgr = mgr
+        self.logger = logger
+        self.buffer = 30
+        self._running = True
+
+    def run(self):
+        """
+        Start the thread. Loop over the device pool at a regular interval and
+        delete devices that have not been seen since x amount of time. Write
+        them to the logfile as being moved 'out'.
+        """
+        previous = 0
+        while self._running:
+            self.logger.lock.acquire()
+            try:
+                self.logger.switch_led(2)
+
+                tijd = int(time.time())
+
+                to_delete = []
+                for device in self.logger.pool:
+                    if tijd - self.logger.pool[device] > self.buffer:
+                        self.logger.write(self.logger.pool[device],
+                                          device,
+                                          'out')
+                        to_delete.append(device)
+
+                new = len(self.logger.pool) - previous
+                # Delete
+                for device in to_delete:
+                    del(self.logger.pool[device])
+
+                current = len(self.logger.pool)
+
+                d = {'current': current,
+                     'new': new if new > 0 else 0,
+                     'gone': len(to_delete)}
+                previous = current
+
+                self.mgr.debug("%s: " % self.logger.mac +
+                    "Device pool checked: %(current)i device" % d + \
+                    ("s " if current != 1 else " ") + \
+                    "(%(new)i new, %(gone)i disappeared)" % d)
+
+            finally:
+                self.logger.lock.release()
+
+            time.sleep(self.buffer)
+
+    def stop(self):
+        """
+        Stop the thread.
+        """
+        self._running = False
+        self.mgr.debug("%s: Stopped pool checker" % self.logger.mac)
+
+class WiFiLogger(ScanLogger):
+    def __init__(self, mgr, mac, type):
+        self.type = type
+        ScanLogger.__init__(self, mgr, mac)
+
+        self.poolchecker = WiFiPoolChecker(self.mgr, self)
+
+    def _get_log_id(self):
+        return '%s-wifi-%s' % (self.mac, self.type)
+
+    def _get_log_location(self):
+        return self.mgr.get_wifi_log_location(self.mac, self.type)
+
+    def valid(self, addr):
+        """
+        Check the validity of the given MAC address. In casu, valid means the address is not
+        00:00:00:00:00:00, and it is both unicast and globally unique.
+
+        @param   addr   The MAC address to check, in colon-separated format.
+        """
+        valid = True
+        if addr == "00:00:00:00:00:00":
+            valid = False
+            return valid
+        if int(addr.split(':')[0], 16) & 0b1 == 0b1:
+            valid = False
+        elif int(addr.split(':')[0], 16) & 0b10 == 0b10:
+            valid = False
+        return valid
+
+    def write(self, timestamp, mac_address, moving):
+        """
+        Append the parameters to the logfile on a new line and flush the file.
+        Try sending the data over the network.
+
+        @param  timestamp      UNIX timestamp.
+        @param  mac_address    Hardware address of the Bluetooth device.
+        @param  device_class   Device class of the Bluetooth device.
+        @param  moving         Whether the device is moving 'in' or 'out'.
+        """
+        if not (self.mgr.debug_mode and self.mgr.debug_silent):
+            self.logger.info(",".join([time.strftime(
+                self.time_format,
+                time.localtime(timestamp)),
+                str(mac_address),
+                str(moving)]))
+
+    def seen_device(self, timestamp, mac_address):
+        if mac_address in self.pool:
+            self.update_device(timestamp, mac_address)
+
+    def update_device(self, timestamp, mac_address):
+        """
+        Update the device with specified mac_address in the pool.
+
+        @param  timestamp      UNIX timestamp.
+        @param  mac_address    Hardware address of the Bluetooth device.
+        @param  device_class   Device class of the Bluetooth device.
+        """
+        if not self.valid(mac_address):
+            return
+
+        if not self.lock.acquire(False):
+            #Failed to lock
+            self.temp_pool[mac_address] = timestamp
+        else:
+            try:
+                if len(self.temp_pool) > 0:
+                    for mac in self.temp_pool:
+                        if mac not in self.pool:
+                            self.write(timestamp, mac, 'in')
+                    self.pool.update(self.temp_pool)
+                    self.mgr.debug("%s: " % self.mac + \
+                        "%i devices in temporary pool, merging" % \
+                        len(self.temp_pool))
+                    self.temp_pool.clear()
+                self.switch_led(3)
+
+                if mac_address not in self.pool:
+                    self.write(timestamp, mac_address, 'in')
+
+                self.pool[mac_address] = timestamp
+            finally:
+                self.lock.release()

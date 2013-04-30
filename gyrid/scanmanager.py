@@ -303,6 +303,16 @@ class DefaultScanManager(ScanManager):
         self.makedirs(self.base_location + mac)
         return self.base_location + mac + '/rssi.log'
 
+    def get_wifiraw_log_location(self, mac):
+        mac = mac.replace(':','')
+        self.makedirs(self.base_location + mac)
+        return self.base_location + mac + '/wifi-RAW.log'
+
+    def get_wifi_log_location(self, mac, type):
+        mac = mac.replace(':','')
+        self.makedirs(self.base_location + mac)
+        return self.base_location + mac + '/wifi-%s.log' % type
+
     def get_inquiry_log_location(self, mac):
         mac = mac.replace(':','')
         self.makedirs(self.base_location + mac)
