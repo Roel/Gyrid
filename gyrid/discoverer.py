@@ -175,7 +175,7 @@ class Discoverer(object):
         """
         Perform a Bluetooth inquiry with RSSI reception.
         """
-        self.logger_inquiry.write(time.time())
+        self.logger_inquiry.write(time.time(), self.buffer_size*1.28)
         self.mgr.debug("%s: New inquiry" % self.mac)
 
         # save current filter

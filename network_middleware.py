@@ -33,21 +33,24 @@ Erroneous exit codes:
 """
 
 import atexit
+import binascii
 import os
 import socket
+import struct
 import sys
 import threading
 import time
 import zlib
 
 import gyrid.configuration as configuration
+import gyrid.protocol.network as proto
 
 from OpenSSL import SSL
 
 from twisted.internet import reactor, ssl, task
 from twisted.internet.error import CannotListenError
 from twisted.internet.protocol import Factory, ReconnectingClientFactory
-from twisted.protocols.basic import LineReceiver
+from twisted.protocols.basic import Int16StringReceiver, LineReceiver
 
 class Network(object):
     """
@@ -126,20 +129,6 @@ class FakeScanManager(object):
 
         self.main = Main()
 
-    def is_valid_mac(self, string):
-        """
-        Determine if the given string is a valid MAC-address.
-
-        @param  string   The string to test.
-        @return          The MAC-address if it is valid, else False.
-        """
-        string = string.strip().upper()
-        if len(string) == 17 and \
-            re.match("([0-F][0-F]:){5}[0-F][0-F]", string):
-            return string
-        else:
-            return False
-
 class AckItem(object):
     """
     Class that defines an item in the AckMap.
@@ -148,28 +137,22 @@ class AckItem(object):
     # The maximum value of the timer after which the item is resent.
     max_misses = 5
 
-    def __init__(self, data, timer=0):
+    def __init__(self, msg, timer=0):
         """
         Initialisation.
 
-        @param   data     The data to store.
+        @param   msg      The msg to store.
         @param   timer    The initial value of the timer. An item is resent
                              when this value is negative or exceeds
                              AckItem.max_misses.
         """
         self.ackmap = None
-        self.data = data
+        self.msg = msg
         self.timer = timer
-        self.checksum = AckMap.checksum(data)
-
-    def __str__(self):
-        """
-        String representation.
-        """
-        return str(self.data)
+        self.checksum = AckMap.checksum(msg.SerializeToString())
 
     def __eq__(self, item):
-        return (item.data == self.data and
+        return (item.msg == self.msg and
                 item.checksum == self.checksum)
 
     def __hash__(self):
@@ -192,11 +175,11 @@ class AckItem(object):
                 self.ackmap.clearItem(self.checksum)
 
             elif self.timer < 0 or (self.timer % AckItem.max_misses == 0):
-                self.data = self.data.replace('SIGHT', 'CACHE')
-                self.checksum = AckMap.checksum(self.data)
+                self.msg.cached = True
+                self.checksum = AckMap.checksum(self.msg.SerializeToString())
                 client = self.ackmap.factory.client
                 if client != None:
-                    client.sendLine(self.data, filter=False, await_ack=False)
+                    client.sendMsg(msg, await_ack=False)
 
 class AckMap(object):
     """
@@ -252,12 +235,6 @@ class AckMap(object):
         except AssertionError:
             pass
 
-    def __str__(self):
-        """
-        String representation to write the entire AckMap to disk, for example.
-        """
-        return '\n'.join((str(i) for i in self.ackmap))
-
     def addItem(self, ackItem):
         """
         Add an item to the map.
@@ -305,8 +282,10 @@ class LocalServer(LineReceiver):
         Called when the Gyrid daemon connected to this middleware.
         """
         if self.factory.inet_factory.client:
-            self.factory.inet_factory.client.sendLine(
-                'MSG,gyrid,connected')
+            m = proto.Msg()
+            m.type = m.Type_STATE_GYRID
+            m.stateGyrid.type = proto.StateGyrid.Type_CONNECTED
+            self.factory.inet_factory.client.sendMsg(m)
 
     def connectionLost(self, reason):
         """
@@ -315,8 +294,10 @@ class LocalServer(LineReceiver):
         @param  reason  The reason of disconnection.
         """
         if self.factory.inet_factory.client:
-            self.factory.inet_factory.client.sendLine(
-                'MSG,gyrid,disconnected')
+            m = proto.Msg()
+            m.type = m.Type_STATE_GYRID
+            m.stateGyrid.type = proto.StateGyrid.Type_DISCONNECTED
+            self.factory.inet_factory.client.sendMsg(m)
 
     def lineReceived(self, data):
         """
@@ -344,7 +325,7 @@ class LocalServerFactory(Factory):
         self.network = network
         self.inet_factory = inet_factory
 
-class InetClient(LineReceiver):
+class InetClient(Int16StringReceiver):
     """
     The interacting class of the inet client.
     """
@@ -384,71 +365,127 @@ class InetClient(LineReceiver):
         if self.factory.config['enable_cache'] and self.factory.cache.closed \
             and not self.factory.cache_full:
             self.factory.cache = open(self.factory.cache_file, 'a')
-            self.factory.cache.write(str(self.factory.ackmap) + '\n')
+            for i in self.factory.ackmap.ackmap:
+                self.factory.cache.write(
+                    struct.pack('H', i.msg.ByteSize()) + \
+                    i.msg.SerializeToString())
             self.factory.cache.flush()
             self.factory.ackmap.clear()
 
         self.factory.connected = False
 
-    def sendLine(self, data, filter=True, await_ack=True):
+    def sendLine(self, line):
         """
-        Send a line to the Gyrid server. When not connected,
+        Parse the line into a corresponding message and send it.
+        These lines originate from Gyrid.
+
+        @param   line   The line to send.
+        """
+        msg = self.factory.buildMsg(line)
+        if msg:
+            self.sendMsg(msg)
+
+    def sendMsg(self, msg, await_ack=True):
+        """
+        Send a message to the Gyrid server. When not connected,
         store the data in the cache.
 
-        @param   data        The line to send.
-        @param   await_ack   Whether the line should be added to the
+        @param   msg         The message to send.
+        @param   await_ack   Whether the message should be added to the
                              await_ack buffer.
         """
-        data = str(data).strip()
-        r = self.factory.filter(data) if filter else data
-        if self.factory.config['enable_cache'] and not self.factory.connected \
-            and not self.factory.cache.closed and not self.factory.cache_full \
-            and not data.startswith('MSG') and not data.startswith('STATE'):
-            if r != None:
-                self.factory.cache.write(r + '\n')
+        if not self.factory.config['enable_data_transfer'] or not self.factory.connected:
+            if self.factory.config['enable_cache'] \
+                and not self.factory.cache.closed and not self.factory.cache_full \
+                and msg.type in [msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW,
+                    msg.Type_BLUETOOTH_STATE_INQUIRY, msg.Type_STATE_SCANNING,
+                    msg.Type_STATE_GYRID, msg.Type_INFO]:
+                    self.factory.cache.write(
+                        struct.pack('H', msg.ByteSize()) + \
+                        msg.SerializeToString())
         else:
-            if r != None and self.transport != None:
-                LineReceiver.sendLine(self, r)
-                if await_ack and not r.startswith('MSG') \
-                    and not r.startswith('STATE') \
-                    and self.factory.config['enable_cache']:
-                    self.factory.ackmap.addItem(AckItem(r))
+            if self.transport != None:
+                Int16StringReceiver.sendString(self, struct.pack('H', msg.ByteSize()) + \
+                    msg.SerializeToString())
+                if await_ack and self.factory.config['enable_cache']:
+                    self.factory.ackmap.addItem(AckItem(msg))
 
-    def lineReceived(self, data):
+    def stringReceived(self, data):
         """
-        Called when a line was received.
+        Called when data is received from the server. Parse the data into a message
+        and act accordingly.
 
         @param   data   The received data.
         """
-        data = data.strip().lower()
-        dl = data.split(',')
-        if dl[0] == 'msg':
-            if dl[1] == 'hostname':
-                self.sendLine("MSG,hostname,%s" % socket.gethostname())
-            elif self.factory.config['enable_keepalive'] > 0 and \
-                len(dl) == 2 and dl[1] == 'keepalive':
-                self.factory.last_keepalive = int(time.time())
-                self.sendLine("MSG,keepalive")
-            elif dl[1] == 'cache' and len(dl) == 3:
-                if dl[2] == 'push':
-                    reactor.callInThread(self.pushCache)
-                elif dl[2] == 'clear':
-                    self.clearCache()
+        msg = proto.Msg.FromString(data)
+
+        if msg.type == msg.Type_REQUEST_HOSTNAME:
+            m = proto.Msg()
+            m.type = m.Type_HOSTNAME
+            m.hostname.hostname = socket.gethostname()
+            self.sendMsg(m, await_ack=False)
+
+        elif msg.type = msg.Type_REQUEST_KEEPALIVE:
+            self.factory.config['enable_keepalive'] = msg.requestKeepalive.interval
+            if not msg.requestKeepalive.enable:
+                self.factory.config['enable_keepalive'] = -1
             else:
-                r = self.factory.setConfig(dl)
-                if r != None:
-                    self.sendLine(r)
-            if dl[1] == 'enable_keepalive' and len(dl) > 2 and dl[2] > 0:
                 self.factory.keepalive_loop.start(
                     self.factory.config['enable_keepalive'], now=False)
-            elif dl[1] == 'enable_uptime' and self.factory.config[
-                'enable_uptime'] == True \
-                and self.network.host_up_since != None \
+
+            msg.success = True
+            self.sendMsg(msg, await_ack=False)
+
+        elif msg.type == msg.Type_KEEPALIVE and \
+            self.factory.config['enable_keepalive'] > 0:
+            self.factory.last_keepalive = int(time.time())
+            m = proto.Msg()
+            m.type = m.Type_KEEPALIVE
+            self.sendMsg(m, await_ack=False)
+
+        elif msg.type == msg.Type_REQUEST_CACHING:
+            if msg.requestCaching.pushCache:
+                reactor.callInThread(self.pushCache)
+            elif msg.requestCaching.clearCache:
+                self.clearCache()
+
+            self.factory.config['enable_caching'] = msg.requestCaching.enableCaching
+
+            msg.success = True
+            self.sendMsg(msg, await_ack=False)
+
+        elif msg.type == msg.Type_ACK:
+            self.factory.ackmap.clearItem(binascii.b2a_hex(msg.ack.crc32))
+
+        elif msg.type == msg.Type_REQUEST_STATE:
+            self.factory.config['enable_state_scanning'] = msg.requestState.enableScanning
+            self.factory.config['enable_state_inquiry'] = msg.requestState.bluetooth_enableInquiry
+
+            msg.success = True
+            self.sendMsg(msg, await_ack=False)
+
+        elif msg.type == msg.Type_REQUEST_UPTIME:
+            self.factory.config['enable_uptime'] = msg.requestUptime
+
+            msg.success = True
+            self.sendMsg(msg, await_ack=False)
+
+            if msg.requestUptime and self.network.host_up_since != None \
                 and self.network.gyrid_up_since != None:
-                self.sendLine("MSG,uptime,%i,%i" % \
-                    (self.network.gyrid_up_since, self.network.host_up_since))
-        elif dl[0] == 'ack' and len(dl) == 2:
-            self.factory.ackmap.clearItem(dl[1])
+                m = proto.Msg()
+                m.type = m.Type_UPTIME
+                m.uptime.gyridStartup = self.network.gyrid_up_since
+                m.uptime.systemStartup = self.network.system_up_since
+                self.sendMsg(m, await_ack=False)
+
+        elif msg.type == msg.Type_STARTDATA:
+            self.factory.config['enable_rssi'] = msg.requestStartdata.enableRaw
+            self.factory.config['enable_sensor_mac'] = msg.requestStartdata.enableSensorMac
+
+            msg.success = True
+            self.sendMsg(msg, await_ack=False)
+
+            #FIXME: start data transfer now
 
     def processLocalData(self, data):
         """
@@ -462,8 +499,11 @@ class InetClient(LineReceiver):
             if self.factory.config['enable_uptime'] \
                 and self.network.host_up_since != None \
                 and self.network.gyrid_up_since != None:
-                self.sendLine("MSG,uptime,%i,%i" % \
-                    (self.network.gyrid_up_since, self.network.host_up_since))
+                m = proto.Msg()
+                m.type = m.Type_UPTIME
+                m.uptime.gyridStartup = self.network.gyrid_up_since
+                m.uptime.systemStartup = self.network.system_up_since
+                self.sendMsg(m, await_ack=False)
 
     def pushCache(self):
         """
@@ -474,12 +514,16 @@ class InetClient(LineReceiver):
             self.factory.cache.close()
 
         self.factory.cache = open(self.factory.cache_file, 'r')
-        for line in self.factory.cache:
-            line = line.strip()
-            if line != None and line != "" and self.factory.config['enable_cache']:
-                self.factory.ackmap.addItem(AckItem(line, -1))
-        self.factory.cache.close()
 
+        if self.factory.config['enable_cache']:
+            read = self.factory.cache.read(2)
+            while read:
+                bts = struct.unpack('H', read)[0]
+                msg = g.Msg.FromString(self.factory.cache.read(bts))
+                self.factory.ackmap.addItem(AckItem(msg, -1))
+                read = self.factory.cache.read(2)
+
+        self.factory.cache.close()
         self.clearCache()
 
     def clearCache(self):
@@ -536,7 +580,8 @@ class InetClientFactory(ReconnectingClientFactory):
                        'enable_keepalive': -1,
                        'enable_uptime': False,
                        'enable_state_scanning': False,
-                       'enable_state_inquiry': False}
+                       'enable_state_inquiry': False,
+                       'enable_data_transfer': False}
 
         self.cachesize_loop.start(10)
         try:
@@ -573,71 +618,83 @@ class InetClientFactory(ReconnectingClientFactory):
                 self.client.transport._writeDisconnected = True
                 self.client.transport.loseConnection()
 
-    def filter(self, data):
+    def buildMsg(self, data):
         """
-        Filter outgoing data according to the configuration options.
+        Parse the Gyrid data into the corresponding message.
 
-        @param   data    The data to filter.
-        @return          The filtered data, None if nothing should go out.
+        @param   data   The data to parse.
+        @return         A message object.
         """
-        if data.startswith('MSG'):
-            return data
-        elif data.startswith('SIGHT_CELL') or data.startswith('CACHE_CELL'):
+        def procHwid(data):
+            """
+            Convert given hardware id to the corresponding bytestring.
+            """
+            return binascii.a2b_hex(data.strip().replace(':','').lower())
+
+        c = self.config
+
+        if data.startswith('SIGHT_CELL') or data.startswith('CACHE_CELL'):
+            m = proto.Msg()
+            m.type = m.Type_BLUETOOTH_DATAIO
+            d = m.bluetooth_dataIO
+            d.cached = data.startswith('CACHE_CELL')
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac',
                 'deviceclass', 'move'], data.split(',')))
+            d.timestamp = float(data['timestamp'])
+            d.hwid = procHwid(data['mac'])
+            d.deviceclass = int(data['deviceclass'])
+            d.move = d.Move_IN if data['move'] == 'in' else d.Move_OUT
+            if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            return m
+            
         elif (data.startswith('SIGHT_RSSI') or data.startswith('CACHE_RSSI')) \
                 and self.config['enable_rssi']:
+            m = proto.Msg()
+            m.type = m.Type_BLUETOOTH_DATARAW
+            d = m.bluetooth_dataRaw
+            d.cached = data.startswith('CACHE_RSSI')
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac', 'rssi'],
                 data.split(',')))
+            d.timestamp = float(data['timestamp'])
+            d.hwid = procHwid(data['mac'])
+            d.rssi = int(data['rssi'])
+            if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            return m
+
         elif data.startswith('STATE') and ('new_inquiry' in data) and \
             self.config['enable_state_inquiry']:
-            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'info'],
+            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'subtype', 'duration'],
                 data.split(',')))
+            m = proto.Msg()
+            m.type = m.Type_BLUETOOTH_STATE_INQUIRY
+            d = m.bluetooth_stateInquiry
+            d.timestamp = float(data['timestamp'])
+            d.duration = float(data['duration'])
+            if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            return m
+
         elif data.startswith('STATE') and ('_scanning' in data) and \
             self.config['enable_state_scanning']:
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'info'],
                 data.split(',')))
+            m = proto.Msg()
+            m.type = m.Type_STATE_SCANNING
+            d = m.stateScanning
+            d.timestamp = float(data['timestamp'])
+            d.type = d.Type_STARTED if d['info'] == 'started_scanning' else d.Type_STOPPED
+            if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            return m
+
         elif data.startswith('INFO'):
             data = dict(zip(['type', 'timestamp', 'info'],
                 data.split(',')))
-        else:
-            return None
+            m = proto.Msg()
+            m.type = m.Type_INFO
+            d = m.info
+            d.timestamp = float(data['timestamp'])
+            d.info = data['info']
+            return m
 
-        try:
-            for item in self.config:
-                if self.config[item] == False:
-                    data[item.lstrip('enable_')] = ''
-        except KeyError:
-            pass
-
-        return ','.join([data[j] for j in [i for i in ['type', 'sensor_mac',
-            'timestamp', 'mac', 'deviceclass', 'move',
-            'rssi', 'info'] if i in data] if data[j]])
-
-    def setConfig(self, list):
-        """
-        Set the value of a configuration option.
-
-        @param   list     A list of the fields contained in the received
-                            CSV-string.
-        @return           The string that should be sent to the client,
-                            None if nothing should go out.
-        """
-        if len(list) > 1 and list[1] in self.config:
-            if len(list) > 2 and list[2].lower() == 'true':
-                self.config[list[1]] = True
-            elif len(list) > 2 and list[2].lower() == 'false':
-                self.config[list[1]] = False
-            elif len(list) > 2:
-                try:
-                    self.config[list[1]] = int(list[2])
-                except ValueError:
-                    try:
-                        self.config[list[1]] = float(list[2])
-                    except ValueError:
-                        self.config[list[1]] = str(list[2])
-
-            return "MSG,%s,%s" % (list[1], self.config[list[1]])
         else:
             return None
 

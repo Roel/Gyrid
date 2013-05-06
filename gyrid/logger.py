@@ -201,13 +201,16 @@ class InquiryLogger(RSSILogger):
     def _get_log_location(self):
         return self.mgr.get_inquiry_log_location(self.mac)
 
-    def write(self, timestamp):
+    def write(self, timestamp, duration):
         if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
-            self.logger.info(time.strftime(self.time_format, time.localtime(timestamp)))
+            self.logger.info(",".join([
+                time.strftime(self.time_format, time.localtime(timestamp)),
+                '%0.2f' % duration]))
         self.mgr.net_send_line(",".join(['STATE',
             str(self.mac.replace(':','')),
             "%0.3f" % timestamp,
-            "new_inquiry"]))
+            "new_inquiry",
+            "%0.2f" % duration]))
 
 class ScanLogger(RSSILogger):
     """
