@@ -179,7 +179,7 @@ class AckItem(object):
                 self.checksum = AckMap.checksum(self.msg.SerializeToString())
                 client = self.ackmap.factory.client
                 if client != None:
-                    client.sendMsg(msg, await_ack=False)
+                    client.sendMsg(self.msg, await_ack=False)
 
 class AckMap(object):
     """
@@ -370,7 +370,7 @@ class InetClient(Int16StringReceiver):
             self.factory.cache = open(self.factory.cache_file, 'a')
             for i in self.factory.ackmap.ackmap:
                 self.factory.cache.write(
-                    struct.pack('H', i.msg.ByteSize()) + \
+                    struct.pack('!H', i.msg.ByteSize()) + \
                     i.msg.SerializeToString())
             self.factory.cache.flush()
             self.factory.ackmap.clear()
@@ -523,8 +523,8 @@ class InetClient(Int16StringReceiver):
         if self.factory.config['enable_cache']:
             read = self.factory.cache.read(2)
             while read:
-                bts = struct.unpack('H', read)[0]
-                msg = g.Msg.FromString(self.factory.cache.read(bts))
+                bts = struct.unpack('!H', read)[0]
+                msg = proto.Msg.FromString(self.factory.cache.read(bts))
                 self.factory.ackmap.addItem(AckItem(msg, -1))
                 read = self.factory.cache.read(2)
 
@@ -559,6 +559,13 @@ class InetClientFactory(ReconnectingClientFactory):
         self.client = None
         self.maxDelay = 120
 
+        self.config = {'enable_rssi': False,
+                       'enable_sensor_mac': True,
+                       'enable_cache': True,
+                       'enable_uptime': False,
+                       'enable_state_scanning': False,
+                       'enable_state_inquiry': False}
+
         self.connected = False
         self.cache_full = False
         self.cache_file = '/var/tmp/gyrid-network.cache'
@@ -579,14 +586,8 @@ class InetClientFactory(ReconnectingClientFactory):
         """
         self.last_keepalive = -1
 
-        self.config = {'enable_rssi': False,
-                       'enable_sensor_mac': True,
-                       'enable_cache': True,
-                       'enable_keepalive': -1,
-                       'enable_uptime': False,
-                       'enable_state_scanning': False,
-                       'enable_state_inquiry': False,
-                       'enable_data_transfer': False}
+        self.config['enable_data_transfer'] = False
+        self.config['enable_keepalive'] = -1
 
         self.cachesize_loop.start(10)
         try:
@@ -642,7 +643,7 @@ class InetClientFactory(ReconnectingClientFactory):
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_DATAIO
             d = m.bluetooth_dataIO
-            d.cached = data.startswith('CACHE_CELL')
+            if data.startswith('CACHE_CELL'): m.cached = True
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac',
                 'deviceclass', 'move'], data.split(',')))
             d.timestamp = float(data['timestamp'])
@@ -657,7 +658,7 @@ class InetClientFactory(ReconnectingClientFactory):
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_DATARAW
             d = m.bluetooth_dataRaw
-            d.cached = data.startswith('CACHE_RSSI')
+            if data.startswith('CACHE_RSSI'): m.cached = True
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac', 'rssi'],
                 data.split(',')))
             d.timestamp = float(data['timestamp'])
