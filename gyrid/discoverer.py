@@ -283,7 +283,7 @@ class Discoverer(object):
                 import tools.macvendor
 
                 device = ', '.join([str(tools.deviceclass.get_major_class(
-                    device_class)), str(tools.deviceclass.get_minor_lass(
+                    device_class)), str(tools.deviceclass.get_minor_class(
                     device_class))])
                 rssi_s = ' with RSSI %d' % rssi if rssi != None else ''
 
