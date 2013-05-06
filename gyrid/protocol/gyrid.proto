@@ -22,7 +22,7 @@ message Msg {
     required Type type = 1;
 
     optional RequestKeepalive requestKeepalive = 2;
-    optional bool requestUptime = 3;
+    optional bool requestUptime = 3 [default = true];
     optional RequestCaching requestCaching = 4;
     optional RequestStartdata requestStartdata = 5;
     optional RequestState requestState = 6;
@@ -57,6 +57,7 @@ message RequestCaching {
 }
 
 message RequestStartdata {
+    optional bool enableData = 1 [default = true];
     optional bool enableRaw = 2 [default = false];
     optional bool enableSensorMac = 3 [default = true];
 }
