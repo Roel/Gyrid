@@ -38,6 +38,7 @@ message Msg {
     optional Zip zip = 16;
 
     optional bool success = 17;
+    optional bool cached = 18 [default = false];
 }
 
 message RequestKeepalive {
@@ -100,7 +101,6 @@ message StateScanning {
     optional Type type = 1;
     optional double timestamp = 2;
     optional bytes sensorMac = 3;
-    optional bool cached = 4 [default = false];
 }
 
 message StateGyrid {
@@ -110,14 +110,12 @@ message StateGyrid {
     }
 
     optional Type type = 1;
-    optional bool cached = 2 [default = false];
 }
 
 message Bluetooth_StateInquiry {
     optional double timestamp = 1;
     optional bytes sensorMac = 2;
     optional float duration = 3;
-    optional bool cached = 4 [default = false];
 }
 
 message Bluetooth_DataIO {
@@ -126,7 +124,6 @@ message Bluetooth_DataIO {
         Move_OUT = 2;
     }
 
-    optional bool cached = 1 [default = false];
     optional double timestamp = 2;
     optional bytes sensorMac = 3;
     optional bytes hwid = 4;
@@ -135,7 +132,6 @@ message Bluetooth_DataIO {
 }
 
 message Bluetooth_DataRaw {
-    optional bool cached = 1 [default = false];
     optional double timestamp = 2;
     optional bytes sensorMac = 3;
     optional bytes hwid = 4;
@@ -148,7 +144,6 @@ message WiFi_DataIO {
         Move_OUT = 2;
     }
 
-    optional bool cached = 1 [default = false];
     optional double timestamp = 2;
     optional bytes sensorMac = 3;
     optional bytes hwid = 4;
@@ -162,7 +157,6 @@ message WiFi_DataRaw {
         FrameType_DATA = 3;
     }
 
-    optional bool cached = 1 [default = false];
     optional double timestamp = 2;
     optional bytes sensorMac = 3;
     optional uint32 frequency = 4;
