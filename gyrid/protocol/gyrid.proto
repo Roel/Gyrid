@@ -1,0 +1,174 @@
+message Msg {
+    enum Type {
+        Type_REQUEST_HOSTNAME = 1;
+        Type_REQUEST_KEEPALIVE = 2;
+        Type_REQUEST_UPTIME = 3;
+        Type_REQUEST_CACHING = 4;
+        Type_REQUEST_STARTDATA = 5;
+        Type_REQUEST_STATE = 6;
+        Type_HOSTNAME = 7;
+        Type_KEEPALIVE = 8;
+        Type_UPTIME = 9;
+        Type_BLUETOOTH_DATAIO = 10;
+        Type_BLUETOOTH_DATARAW = 11;
+        Type_BLUETOOTH_STATE_INQUIRY = 12;
+        Type_STATE_SCANNING = 13;
+        Type_STATE_GYRID = 14;
+        Type_INFO = 15;
+        Type_ACK = 16;
+        Type_ZIP = 17;
+    }
+
+    required Type type = 1;
+
+    optional RequestKeepalive requestKeepalive = 2;
+    optional bool requestUptime = 3;
+    optional RequestCaching requestCaching = 4;
+    optional RequestStartdata requestStartdata = 5;
+    optional RequestState requestState = 6;
+    optional Hostname hostname = 7;
+    optional Uptime uptime = 8;
+    optional Bluetooth_DataIO bluetooth_dataIO = 9;
+    optional Bluetooth_DataRaw bluetooth_dataRaw = 10;
+    optional Bluetooth_StateInquiry bluetooth_stateInquiry = 11;
+    optional StateScanning stateScanning = 12;
+    optional StateGyrid stateGyrid = 13;
+    optional Info info = 14;
+    optional Ack ack = 15;
+    optional Zip zip = 16;
+
+    optional bool success = 17;
+}
+
+message RequestKeepalive {
+    optional uint32 interval = 1 [default = 60];
+    optional bool enable = 2 [default = true];
+}
+
+message RequestState {
+    optional bool bluetooth_enableInquiry = 1 [default = false];
+    optional bool enableScanning = 2 [default = true];
+}
+
+message RequestCaching {
+    optional bool enableCaching = 1 [default = true];
+    optional bool clearCache = 2 [default = false];
+    optional bool pushCache = 3 [default = false];
+}
+
+message RequestStartdata {
+    optional bool enableRaw = 2 [default = false];
+    optional bool enableSensorMac = 3 [default = true];
+}
+
+message Hostname {
+    optional string hostname = 1;
+}
+
+message Uptime {
+    optional double gyridStartup = 1;
+    optional double systemStartup = 2;
+}
+
+message Ack {
+    optional bytes crc32 = 1;
+}
+
+message Zip {
+    enum Type {
+        Type_GZIP = 1;
+        Type_BZIP2 = 2;
+        Type_LZMA = 3;
+    }
+
+    required Type type = 1;
+    required uint32 bytelength = 2; // following bytes should be zipped data
+}
+
+message Info {
+    optional double timestamp = 1;
+    optional string info = 2;
+}
+
+message StateScanning {
+    enum Type {
+        Type_STARTED = 1;
+        Type_STOPPED = 2;
+    }
+
+    optional Type type = 1;
+    optional double timestamp = 2;
+    optional bytes sensorMac = 3;
+    optional bool cached = 4 [default = false];
+}
+
+message StateGyrid {
+    enum Type {
+        Type_CONNECTED = 1;
+        Type_DISCONNECTED = 2;
+    }
+
+    optional Type type = 1;
+    optional bool cached = 2 [default = false];
+}
+
+message Bluetooth_StateInquiry {
+    optional double timestamp = 1;
+    optional bytes sensorMac = 2;
+    optional float duration = 3;
+    optional bool cached = 4 [default = false];
+}
+
+message Bluetooth_DataIO {
+    enum Move {
+        Move_IN = 1;
+        Move_OUT = 2;
+    }
+
+    optional bool cached = 1 [default = false];
+    optional double timestamp = 2;
+    optional bytes sensorMac = 3;
+    optional bytes hwid = 4;
+    optional uint32 deviceclass = 5;
+    optional Move move = 6;
+}
+
+message Bluetooth_DataRaw {
+    optional bool cached = 1 [default = false];
+    optional double timestamp = 2;
+    optional bytes sensorMac = 3;
+    optional bytes hwid = 4;
+    optional sint32 rssi = 5;
+}
+
+message WiFi_DataIO {
+    enum Move {
+        Move_IN = 1;
+        Move_OUT = 2;
+    }
+
+    optional bool cached = 1 [default = false];
+    optional double timestamp = 2;
+    optional bytes sensorMac = 3;
+    optional bytes hwid = 4;
+    optional Move move = 6;
+}
+
+message WiFi_DataRaw {
+    enum FrameType {
+        FrameType_MGMT = 1;
+        FrameType_CTRL = 2;
+        FrameType_DATA = 3;
+    }
+
+    optional bool cached = 1 [default = false];
+    optional double timestamp = 2;
+    optional bytes sensorMac = 3;
+    optional uint32 frequency = 4;
+    optional FrameType frametype = 5;
+
+    optional bytes hwid1 = 7;
+    optional bytes hwid2 = 8;
+    
+    optional sint32 rssi = 6;
+}
