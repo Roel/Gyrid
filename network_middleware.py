@@ -193,7 +193,10 @@ class AckMap(object):
         @param   data   The data to process.
         @return         The CRC32 checksum.
         """
-        return hex(abs(zlib.crc32(data)))[2:]
+        r = '%x' % abs(zlib.crc32(data))
+        if len(r) % 2 != 0:
+            r = '0' + r
+        return r
 
     def __init__(self, factory):
         """
@@ -394,18 +397,19 @@ class InetClient(Int16StringReceiver):
         @param   await_ack   Whether the message should be added to the
                              await_ack buffer.
         """
-        if not self.factory.config['enable_data_transfer'] or not self.factory.connected:
+        if (not self.factory.config['enable_data_transfer'] and msg.type in [
+            msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW]) or not self.factory.connected:
             if self.factory.config['enable_cache'] \
                 and not self.factory.cache.closed and not self.factory.cache_full \
                 and msg.type in [msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW,
                     msg.Type_BLUETOOTH_STATE_INQUIRY, msg.Type_STATE_SCANNING,
                     msg.Type_STATE_GYRID, msg.Type_INFO]:
                     self.factory.cache.write(
-                        struct.pack('H', msg.ByteSize()) + \
+                        struct.pack('!H', msg.ByteSize()) + \
                         msg.SerializeToString())
         else:
             if self.transport != None:
-                Int16StringReceiver.sendString(self, struct.pack('H', msg.ByteSize()) + \
+                Int16StringReceiver.sendString(self, struct.pack('!H', msg.ByteSize()) + \
                     msg.SerializeToString())
                 if await_ack and self.factory.config['enable_cache']:
                     self.factory.ackmap.addItem(AckItem(msg))
@@ -425,7 +429,7 @@ class InetClient(Int16StringReceiver):
             m.hostname.hostname = socket.gethostname()
             self.sendMsg(m, await_ack=False)
 
-        elif msg.type = msg.Type_REQUEST_KEEPALIVE:
+        elif msg.type == msg.Type_REQUEST_KEEPALIVE:
             self.factory.config['enable_keepalive'] = msg.requestKeepalive.interval
             if not msg.requestKeepalive.enable:
                 self.factory.config['enable_keepalive'] = -1
@@ -475,10 +479,11 @@ class InetClient(Int16StringReceiver):
                 m = proto.Msg()
                 m.type = m.Type_UPTIME
                 m.uptime.gyridStartup = self.network.gyrid_up_since
-                m.uptime.systemStartup = self.network.system_up_since
+                m.uptime.systemStartup = self.network.host_up_since
                 self.sendMsg(m, await_ack=False)
 
-        elif msg.type == msg.Type_STARTDATA:
+        elif msg.type == msg.Type_REQUEST_STARTDATA:
+            self.factory.config['enable_data_transfer'] = msg.requestStartdata.enableData
             self.factory.config['enable_rssi'] = msg.requestStartdata.enableRaw
             self.factory.config['enable_sensor_mac'] = msg.requestStartdata.enableSensorMac
 
@@ -502,7 +507,7 @@ class InetClient(Int16StringReceiver):
                 m = proto.Msg()
                 m.type = m.Type_UPTIME
                 m.uptime.gyridStartup = self.network.gyrid_up_since
-                m.uptime.systemStartup = self.network.system_up_since
+                m.uptime.systemStartup = self.network.host_up_since
                 self.sendMsg(m, await_ack=False)
 
     def pushCache(self):
@@ -513,7 +518,7 @@ class InetClient(Int16StringReceiver):
             self.factory.cache.flush()
             self.factory.cache.close()
 
-        self.factory.cache = open(self.factory.cache_file, 'r')
+        self.factory.cache = open(self.factory.cache_file, 'rb')
 
         if self.factory.config['enable_cache']:
             read = self.factory.cache.read(2)
@@ -534,7 +539,7 @@ class InetClient(Int16StringReceiver):
             self.factory.cache.flush()
             self.factory.cache.close()
 
-        self.factory.cache = open(self.factory.cache_file, 'w')
+        self.factory.cache = open(self.factory.cache_file, 'wb')
         self.factory.cache.truncate()
         self.factory.cache.close()
 
@@ -681,7 +686,7 @@ class InetClientFactory(ReconnectingClientFactory):
             m.type = m.Type_STATE_SCANNING
             d = m.stateScanning
             d.timestamp = float(data['timestamp'])
-            d.type = d.Type_STARTED if d['info'] == 'started_scanning' else d.Type_STOPPED
+            d.type = d.Type_STARTED if data['info'] == 'started_scanning' else d.Type_STOPPED
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
 
