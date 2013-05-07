@@ -288,7 +288,7 @@ class LocalServer(LineReceiver):
             m = proto.Msg()
             m.type = m.Type_STATE_GYRID
             m.stateGyrid.type = proto.StateGyrid.Type_CONNECTED
-            self.factory.inet_factory.client.sendMsg(m)
+            self.factory.inet_factory.client.sendMsg(m, await_ack=False)
 
     def connectionLost(self, reason):
         """
@@ -300,7 +300,7 @@ class LocalServer(LineReceiver):
             m = proto.Msg()
             m.type = m.Type_STATE_GYRID
             m.stateGyrid.type = proto.StateGyrid.Type_DISCONNECTED
-            self.factory.inet_factory.client.sendMsg(m)
+            self.factory.inet_factory.client.sendMsg(m, await_ack=False)
 
     def lineReceived(self, data):
         """
@@ -367,7 +367,7 @@ class InetClient(Int16StringReceiver):
         """
         if self.factory.config['enable_cache'] and self.factory.cache.closed \
             and not self.factory.cache_full:
-            self.factory.cache = open(self.factory.cache_file, 'a')
+            self.factory.cache = open(self.factory.cache_file, 'ab')
             for i in self.factory.ackmap.ackmap:
                 self.factory.cache.write(
                     struct.pack('!H', i.msg.ByteSize()) + \
@@ -402,8 +402,7 @@ class InetClient(Int16StringReceiver):
             if self.factory.config['enable_cache'] \
                 and not self.factory.cache.closed and not self.factory.cache_full \
                 and msg.type in [msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW,
-                    msg.Type_BLUETOOTH_STATE_INQUIRY, msg.Type_STATE_SCANNING,
-                    msg.Type_STATE_GYRID, msg.Type_INFO]:
+                    msg.Type_BLUETOOTH_STATE_INQUIRY, msg.Type_STATE_SCANNING, msg.Type_INFO]:
                     self.factory.cache.write(
                         struct.pack('!H', msg.ByteSize()) + \
                         msg.SerializeToString())
@@ -570,7 +569,7 @@ class InetClientFactory(ReconnectingClientFactory):
         self.cache_full = False
         self.cache_file = '/var/tmp/gyrid-network.cache'
         self.cache_maxsize = self.network.config.get_value('network_cache_limit')
-        self.cache = open(self.cache_file, 'a')
+        self.cache = open(self.cache_file, 'ab')
         self.ackmap = AckMap(self)
 
         self.keepalive_loop = task.LoopingCall(self.keepalive)
