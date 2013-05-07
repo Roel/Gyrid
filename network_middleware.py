@@ -524,7 +524,7 @@ class InetClient(Int16StringReceiver):
             while read:
                 bts = struct.unpack('!H', read)[0]
                 msg = proto.Msg.FromString(self.factory.cache.read(bts))
-                self.factory.ackmap.addItem(AckItem(msg, -1))
+                self.sendMsg(msg)
                 read = self.factory.cache.read(2)
 
         self.factory.cache.close()
