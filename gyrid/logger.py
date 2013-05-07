@@ -206,7 +206,7 @@ class InquiryLogger(RSSILogger):
             self.logger.info(",".join([
                 time.strftime(self.time_format, time.localtime(timestamp)),
                 '%0.2f' % duration]))
-        self.mgr.net_send_line(",".join(['STATE',
+        self.mgr.net_send_line(",".join(['STATE','bluetooth',
             str(self.mac.replace(':','')),
             "%0.3f" % timestamp,
             "new_inquiry",
@@ -511,6 +511,18 @@ class WiFiLogger(ScanLogger):
 
     def _get_log_location(self):
         return self.mgr.get_wifi_log_location(self.mac, self.type)
+
+    def start(self):
+        """
+        Start the poolchecker, which checks at regular intervals the pool for
+        devices that have disappeared.
+        """
+        if not 'poolchecker' in self.__dict__:
+            self.poolchecker = WiFiPoolChecker(self.mgr, self)
+        self.mgr.debug("%s: Started pool checker" % self.mac)
+        self.pool.clear()
+        self.temp_pool.clear()
+        self.poolchecker.start()
 
     def write(self, timestamp, hwid, moving):
         """

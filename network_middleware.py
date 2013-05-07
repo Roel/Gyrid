@@ -402,7 +402,8 @@ class InetClient(Int16StringReceiver):
             if self.factory.config['enable_cache'] \
                 and not self.factory.cache.closed and not self.factory.cache_full \
                 and msg.type in [msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW,
-                    msg.Type_BLUETOOTH_STATE_INQUIRY, msg.Type_STATE_SCANNING, msg.Type_INFO]:
+                    msg.Type_BLUETOOTH_STATE_INQUIRY, msg.Type_STATE_SCANNING, msg.Type_INFO,
+                    msg.Type_WIFI_STATE_FREQUENCY]:
                     self.factory.cache.write(
                         struct.pack('!H', msg.ByteSize()) + \
                         msg.SerializeToString())
@@ -463,6 +464,7 @@ class InetClient(Int16StringReceiver):
         elif msg.type == msg.Type_REQUEST_STATE:
             self.factory.config['enable_state_scanning'] = msg.requestState.enableScanning
             self.factory.config['enable_state_inquiry'] = msg.requestState.bluetooth_enableInquiry
+            self.factory.config['enable_state_frequency'] = msg.requestState.wifi_enableFrequency
 
             msg.success = True
             self.sendMsg(msg, await_ack=False)
@@ -563,7 +565,8 @@ class InetClientFactory(ReconnectingClientFactory):
                        'enable_cache': True,
                        'enable_uptime': False,
                        'enable_state_scanning': False,
-                       'enable_state_inquiry': False}
+                       'enable_state_inquiry': False,
+                       'enable_state_frequency': False}
 
         self.connected = False
         self.cache_full = False
@@ -668,7 +671,7 @@ class InetClientFactory(ReconnectingClientFactory):
 
         elif data.startswith('STATE') and ('new_inquiry' in data) and \
             self.config['enable_state_inquiry']:
-            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'subtype', 'duration'],
+            data = dict(zip(['type', 'hwType', 'sensor_mac', 'timestamp', 'subtype', 'duration'],
                 data.split(',')))
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_STATE_INQUIRY
@@ -678,9 +681,21 @@ class InetClientFactory(ReconnectingClientFactory):
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
 
+        elif data.startswith('STATE') and ('frequency' in data) and \
+            self.config['enable_state_frequency']:
+            data = dict(zip(['type', 'hwType', 'sensor_mac', 'timestamp', 'subtype', 'frequency'],
+                data.split(',')))
+            m = proto.Msg()
+            m.type = m.Type_WIFI_STATE_FREQUENCY
+            d = m.wifi_stateFrequency
+            d.timestamp = float(data['timestamp'])
+            if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            d.frequency = int(data['frequency'])
+            return m
+
         elif data.startswith('STATE') and ('_scanning' in data) and \
             self.config['enable_state_scanning']:
-            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'info'],
+            data = dict(zip(['type', 'hwtype', 'sensor_mac', 'timestamp', 'info'],
                 data.split(',')))
             m = proto.Msg()
             m.type = m.Type_STATE_SCANNING
@@ -688,6 +703,8 @@ class InetClientFactory(ReconnectingClientFactory):
             d.timestamp = float(data['timestamp'])
             d.type = d.Type_STARTED if data['info'] == 'started_scanning' else d.Type_STOPPED
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            if data['hwtype'] == 'bluetooth': d.hwType = d.HwType_BLUETOOTH
+            if data['hwtype'] == 'wifi': d.hwType = d.HwType_WIFI
             return m
 
         elif data.startswith('INFO'):

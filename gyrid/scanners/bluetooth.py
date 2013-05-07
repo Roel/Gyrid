@@ -166,14 +166,14 @@ class BluetoothScanner(core.Scanner):
 
                 if _discoverer.init() == 0:
                     self.mgr.log_info("Started scanning with Bluetooth adapter %s" % self.mac)
-                    self.mgr.net_send_line("STATE,%s,%0.3f,started_scanning" % (
+                    self.mgr.net_send_line("STATE,bluetooth,%s,%0.3f,started_scanning" % (
                         self.mac.replace(':',''), time.time()))
                     _logger.start()
                     end_cause = _discoverer.find()
                     _logger.stop()
                     self.mgr.log_info("Stopped scanning with Bluetooth adapter %s%s" % \
                         (self.mac, end_cause))
-                    self.mgr.net_send_line("STATE,%s,%0.3f,stopped_scanning" % (
+                    self.mgr.net_send_line("STATE,bluetooth,%s,%0.3f,stopped_scanning" % (
                         self.mac.replace(':',''), time.time()))
 
                 if self.mac in self.protocol.active_adapters:

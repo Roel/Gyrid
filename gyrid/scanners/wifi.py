@@ -175,6 +175,7 @@ class WiFiScanner(core.Scanner):
         Loop over all available WiFi frequencies with a one second interval.
         """
         cnt = 0
+        freq = 0
         while self.running and not self.mgr.main.stopping:
             if len(self.frequencies) == 0:
                 self.running = False
@@ -186,6 +187,7 @@ class WiFiScanner(core.Scanner):
                         wigy.set_frequency(self.iface, self.frequencies[cnt])
                         self.mgr.debug("%s: Frequency set to %i Hz" % (self.mac,
                             self.frequencies[cnt]))
+                        freq = self.frequencies[cnt]
                         cnt += 1
                         time.sleep(1)
                 except IOError:
@@ -194,6 +196,9 @@ class WiFiScanner(core.Scanner):
                     self.mgr.main.log_error("%s: Frequency of %i Hz is not supported" % (self.mac,
                         self.frequencies[cnt]), 'Warning')
                     self.frequencies.pop(cnt)
+                else:
+                    self.mgr.net_send_line("STATE,wifi,%s,%0.3f,frequency,%i" %
+                        (self.mac.replace(':','').lower(), time.time(), freq))
 
     @core.threaded
     def start_scanning(self):
@@ -201,6 +206,8 @@ class WiFiScanner(core.Scanner):
         Start scanning with this WiFi adapter.
         """
         self.mgr.log_info("Started scanning with WiFi adapter %s" % self.mac)
+        self.mgr.net_send_line("STATE,wifi,%s,%0.3f,started_scanning" % (
+            self.mac.replace(':',''), time.time()))
 
         def v(addr):
             return self.protocol.valid(addr)
@@ -398,3 +405,5 @@ class WiFiScanner(core.Scanner):
         _logger_sta.stop()
         _logger_acp.stop()
         self.mgr.log_info("Stopped scanning with WiFi adapter %s" % self.mac)
+        self.mgr.net_send_line("STATE,wifi,%s,%0.3f,stopped_scanning" % (
+            self.mac.replace(':',''), time.time()))

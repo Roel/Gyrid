@@ -17,6 +17,9 @@ message Msg {
         Type_INFO = 15;
         Type_ACK = 16;
         Type_ZIP = 17;
+
+        Type_WIFI_STATE_FREQUENCY = 18;
+        Type_WIFI_DATAIO = 19;
     }
 
     required Type type = 1;
@@ -39,6 +42,8 @@ message Msg {
 
     optional bool success = 17;
     optional bool cached = 18 [default = false];
+
+    optional WiFi_StateFrequency wifi_stateFrequency = 19;
 }
 
 message RequestKeepalive {
@@ -49,6 +54,7 @@ message RequestKeepalive {
 message RequestState {
     optional bool bluetooth_enableInquiry = 1 [default = false];
     optional bool enableScanning = 2 [default = true];
+    optional bool wifi_enableFrequency = 3 [default = false];
 }
 
 message RequestCaching {
@@ -98,9 +104,15 @@ message StateScanning {
         Type_STOPPED = 2;
     }
 
+    enum HwType {
+        HwType_BLUETOOTH = 1;
+        HwType_WIFI = 2;
+    }
+
     optional Type type = 1;
     optional double timestamp = 2;
     optional bytes sensorMac = 3;
+    optional HwType hwType = 4;
 }
 
 message StateGyrid {
@@ -138,16 +150,28 @@ message Bluetooth_DataRaw {
     optional sint32 rssi = 5;
 }
 
+message WiFi_StateFrequency {
+    optional double timestamp = 1;
+    optional bytes sensorMac = 2;
+    optional uint32 frequency = 3;
+}
+
 message WiFi_DataIO {
+    enum Type {
+        Type_ACCESSPOINT = 1;
+        Type_MSTATION = 2;
+    }
+
     enum Move {
         Move_IN = 1;
         Move_OUT = 2;
     }
 
+    optional Type type = 1;
     optional double timestamp = 2;
     optional bytes sensorMac = 3;
     optional bytes hwid = 4;
-    optional Move move = 6;
+    optional Move move = 5;
 }
 
 message WiFi_DataRaw {
