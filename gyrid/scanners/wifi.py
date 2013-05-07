@@ -73,6 +73,7 @@ class WiFi(core.ScanProtocol):
                                 (2**14, 'rx_flags', 2, 'H')]
 
         self.scanners = {}
+        self.loggers = {}
         self.initialise_hardware()
 
     def initialise_hardware(self):
@@ -373,9 +374,14 @@ class WiFiScanner(core.Scanner):
             """
             return self.mgr.main.stopping
 
-        _rawlogger = logger.WiFiRawLogger(self.mgr, self.mac)
-        _logger_sta = logger.WiFiLogger(self.mgr, self.mac, 'STA')
-        _logger_acp = logger.WiFiLogger(self.mgr, self.mac, 'ACP')
+        if self.mac not in self.protocol.loggers:
+            _rawlogger = logger.WiFiRawLogger(self.mgr, self.mac)
+            _logger_sta = logger.WiFiLogger(self.mgr, self.mac, 'STA')
+            _logger_acp = logger.WiFiLogger(self.mgr, self.mac, 'ACP')
+            self.protocol.loggers[self.mac] = (_rawlogger, _logger_sta, _logger_acp)
+        else:
+            _rawlogger, _logger_sta, _logger_acp = self.protocol.loggers[self.mac]
+
         _logger_sta.start()
         _logger_acp.start()
         stations = {}
