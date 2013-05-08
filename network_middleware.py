@@ -404,7 +404,7 @@ class InetClient(Int16StringReceiver):
                 and not self.factory.cache.closed and not self.factory.cache_full \
                 and msg.type in [msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW,
                     msg.Type_BLUETOOTH_STATE_INQUIRY, msg.Type_STATE_SCANNING, msg.Type_INFO,
-                    msg.Type_WIFI_STATE_FREQUENCY, msg.Type_WIFI_DATARAW]:
+                    msg.Type_WIFI_STATE_FREQUENCY, msg.Type_WIFI_DATARAW, msg.Type_STATE_ANTENNA]:
                     self.factory.cache.write(
                         struct.pack('!H', msg.ByteSize()) + \
                         msg.SerializeToString())
@@ -466,6 +466,7 @@ class InetClient(Int16StringReceiver):
             self.factory.config['enable_state_scanning'] = msg.requestState.enableScanning
             self.factory.config['enable_state_inquiry'] = msg.requestState.bluetooth_enableInquiry
             self.factory.config['enable_state_frequency'] = msg.requestState.wifi_enableFrequency
+            self.factory.config['enable_state_antenna'] = msg.requestState.enableAntenna
 
             msg.success = True
             self.sendMsg(msg, await_ack=False)
@@ -567,7 +568,8 @@ class InetClientFactory(ReconnectingClientFactory):
                        'enable_uptime': False,
                        'enable_state_scanning': False,
                        'enable_state_inquiry': False,
-                       'enable_state_frequency': False}
+                       'enable_state_frequency': False,
+                       'enable_state_antenna': False}
 
         self.connected = False
         self.cache_full = False
@@ -764,6 +766,18 @@ class InetClientFactory(ReconnectingClientFactory):
             d.timestamp = float(data['timestamp'])
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             d.frequency = int(data['frequency'])
+            return m
+
+        elif data.startswith('STATE') and ('antenna_rotation' in data) and \
+            self.config['enable_state_antenna']:
+            data = dict(zip(['type', 'hwType', 'sensor_mac', 'timestamp', 'subtype', 'angle'],
+                data.split(',')))
+            m = proto.Msg()
+            m.type = m.Type_STATE_ANTENNA
+            d = m.stateAntenna
+            d.timestamp = float(data['timestamp'])
+            if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            d.angle = int(data['angle'])
             return m
 
         elif data.startswith('STATE') and ('_scanning' in data) and \
