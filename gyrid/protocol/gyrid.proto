@@ -16,14 +16,15 @@ message Msg {
         Type_INFO = 10;
         Type_STATE_SCANNING = 11;
         Type_STATE_GYRID = 12;
-        Type_UPTIME = 13;
-        Type_REQUEST_HOSTNAME = 14;
-        Type_REQUEST_KEEPALIVE = 15;
-        Type_REQUEST_UPTIME = 16;
-        Type_REQUEST_CACHING = 17;
-        Type_REQUEST_STARTDATA = 18;
-        Type_REQUEST_STATE = 19;
-        Type_HOSTNAME = 20;
+        Type_STATE_ANTENNA = 13;
+        Type_UPTIME = 14;
+        Type_REQUEST_HOSTNAME = 15;
+        Type_REQUEST_KEEPALIVE = 16;
+        Type_REQUEST_UPTIME = 17;
+        Type_REQUEST_CACHING = 18;
+        Type_REQUEST_STARTDATA = 19;
+        Type_REQUEST_STATE = 20;
+        Type_HOSTNAME = 21;
     }
 
     required Type type = 1;
@@ -44,15 +45,16 @@ message Msg {
     optional Info info = 11;
     optional StateScanning stateScanning = 12;
     optional StateGyrid stateGyrid = 13;
-    optional Uptime uptime = 14;
-    optional RequestKeepalive requestKeepalive = 15;
-    optional bool requestUptime = 16 [default = true];
-    optional RequestCaching requestCaching = 17;
-    optional RequestStartdata requestStartdata = 18;
-    optional RequestState requestState = 19;
-    optional Hostname hostname = 20;
+    optional StateAntenna stateAntenna = 14;
+    optional Uptime uptime = 15;
+    optional RequestKeepalive requestKeepalive = 16;
+    optional bool requestUptime = 17 [default = true];
+    optional RequestCaching requestCaching = 18;
+    optional RequestStartdata requestStartdata = 19;
+    optional RequestState requestState = 20;
+    optional Hostname hostname = 21;
 
-    optional bool success = 21;
+    optional bool success = 22;
 }
 
 message RequestKeepalive {
@@ -64,6 +66,7 @@ message RequestState {
     optional bool bluetooth_enableInquiry = 1 [default = false];
     optional bool enableScanning = 2 [default = true];
     optional bool wifi_enableFrequency = 3 [default = false];
+    optional bool enableAntenna = 4 [default = false];
 }
 
 message RequestCaching {
@@ -127,6 +130,12 @@ message StateGyrid {
     }
 
     optional Type type = 1;
+}
+
+message StateAntenna {
+    optional double timestamp = 1;
+    optional bytes sensorMac = 2;
+    optional uint32 angle = 3;
 }
 
 message Bluetooth_StateInquiry {
