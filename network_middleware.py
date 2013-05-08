@@ -670,6 +670,23 @@ class InetClientFactory(ReconnectingClientFactory):
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
 
+        elif data.startswith('WIFI_IO') or data.startswith('CWIFI_IO'):
+            m = proto.Msg()
+            m.type = m.Type_WIFI_DATAIO
+            d = m.wifi_dataIO
+            if data.startswith('C'): m.cached = True
+            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'hwid',
+                'devtype', 'move'], data.split(',')))
+            d.timestamp = float(data['timestamp'])
+            d.hwid = procHwid(data['hwid'])
+            if data['devtype'] == 'ACP':
+                d.type = d.Type_ACCESSPOINT
+            elif data['devtype'] == 'DEV':
+                d.type = d.Type_DEVICE
+            d.move = d.Move_IN if data['move'] == 'in' else d.Move_OUT
+            if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            return m
+
         elif (data.startswith('WIFI_RAW') or data.startswith('CWIFI_RAW')) \
                 and self.config['enable_rssi']: #FIXME: enable_raw
             m = proto.Msg()

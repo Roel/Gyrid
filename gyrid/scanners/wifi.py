@@ -271,7 +271,7 @@ class WiFiScanner(core.Scanner):
                 if 'pw-mgt' in fcfield:
                     pw_mgt = 'P'
                 if 'pw-mgt' in fcfield and d11.addr2:
-                    f(_logger_sta.update_device, timestamp, d11.addr2)
+                    f(_logger_dev.update_device, timestamp, d11.addr2)
 
                 if d11.type & 0b10 == 0b10: # data frame
                     if 'from-DS' in fcfield and 'to-DS' in fcfield:
@@ -288,7 +288,7 @@ class WiFiScanner(core.Scanner):
                         self.mgr.net_send_line(','.join(str(i) for i in ['WIFI_RAW', self.mac, timestamp,
                             frequency, 'data', 'from-ds', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
-                        f(_logger_sta.update_device, timestamp, d11.addr1)
+                        f(_logger_dev.update_device, timestamp, d11.addr1)
                         f(_logger_acp.update_device, timestamp, d11.addr2)
                     elif 'to-DS' in fcfield:
                         _rawlogger.write(timestamp, frequency, 'DATA', 'to-ds', h(d11.addr1),
@@ -297,15 +297,15 @@ class WiFiScanner(core.Scanner):
                             frequency, 'data', 'to-ds', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
                         f(_logger_acp.update_device, timestamp, d11.addr1)
-                        f(_logger_sta.update_device, timestamp, d11.addr2)
+                        f(_logger_dev.update_device, timestamp, d11.addr2)
                     elif 'from-DS' not in fcfield and 'to-DS' not in fcfield:
                         _rawlogger.write(timestamp, frequency, 'DATA', '', h(d11.addr1),
                             h(d11.addr2), ssi, retry, '')
                         self.mgr.net_send_line(','.join(str(i) for i in ['WIFI_RAW', self.mac, timestamp,
                             frequency, 'data', '', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
-                        f(_logger_sta.update_device, timestamp, d11.addr1)
-                        f(_logger_sta.update_device, timestamp, d11.addr2)
+                        f(_logger_dev.update_device, timestamp, d11.addr1)
+                        f(_logger_dev.update_device, timestamp, d11.addr2)
 
                 elif d11.type & 0b01 == 0b01: # control frame
                     if d11.subtype == 10: # PS-Poll
@@ -315,7 +315,7 @@ class WiFiScanner(core.Scanner):
                             frequency, 'ctrl', 'pspoll', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
                         f(_logger_acp.update_device, timestamp, d11.addr1)
-                        f(_logger_sta.update_device, timestamp, d11.addr2)
+                        f(_logger_dev.update_device, timestamp, d11.addr2)
                     else:
                         _rawlogger.write(timestamp, frequency, 'CTRL', '', h(d11.addr1),
                             h(d11.addr2), ssi, retry, '')
@@ -323,16 +323,16 @@ class WiFiScanner(core.Scanner):
                             frequency, 'ctrl', '', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
                         f(_logger_acp.seen_device, timestamp, d11.addr1)
-                        f(_logger_sta.seen_device, timestamp, d11.addr1)
+                        f(_logger_dev.seen_device, timestamp, d11.addr1)
                         f(_logger_acp.seen_device, timestamp, d11.addr2)
-                        f(_logger_sta.seen_device, timestamp, d11.addr2)
+                        f(_logger_dev.seen_device, timestamp, d11.addr2)
 
                 elif d11.type & 0b00 == 0b00: # management frame
                     if pkt.haslayer(scapy.all.Dot11Beacon):
                         tpe = d11.getlayer(scapy.all.Dot11Beacon).sprintf("%cap%")
                         if 'IBSS' in tpe:
                             tpe = 'IBSS'
-                            f(_logger_sta.update_device, timestamp, d11.addr2)
+                            f(_logger_dev.update_device, timestamp, d11.addr2)
                         elif 'ESS' in tpe:
                             tpe = 'ESS'
                             f(_logger_acp.update_device, timestamp, d11.addr2)
@@ -348,8 +348,8 @@ class WiFiScanner(core.Scanner):
                             frequency, 'mgmt', 'proberesp', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
                         f(_logger_acp.seen_device, timestamp, d11.addr2)
-                        f(_logger_sta.seen_device, timestamp, d11.addr2)
-                        f(_logger_sta.update_device, timestamp, d11.addr1)
+                        f(_logger_dev.seen_device, timestamp, d11.addr2)
+                        f(_logger_dev.update_device, timestamp, d11.addr1)
                     elif pkt.haslayer(scapy.all.Dot11ProbeReq):
                         elt = d11.getlayer(scapy.all.Dot11Elt)
                         ssid = ''
@@ -361,8 +361,8 @@ class WiFiScanner(core.Scanner):
                             frequency, 'mgmt', 'probereq', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, h(ssid)]))
                         f(_logger_acp.seen_device, timestamp, d11.addr1)
-                        f(_logger_sta.seen_device, timestamp, d11.addr1)
-                        f(_logger_sta.update_device, timestamp, d11.addr2)
+                        f(_logger_dev.seen_device, timestamp, d11.addr1)
+                        f(_logger_dev.update_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11Deauth): 
                         reason = pkt.getlayer(scapy.all.Dot11Deauth).fields.get('reason', '')
                         _rawlogger.write(timestamp, frequency, 'MGMT', 'deauth', h(d11.addr1),
@@ -371,9 +371,9 @@ class WiFiScanner(core.Scanner):
                             frequency, 'mgmt', 'deauth', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, reason]))
                         f(_logger_acp.seen_device, timestamp, d11.addr1)
-                        f(_logger_sta.seen_device, timestamp, d11.addr1)
+                        f(_logger_dev.seen_device, timestamp, d11.addr1)
                         f(_logger_acp.seen_device, timestamp, d11.addr2)
-                        f(_logger_sta.seen_device, timestamp, d11.addr2)
+                        f(_logger_dev.seen_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11Disas): 
                         reason = pkt.getlayer(scapy.all.Dot11Disas).fields.get('reason', '')
                         _rawlogger.write(timestamp, frequency, 'MGMT', 'disas', h(d11.addr1),
@@ -382,17 +382,17 @@ class WiFiScanner(core.Scanner):
                             frequency, 'mgmt', 'disas', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, reason]))
                         f(_logger_acp.seen_device, timestamp, d11.addr1)
-                        f(_logger_sta.seen_device, timestamp, d11.addr1)
+                        f(_logger_dev.seen_device, timestamp, d11.addr1)
                         f(_logger_acp.seen_device, timestamp, d11.addr2)
-                        f(_logger_sta.seen_device, timestamp, d11.addr2)
+                        f(_logger_dev.seen_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11ATIM):
                         _rawlogger.write(timestamp, frequency, 'MGMT', 'atim', h(d11.addr1),
                             h(d11.addr2), ssi, retry, '')
                         self.mgr.net_send_line(','.join(str(i) for i in ['WIFI_RAW', self.mac, timestamp,
                             frequency, 'mgmt', 'atim', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
-                        f(_logger_sta.update_device, timestamp, d11.addr1)
-                        f(_logger_sta.update_device, timestamp, d11.addr2)
+                        f(_logger_dev.update_device, timestamp, d11.addr1)
+                        f(_logger_dev.update_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11AssoReq):
                         _rawlogger.write(timestamp, frequency, 'MGMT', 'assoreq', h(d11.addr1),
                             h(d11.addr2), ssi, retry, '')
@@ -400,14 +400,14 @@ class WiFiScanner(core.Scanner):
                             frequency, 'mgmt', 'assoreq', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
                         f(_logger_acp.update_device, timestamp, d11.addr1)
-                        f(_logger_sta.update_device, timestamp, d11.addr2)
+                        f(_logger_dev.update_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11AssoResp):
                         _rawlogger.write(timestamp, frequency, 'MGMT', 'assoresp', h(d11.addr1),
                             h(d11.addr2), ssi, retry, '')
                         self.mgr.net_send_line(','.join(str(i) for i in ['WIFI_RAW', self.mac, timestamp,
                             frequency, 'mgmt', 'assoresp', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
-                        f(_logger_sta.update_device, timestamp, d11.addr1)
+                        f(_logger_dev.update_device, timestamp, d11.addr1)
                         f(_logger_acp.update_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11ReassoReq):
                         _rawlogger.write(timestamp, frequency, 'MGMT', 'reassoreq', h(d11.addr1),
@@ -416,14 +416,14 @@ class WiFiScanner(core.Scanner):
                             frequency, 'mgmt', 'reassoreq', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
                         f(_logger_acp.update_device, timestamp, d11.addr1)
-                        f(_logger_sta.update_device, timestamp, d11.addr2)
+                        f(_logger_dev.update_device, timestamp, d11.addr2)
                     elif pkt.haslayer(scapy.all.Dot11ReassoResp):
                         _rawlogger.write(timestamp, frequency, 'MGMT', 'reassoresp', h(d11.addr1),
                             h(d11.addr2), ssi, retry, '')
                         self.mgr.net_send_line(','.join(str(i) for i in ['WIFI_RAW', self.mac, timestamp,
                             frequency, 'mgmt', 'reassoresp', h(d11.addr1), h(d11.addr2), ssi,
                             retry, pw_mgt, '']))
-                        f(_logger_sta.update_device, timestamp, d11.addr1)
+                        f(_logger_dev.update_device, timestamp, d11.addr1)
                         f(_logger_acp.update_device, timestamp, d11.addr2)
 
         def stoppercheck(pkt):
@@ -434,13 +434,13 @@ class WiFiScanner(core.Scanner):
 
         if self.mac not in self.protocol.loggers:
             _rawlogger = logger.WiFiRawLogger(self.mgr, self.mac)
-            _logger_sta = logger.WiFiLogger(self.mgr, self.mac, 'STA')
+            _logger_dev = logger.WiFiLogger(self.mgr, self.mac, 'DEV')
             _logger_acp = logger.WiFiLogger(self.mgr, self.mac, 'ACP')
-            self.protocol.loggers[self.mac] = (_rawlogger, _logger_sta, _logger_acp)
+            self.protocol.loggers[self.mac] = (_rawlogger, _logger_dev, _logger_acp)
         else:
-            _rawlogger, _logger_sta, _logger_acp = self.protocol.loggers[self.mac]
+            _rawlogger, _logger_dev, _logger_acp = self.protocol.loggers[self.mac]
 
-        _logger_sta.start()
+        _logger_dev.start()
         _logger_acp.start()
         stations = {}
         try:
@@ -453,7 +453,7 @@ class WiFiScanner(core.Scanner):
             wigy.set_status(self.iface, 0)
         except IOError:
             pass
-        _logger_sta.stop()
+        _logger_dev.stop()
         _logger_acp.stop()
         self.mgr.log_info("Stopped scanning with WiFi adapter %s" % self.mac)
         self.mgr.net_send_line("STATE,wifi,%s,%0.3f,stopped_scanning" % (

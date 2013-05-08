@@ -539,6 +539,8 @@ class WiFiLogger(ScanLogger):
                 time.localtime(timestamp)),
                 str(hwid),
                 str(moving)]))
+            self.mgr.net_send_line(','.join(str(i) for i in ['WIFI_IO', self.mac, timestamp,
+                hwid, self.type, moving]))
 
     def seen_device(self, timestamp, hwid):
         if hwid in self.pool:
