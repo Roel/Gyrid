@@ -159,7 +159,7 @@ class BluetoothScanner(core.Scanner):
                     _logger_inquiry = logger.InquiryLogger(self.mgr, self.mac)
                     self.protocol.loggers[self.mac] = (_logger, _logger_rssi, _logger_inquiry)
                 else:
-                    _logger, _logger_rssi, _logger_inquiry = self.loggers[self.mac]
+                    _logger, _logger_rssi, _logger_inquiry = self.protocol.loggers[self.mac]
 
                 _discoverer = discoverer.Discoverer(self.mgr, _logger, _logger_rssi,
                     _logger_inquiry, self.dev_id, self.mac)
