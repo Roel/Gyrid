@@ -9,20 +9,21 @@ message Msg {
 
         Type_WIFI_STATE_FREQUENCY = 6;
         Type_WIFI_DATARAW = 7;
+        Type_WIFI_DATAIO = 8;
 
-        Type_ZIP = 8;
+        Type_ZIP = 9;
 
-        Type_INFO = 9;
-        Type_STATE_SCANNING = 10;
-        Type_STATE_GYRID = 11;
-        Type_UPTIME = 12;
-        Type_REQUEST_HOSTNAME = 13;
-        Type_REQUEST_KEEPALIVE = 14;
-        Type_REQUEST_UPTIME = 15;
-        Type_REQUEST_CACHING = 16;
-        Type_REQUEST_STARTDATA = 17;
-        Type_REQUEST_STATE = 18;
-        Type_HOSTNAME = 19;
+        Type_INFO = 10;
+        Type_STATE_SCANNING = 11;
+        Type_STATE_GYRID = 12;
+        Type_UPTIME = 13;
+        Type_REQUEST_HOSTNAME = 14;
+        Type_REQUEST_KEEPALIVE = 15;
+        Type_REQUEST_UPTIME = 16;
+        Type_REQUEST_CACHING = 17;
+        Type_REQUEST_STARTDATA = 18;
+        Type_REQUEST_STATE = 19;
+        Type_HOSTNAME = 20;
     }
 
     required Type type = 1;
@@ -36,21 +37,22 @@ message Msg {
 
     optional WiFi_StateFrequency wifi_stateFrequency = 7;
     optional WiFi_DataRaw wifi_dataRaw = 8;
+    optional WiFi_DataIO wifi_dataIO = 9;
 
-    optional Zip zip = 9;
+    optional Zip zip = 10;
 
-    optional Info info = 10;
-    optional StateScanning stateScanning = 11;
-    optional StateGyrid stateGyrid = 12;
-    optional Uptime uptime = 13;
-    optional RequestKeepalive requestKeepalive = 14;
-    optional bool requestUptime = 15 [default = true];
-    optional RequestCaching requestCaching = 16;
-    optional RequestStartdata requestStartdata = 17;
-    optional RequestState requestState = 18;
-    optional Hostname hostname = 19;
+    optional Info info = 11;
+    optional StateScanning stateScanning = 12;
+    optional StateGyrid stateGyrid = 13;
+    optional Uptime uptime = 14;
+    optional RequestKeepalive requestKeepalive = 15;
+    optional bool requestUptime = 16 [default = true];
+    optional RequestCaching requestCaching = 17;
+    optional RequestStartdata requestStartdata = 18;
+    optional RequestState requestState = 19;
+    optional Hostname hostname = 20;
 
-    optional bool success = 20;
+    optional bool success = 21;
 }
 
 message RequestKeepalive {
@@ -162,7 +164,7 @@ message WiFi_StateFrequency {
 message WiFi_DataIO {
     enum Type {
         Type_ACCESSPOINT = 1;
-        Type_MSTATION = 2;
+        Type_DEVICE = 2;
     }
 
     enum Move {
