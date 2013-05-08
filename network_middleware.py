@@ -398,12 +398,13 @@ class InetClient(Int16StringReceiver):
                              await_ack buffer.
         """
         if (not self.factory.config['enable_data_transfer'] and msg.type in [
-            msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW]) or not self.factory.connected:
+            msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW, msg.Type_WIFI_DATARAW]) \
+                or not self.factory.connected:
             if self.factory.config['enable_cache'] \
                 and not self.factory.cache.closed and not self.factory.cache_full \
                 and msg.type in [msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW,
                     msg.Type_BLUETOOTH_STATE_INQUIRY, msg.Type_STATE_SCANNING, msg.Type_INFO,
-                    msg.Type_WIFI_STATE_FREQUENCY]:
+                    msg.Type_WIFI_STATE_FREQUENCY, msg.Type_WIFI_DATARAW]:
                     self.factory.cache.write(
                         struct.pack('!H', msg.ByteSize()) + \
                         msg.SerializeToString())
@@ -459,7 +460,7 @@ class InetClient(Int16StringReceiver):
             self.sendMsg(msg, await_ack=False)
 
         elif msg.type == msg.Type_ACK:
-            self.factory.ackmap.clearItem(binascii.b2a_hex(msg.ack.crc32))
+            self.factory.ackmap.clearItem(binascii.b2a_hex(msg.ack))
 
         elif msg.type == msg.Type_REQUEST_STATE:
             self.factory.config['enable_state_scanning'] = msg.requestState.enableScanning
@@ -667,6 +668,61 @@ class InetClientFactory(ReconnectingClientFactory):
             d.hwid = procHwid(data['mac'])
             d.rssi = int(data['rssi'])
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            return m
+
+        elif (data.startswith('WIFI_RAW') or data.startswith('CWIFI_RAW')) \
+                and self.config['enable_rssi']: #FIXME: enable_raw
+            m = proto.Msg()
+            m.type = m.Type_WIFI_DATARAW
+            w = m.wifi_dataRaw
+            if data.startswith('C'): m.cached = True
+            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'freq', 'type', 'subtype', 'hwid1', 'hwid2', 'ssi', 'retry', 'pw_mgmt', 'extra'],
+                data.split(',')))
+
+            w.frametype = {'data': w.FrameType_DATA,
+                           'ctrl': w.FrameType_CTRL,
+                           'mgmt': w.FrameType_MGMT}[data['type']]
+
+            if w.frametype == w.FrameType_DATA:
+                w.data.from_ds = 'from-ds' in data['subtype']
+                w.data.to_ds = 'to-ds' in data['subtype']
+
+            elif w.frametype == w.FrameType_CTRL:
+                if data['subtype'] == 'pspoll':
+                    w.ctrl.subType  = w.ctrl.SubType_PSPOLL
+                else:
+                    w.ctrl.subType  = w.ctrl.SubType_OTHER
+
+            elif w.frametype == w.FrameType_MGMT:
+                s = w.mgmt
+                s.subType = {'beacon': s.SubType_BEACON,
+                             'proberesp': s.SubType_PROBERESP,
+                             'probereq': s.SubType_PROBEREQ,
+                             'deauth': s.SubType_DEAUTH,
+                             'disas': s.SubType_DISAS,
+                             'atim': s.SubType_ATIM,
+                             'assoreq': s.SubType_ASSOREQ,
+                             'assoresp': s.SubType_ASSORESP,
+                             'reassoreq': s.SubType_REASSOREQ,
+                             'reassoresp': s.SubType_REASSORESP}[data['subtype']]
+
+                if s.subType == s.SubType_BEACON:
+                    if data['extra'] == 'ESS':
+                        s.beacon.type = s.beacon.Type_ESS
+                    elif data['extra'] == 'IBSS':
+                        s.beacon.type = s.beacon.Type_IBSS
+
+                elif s.subType == s.SubType_PROBEREQ:
+                    s.probeReq.hSsid = binascii.a2b_hex(data['extra'])
+
+            w.timestamp = float(data['timestamp'])
+            w.frequency = int(data['freq'])
+            w.ssi = int(data['ssi'])
+            w.hwid1 = procHwid(data['hwid1'])
+            w.hwid2 = procHwid(data['hwid2'])
+            if data['retry']: w.retry = True
+            if data['pw_mgmt']: w.pw_mgmt = True
+            if c['enable_sensor_mac']: w.sensorMac = procHwid(data['sensor_mac'])
             return m
 
         elif data.startswith('STATE') and ('new_inquiry' in data) and \
