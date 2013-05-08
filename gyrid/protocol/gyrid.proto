@@ -1,49 +1,56 @@
 message Msg {
     enum Type {
-        Type_REQUEST_HOSTNAME = 1;
-        Type_REQUEST_KEEPALIVE = 2;
-        Type_REQUEST_UPTIME = 3;
-        Type_REQUEST_CACHING = 4;
-        Type_REQUEST_STARTDATA = 5;
-        Type_REQUEST_STATE = 6;
-        Type_HOSTNAME = 7;
-        Type_KEEPALIVE = 8;
-        Type_UPTIME = 9;
-        Type_BLUETOOTH_DATAIO = 10;
-        Type_BLUETOOTH_DATARAW = 11;
-        Type_BLUETOOTH_STATE_INQUIRY = 12;
-        Type_STATE_SCANNING = 13;
-        Type_STATE_GYRID = 14;
-        Type_INFO = 15;
-        Type_ACK = 16;
-        Type_ZIP = 17;
+        Type_ACK = 1;
+        Type_KEEPALIVE = 2;
 
-        Type_WIFI_STATE_FREQUENCY = 18;
-        Type_WIFI_DATAIO = 19;
+        Type_BLUETOOTH_DATAIO = 3;
+        Type_BLUETOOTH_DATARAW = 4;
+        Type_BLUETOOTH_STATE_INQUIRY = 5;
+
+        Type_WIFI_STATE_FREQUENCY = 6;
+        Type_WIFI_DATARAW = 7;
+
+        Type_ZIP = 8;
+
+        Type_INFO = 9;
+        Type_STATE_SCANNING = 10;
+        Type_STATE_GYRID = 11;
+        Type_UPTIME = 12;
+        Type_REQUEST_HOSTNAME = 13;
+        Type_REQUEST_KEEPALIVE = 14;
+        Type_REQUEST_UPTIME = 15;
+        Type_REQUEST_CACHING = 16;
+        Type_REQUEST_STARTDATA = 17;
+        Type_REQUEST_STATE = 18;
+        Type_HOSTNAME = 19;
     }
 
     required Type type = 1;
 
-    optional RequestKeepalive requestKeepalive = 2;
-    optional bool requestUptime = 3 [default = true];
-    optional RequestCaching requestCaching = 4;
-    optional RequestStartdata requestStartdata = 5;
-    optional RequestState requestState = 6;
-    optional Hostname hostname = 7;
-    optional Uptime uptime = 8;
-    optional Bluetooth_DataIO bluetooth_dataIO = 9;
-    optional Bluetooth_DataRaw bluetooth_dataRaw = 10;
-    optional Bluetooth_StateInquiry bluetooth_stateInquiry = 11;
-    optional StateScanning stateScanning = 12;
-    optional StateGyrid stateGyrid = 13;
-    optional Info info = 14;
-    optional Ack ack = 15;
-    optional Zip zip = 16;
+    optional bytes ack = 2;
+    optional bool cached = 3 [default = false];
 
-    optional bool success = 17;
-    optional bool cached = 18 [default = false];
+    optional Bluetooth_DataIO bluetooth_dataIO = 4;
+    optional Bluetooth_DataRaw bluetooth_dataRaw = 5;
+    optional Bluetooth_StateInquiry bluetooth_stateInquiry = 6;
 
-    optional WiFi_StateFrequency wifi_stateFrequency = 19;
+    optional WiFi_StateFrequency wifi_stateFrequency = 7;
+    optional WiFi_DataRaw wifi_dataRaw = 8;
+
+    optional Zip zip = 9;
+
+    optional Info info = 10;
+    optional StateScanning stateScanning = 11;
+    optional StateGyrid stateGyrid = 12;
+    optional Uptime uptime = 13;
+    optional RequestKeepalive requestKeepalive = 14;
+    optional bool requestUptime = 15 [default = true];
+    optional RequestCaching requestCaching = 16;
+    optional RequestStartdata requestStartdata = 17;
+    optional RequestState requestState = 18;
+    optional Hostname hostname = 19;
+
+    optional bool success = 20;
 }
 
 message RequestKeepalive {
@@ -76,10 +83,6 @@ message Hostname {
 message Uptime {
     optional double gyridStartup = 1;
     optional double systemStartup = 2;
-}
-
-message Ack {
-    optional bytes crc32 = 1;
 }
 
 message Zip {
@@ -181,13 +184,65 @@ message WiFi_DataRaw {
         FrameType_DATA = 3;
     }
 
-    optional double timestamp = 2;
-    optional bytes sensorMac = 3;
-    optional uint32 frequency = 4;
-    optional FrameType frametype = 5;
+    message Data {
+        optional bool from_ds = 1;
+        optional bool to_ds = 2;
+    }
 
-    optional bytes hwid1 = 7;
-    optional bytes hwid2 = 8;
+    message Ctrl {
+        enum SubType {
+            SubType_PSPOLL = 1;
+            SubType_OTHER = 2;
+        }
+
+        optional SubType subType = 1;
+    }
+
+    message Mgmt {
+        enum SubType {
+            SubType_BEACON = 1;
+            SubType_PROBERESP = 2;
+            SubType_PROBEREQ = 3;
+            SubType_DEAUTH = 4;
+            SubType_DISAS = 5;
+            SubType_ATIM = 6;
+            SubType_ASSOREQ = 7;
+            SubType_ASSORESP = 8;
+            SubType_REASSOREQ = 9;
+            SubType_REASSORESP = 10;
+        }
+
+        message Beacon {
+            enum Type {
+                Type_ESS = 1;
+                Type_IBSS = 2;
+            }
+
+            optional Type type = 1;
+        }
+
+        message ProbeReq {
+            optional bytes hSsid = 1;
+        }
+
+        optional SubType subType = 1;
+        optional Beacon beacon = 2;
+        optional ProbeReq probeReq = 3;
+    }
+
+    optional double timestamp = 1;
+    optional bytes sensorMac = 2;
+    optional uint32 frequency = 3;
+    optional bool pw_mgmt = 4 [default = false];
+    optional bool retry = 5 [default = false];
+    optional FrameType frametype = 6;
+
+    optional Mgmt mgmt = 7;
+    optional Ctrl ctrl = 8;
+    optional Data data = 9;
+
+    optional bytes hwid1 = 10;
+    optional bytes hwid2 = 11;
     
-    optional sint32 rssi = 6;
+    optional sint32 ssi = 12;
 }
