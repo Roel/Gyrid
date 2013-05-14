@@ -365,8 +365,11 @@ class InetClient(Int16StringReceiver):
         Called when the connection has been lost.
         Open cache file and write await_ack buffer to cache.
         """
-        if self.factory.config['enable_cache'] and self.factory.cache.closed \
-            and not self.factory.cache_full:
+        if not self.factory.cache.closed:
+            self.factory.cache.flush()
+            self.factory.cache.close()
+
+        if self.factory.config['enable_cache'] and not self.factory.cache_full:
             self.factory.cache = open(self.factory.cache_file, 'ab')
             for i in self.factory.ackmap.ackmap:
                 self.factory.cache.write(
