@@ -56,3 +56,9 @@ class Hooks(object):
         Executed when a Bluetooth device has been discovered.
         """
         self.arduino.write_log(address, device_class, rssi)
+
+    def stop(self):
+        """
+        Executed when discovery process end.
+        """
+        self.arduino.stop()

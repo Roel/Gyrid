@@ -778,7 +778,7 @@ class InetClientFactory(ReconnectingClientFactory):
             d = m.stateAntenna
             d.timestamp = float(data['timestamp'])
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
-            d.angle = int(data['angle'])
+            d.angle = float(data['angle'])
             return m
 
         elif data.startswith('STATE') and ('_scanning' in data) and \

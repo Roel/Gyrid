@@ -110,6 +110,11 @@ class Arduino(object):
                 conn.write('s')
                 time.sleep(0.0035 * 180)
                 self.angle = 0
+                self.mgr.debug("%s: Antenna initialised to %i degrees" % (
+                    self.mac, self.angle))
+                self.mgr.net_send_line(','.join([str(i) for i in ['STATE',
+                    'bluetooth', self.mac.replace(':','').lower(),
+                    '%0.3f' % time.time(), 'antenna_rotation', self.angle]]))
                 self.asc = True
                 self.first_inquiry = True
                 self.has_been_connected = True
@@ -143,6 +148,12 @@ class Arduino(object):
             if self.write('%i' % angle) and self.write('s'):
                 time.sleep(0.0035 * 180)
                 self.angle = angle
+                self.mgr.debug("%s: Antenna turning to %i degrees" % (
+                    self.mac, self.angle))
+                self.mgr.net_send_line(','.join([str(i) for i in ['STATE',
+                    'bluetooth', self.mac.replace(':','').lower(),
+                    '%0.3f' % time.time(), 'antenna_rotation',
+                    '%0.2f' % self.angle]]))
 
         self.first_inquiry = False
 
@@ -160,3 +171,6 @@ class Arduino(object):
             self.log.info(",".join([time.strftime(self.time_format,
                 time.localtime(timestamp)), str(address),
                 str(rssi), "%0.2f" % self.angle]))
+
+    def stop(self):
+        self.conn.close()

@@ -120,7 +120,7 @@ message StateGyrid {
 message StateAntenna {
     optional double timestamp = 1;
     optional bytes sensorMac = 2;
-    optional uint32 angle = 3;
+    optional float angle = 3;
 }
 
 message Bluetooth_StateInquiry {

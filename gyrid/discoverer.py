@@ -175,9 +175,6 @@ class Discoverer(object):
         """
         Perform a Bluetooth inquiry with RSSI reception.
         """
-        self.logger_inquiry.write(time.time(), self.buffer_size*1.28)
-        self.mgr.debug("%s: New inquiry" % self.mac)
-
         # save current filter
         old_filter = self.sock.getsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, 14)
 
@@ -192,6 +189,9 @@ class Discoverer(object):
             max_responses)
 
         self.hooks.pre_inquiry()
+        self.logger_inquiry.write(time.time(), self.buffer_size*1.28)
+        self.mgr.debug("%s: New inquiry" % self.mac)
+
         bluez.hci_send_cmd(self.sock, bluez.OGF_LINK_CTL, bluez.OCF_INQUIRY,
             cmd_pkt)
 
@@ -249,6 +249,8 @@ class Discoverer(object):
             end = self._device_inquiry_with_with_rssi()
             if self.mgr.main.stopping:
                 end = "Shutting down"
+
+        self.hooks.stop()
         return " (%s)" % end
 
     def device_discovered(self, address, device_class, rssi):
