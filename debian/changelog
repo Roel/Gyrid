@@ -1,3 +1,15 @@
+gyrid (0.8-0) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control:
+      - build-depend on python-dev
+      - build-depend on libiw-dev
+      - build-depend on protobuf-compiler
+      - depend on python-protobuf
+      - update package description
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 14 May 2013 14:52:07 +0200
+
 gyrid (0.7-0) unstable; urgency=low
 
   * New upstream release.

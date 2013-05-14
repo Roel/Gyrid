@@ -23,6 +23,7 @@ import os
 
 from distutils.core import setup, Extension
 from distutils.command.install_data import install_data
+from distutils.command.build_py import build_py
 from distutils.dep_util import newer
 from distutils.log import info
 
@@ -58,24 +59,31 @@ class InstallData(install_data):
 
         str = {'build': buildDir, 'file': file, 'fileLower': filename.lower()}
         cmd = 'gzip -c --best %(file)s > %(build)s/%(fileLower)s.gz' % str
-        info('gzipping %s' % file)
+        info('gzip %s' % file)
         if os.system(cmd) != 0:
             raise SystemExit('Error while gzipping %(file)s' % str)
         self.data_files.append((dest, ['%(build)s/%(fileLower)s.gz' % str]))
 
+class BuildPy(build_py):
+    def run(self):
+        os.system('protoc --python_out=. gyrid/protocol/gyrid.proto')
+        if os.path.exists('gyrid/protocol/gyrid_pb2.py'):
+            os.rename('gyrid/protocol/gyrid_pb2.py', 'gyrid/protocol/network.py')
+        build_py.run(self)
+
 wigy = Extension("wigy",
-            sources = ["wigy/wigy.c"],
+            sources = ["gyrid/wigy/wigy.c"],
             libraries = ["iw"])
 
 setup(name = "gyrid",
-      version = "0.7-0",
+      version = "0.8-0",
       description = "Bluetooth device scanner.",
       author = "Roel Huybrechts",
       author_email = "roel.huybrechts@ugent.be",
       license = "GPLv3",
-      packages = ["gyrid", "gyrid/tools"],
+      packages = ["gyrid", "gyrid/protocol", "gyrid/scanners", "gyrid/tools"],
       data_files = [("/etc/init.d", ['init/gyrid']),
                     ("/usr/share/gyrid", ['network_middleware.py', 'bin/gyrid-start']),
                     ("/usr/share/doc/gyrid", ['README.net-api'])],
-      cmdclass = {'install_data': InstallData},
+      cmdclass = {'build_py': BuildPy, 'install_data': InstallData},
       ext_modules = [wigy])

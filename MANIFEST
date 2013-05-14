@@ -9,10 +9,16 @@ gyrid/arduino.py
 gyrid/configuration.py
 gyrid/discoverer.py
 gyrid/gyrid.py
+gyrid/hashing.py
 gyrid/hooks.py
 gyrid/logger.py
 gyrid/network.py
+gyrid/protocol/__init__.py
+gyrid/protocol/gyrid.proto
 gyrid/scanmanager.py
+gyrid/scanners/__init__.py
+gyrid/scanners/bluetooth.py
+gyrid/scanners/wifi.py
 gyrid/testing/__init__.py
 gyrid/testing/discoverer_playback.py
 gyrid/testing/discoverer_random.py

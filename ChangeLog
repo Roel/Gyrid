@@ -1,3 +1,11 @@
+gyrid 0.8
+
+    * ADD: WiFi scanning.
+    * ADD: Hashing of privacy sensitive data.
+    * UPD: Replace network protocol by a binary version.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 14 May 2013 13:10:35 +0200
+
 gyrid 0.7
 
     * ADD: Inquiry logging.

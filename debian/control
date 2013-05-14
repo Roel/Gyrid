@@ -4,7 +4,10 @@ Priority: optional
 Maintainer: Roel Huybrechts <roel.huybrechts@ugent.be>
 Build-Depends: cdbs(>= 0.4.89),
  debhelper (>= 8.0.0),
- python (>= 2.6.6)
+ libiw-dev (>= 30~pre9),
+ protobuf-compiler (>= 2.4.1),
+ python (>= 2.6.6),
+ python-dev (>= 2.6.6)
 Build-Depends-Indep: python-support (>= 1.0.10)
 XS-Python-Version: all
 Standards-Version: 3.8.4
@@ -20,8 +23,10 @@ Depends: ${misc:Depends}, ${python:Depends},
  python-dbus (>= 0.83.1),
  python-gobject (>= 2.21.4),
  python-openssl (>= 0.10),
+ python-protobuf (>= 2.4.1),
  python-serial (>= 2.5),
  python-twisted-core (>= 10.1.0)
-Description: Bluetooth device scanner and logger daemon
- Gyrid scans the neighbourhood for Bluetooth devices and
- logs all hardware addresses and device classes found.
+Description: Mobile device scanner and logger daemon
+ Gyrid scans the neighbourhood for Bluetooth and WiFi devices
+ and can send this data in realtime to a network server and/or
+ store it locally in logfiles.
