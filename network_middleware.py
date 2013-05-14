@@ -490,13 +490,11 @@ class InetClient(Int16StringReceiver):
 
         elif msg.type == msg.Type_REQUEST_STARTDATA:
             self.factory.config['enable_data_transfer'] = msg.requestStartdata.enableData
-            self.factory.config['enable_rssi'] = msg.requestStartdata.enableRaw
+            self.factory.config['enable_raw'] = msg.requestStartdata.enableRaw
             self.factory.config['enable_sensor_mac'] = msg.requestStartdata.enableSensorMac
 
             msg.success = True
             self.sendMsg(msg, await_ack=False)
-
-            #FIXME: start data transfer now
 
     def processLocalData(self, data):
         """
@@ -565,14 +563,14 @@ class InetClientFactory(ReconnectingClientFactory):
         self.client = None
         self.maxDelay = 120
 
-        self.config = {'enable_rssi': False,
+        self.config = {'enable_raw': True,
                        'enable_sensor_mac': True,
                        'enable_cache': True,
                        'enable_uptime': False,
-                       'enable_state_scanning': False,
-                       'enable_state_inquiry': False,
-                       'enable_state_frequency': False,
-                       'enable_state_antenna': False}
+                       'enable_state_scanning': True,
+                       'enable_state_inquiry': True,
+                       'enable_state_frequency': True,
+                       'enable_state_antenna': True}
 
         self.connected = False
         self.cache_full = False
@@ -662,7 +660,7 @@ class InetClientFactory(ReconnectingClientFactory):
             return m
             
         elif (data.startswith('SIGHT_RSSI') or data.startswith('CACHE_RSSI')) \
-                and self.config['enable_rssi']:
+                and self.config['enable_raw']:
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_DATARAW
             d = m.bluetooth_dataRaw
@@ -693,7 +691,7 @@ class InetClientFactory(ReconnectingClientFactory):
             return m
 
         elif (data.startswith('WIFI_RAW') or data.startswith('CWIFI_RAW')) \
-                and self.config['enable_rssi']: #FIXME: enable_raw
+                and self.config['enable_raw']:
             m = proto.Msg()
             m.type = m.Type_WIFI_DATARAW
             w = m.wifi_dataRaw
