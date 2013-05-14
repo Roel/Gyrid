@@ -1,3 +1,9 @@
+gyrid 0.8.1
+
+    * FIX: MANIFEST: include core.py
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 14 May 2013 15:52:00 +0200
+
 gyrid 0.8
 
     * ADD: WiFi scanning.
