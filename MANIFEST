@@ -7,6 +7,7 @@ doc/gyrid.1
 gyrid/__init__.py
 gyrid/arduino.py
 gyrid/configuration.py
+gyrid/core.py
 gyrid/discoverer.py
 gyrid/gyrid.py
 gyrid/hashing.py
