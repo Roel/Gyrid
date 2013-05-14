@@ -69,7 +69,7 @@ class Arduino(object):
         """
         try:
             self.conn.write(string)
-        except (AttributeError, OSError):
+        except (AttributeError, OSError, serial.SerialException):
             if self.conn:
                 self.conn.close()
                 self.conn = None
@@ -128,6 +128,9 @@ class Arduino(object):
         Turn the platform based on the current angle and the turning
         resolution.
         """
+        if self.dev and not self.conn:
+            self.conn = self.get_conn()
+
         if self.conn and not self.first_inquiry:
             d_angle = 180.0/self.resolution
 
@@ -163,9 +166,6 @@ class Arduino(object):
         fields of the rssi log plus the angle of the platform
         at which the detection was received.
         """
-        if self.dev and not self.conn:
-            self.conn = self.get_conn()
-
         if self.has_been_connected:
             timestamp = int(time.time())
             self.log.info(",".join([time.strftime(self.time_format,
@@ -173,4 +173,5 @@ class Arduino(object):
                 str(rssi), "%0.2f" % self.angle]))
 
     def stop(self):
-        self.conn.close()
+        if self.conn:
+            self.conn.close()
