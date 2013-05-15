@@ -1,8 +1,14 @@
-Gyrid is a Bluetooth device scanner. When there is a Bluetooth adapter connected
-to the computer, it continuously scans for Bluetooth-enabled devices which are
-publicly visible. Their MAC-addresses are saved to a logfile including a timestamp
-and their device class (which is a number that indicates whether the device is a
-phone, a carkit, etc.).
+Gyrid is a mobile device scanner using Bluetooth and WiFi wireless technologies.
+
+When there is a Bluetooth adapter connected to the computer, it continuously
+scans for Bluetooth-enabled devices which are publicly visible. Their
+hardware id's are saved to a logfile including a timestamp and their device
+ class (which is a code that indicates whether the device is a phone,
+a carkit, etc.).
+
+With a WiFi adapter attached, Gyrid monitors the radiospectrum for wireless
+activity and logs received packet information. With respect to users privacy,
+only the 802.11 packet headers are logged, not the packet contents.
 
 The idea behind this is scientifical. When multiple of these scanners are placed
 at known positions, the logfiles can be combined into a (geo)database and used

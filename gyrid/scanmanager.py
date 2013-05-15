@@ -2,7 +2,7 @@
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner.
+# Gyrid is a mobile device scanner.
 # Copyright (C) 2009-2011  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify

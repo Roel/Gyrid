@@ -3,7 +3,7 @@
 #
 # This file belongs to Gyrid.
 #
-# Gyrid is a Bluetooth device scanner.
+# Gyrid is a mobile device scanner.
 # Copyright (C) 2009-2012  Roel Huybrechts
 #
 # This program is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ wigy = Extension("wigy",
 
 setup(name = "gyrid",
       version = "0.8.1",
-      description = "Bluetooth device scanner.",
+      description = "Mobile device scanner.",
       author = "Roel Huybrechts",
       author_email = "roel.huybrechts@ugent.be",
       license = "GPLv3",

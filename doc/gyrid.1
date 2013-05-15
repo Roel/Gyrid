@@ -1,13 +1,15 @@
 .TH "gyrid" 1
 .SH NAME
-gyrid \- A Bluetooth device scanner and logger.
+gyrid \- A mobile device scanner and logger.
 .SH SYNOPSIS
 .B /etc/init.d/gyrid
 start|stop|restart
 .SH DESCRIPTION
 Gyrid continuously scans the neighborhood for Bluetooth-enabled devices which are publicly visible, given there is a Bluetooth adapter connected. It can scan with multiple adapters simultaneously too.
 
-The MAC-addresses of the discovered devices are saved to a logfile including a timestamp and their device class (which is a number that indicates whether the device is a phone, a carkit, etc.). Optionally, the RSSI value of each detection can be saved as well.
+The hardware id's of the discovered devices are saved to a logfile including a timestamp and their device class (which is a number that indicates whether the device is a phone, a carkit, etc.). Optionally, the RSSI value of each detection can be saved as well.
+
+When there is a WiFi adapter attached which is not managed by NetworkManager, it is used to monitor the radiospectrum for WiFi activity. All received packets are logged, with respect to the users privacy. Only the 802.11 packet headers are saved, the packet content is not.
 
 The idea behind this is scientifical. When multiple of these scanners are placed at known positions, the logfiles can be combined into a (geo)database and used for further analysis. This can be done in realtime via a network server or in postprocessing.
 .SH OPTIONS
@@ -37,11 +39,12 @@ Configuration file where a few options can be specified. The default configurati
 File where blacklisted MAC-addresses can be listed, which will be exluded from registration. One can list either a full address or only the starting part.
 In the latter case, all addresses starting with that part will be blacklisted.
 .TP
+/etc/gyrid/arduino.conf
+File where the Arduino-based rotating antenna configuration resides. It is a CSV file with in the first column the MAC-address of the Bluetooth sensor, in the second column the Arduino id (f.ex. arduino001) and in the third column the turning resolution (i.e. in how many parts the 180 degree arc is divided).
+.TP
 /var/log/gyrid/
 This is the directory where all logfiles are stored.
 .SH BUGS
 Bugs and patches are welcome via e-mail at <roel.huybrechts@ugent.be>
-.SH VCS
-Gyrid is maintained in Git at <http://github.com/Roel/Gyrid>. Please test bugs and generate patches against current master.
 .SH AUTHOR
 Roel Huybrechts <roel.huybrechts@ugent.be>, Ghent University
