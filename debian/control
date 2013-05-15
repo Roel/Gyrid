@@ -24,6 +24,7 @@ Depends: ${misc:Depends}, ${python:Depends},
  python-gobject (>= 2.21.4),
  python-openssl (>= 0.10),
  python-protobuf (>= 2.4.1),
+ python-scapy (>= 2.2.0),
  python-serial (>= 2.5),
  python-twisted-core (>= 10.1.0)
 Description: Mobile device scanner and logger daemon

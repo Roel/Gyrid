@@ -76,7 +76,7 @@ wigy = Extension("wigy",
             libraries = ["iw"])
 
 setup(name = "gyrid",
-      version = "0.8.1-0",
+      version = "0.8.1",
       description = "Bluetooth device scanner.",
       author = "Roel Huybrechts",
       author_email = "roel.huybrechts@ugent.be",

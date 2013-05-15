@@ -1,3 +1,10 @@
+gyrid (0.8.1-1) unstable; urgency=low
+
+  * debian/control:
+      - depend on python-scapy
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 14 May 2013 16:39:06 +0200
+
 gyrid (0.8.1-0) unstable; urgency=low
 
   * New upstream release.
