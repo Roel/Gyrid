@@ -30,6 +30,7 @@ import time
 
 import configuration
 import discoverer
+import hashing
 import logger
 import network
 import wigy
@@ -66,6 +67,7 @@ class ScanManager(object):
         self.config = configuration.Configuration(self, self.main.configfile)
         self.info_logger = logger.InfoLogger(self, self.get_info_log_location())
         self.time_format = self.config.get_value('time_format')
+        self.enable_hashing = self.config.get_value('enable_hashing')
 
     def init(self):
         """
@@ -84,18 +86,11 @@ class ScanManager(object):
                 self.config.get_value('minimum_rssi') + \
                 "detections with a lower RSSI value are ignored")
 
-        if self.config.get_value('enable_hashing'):
-            import hashing
-            self.hashing = hashing.Hashing(self)
-
+        self.hashing = hashing.Hashing(self)
         self.read_blacklist()
 
         bluetooth = scanners.bluetooth.Bluetooth(self)
         wifi = scanners.wifi.WiFi(self)
-
-        #self._dbus_systembus.add_signal_receiver(self._network_device_added,
-        #        bus_name="org.freedesktop.NetworkManager",
-        #        signal_name="DeviceRemoved")
 
     def init_network_middleware(self):
         """
@@ -152,11 +147,11 @@ class ScanManager(object):
         if 'network' in self.__dict__:
             self.network.send_line(line)
 
-    def privacy_process(self, string):
+    def privacy_process(self, string, force=False):
         """
         Process given string to produce a more privacy robust output.
         """
-        if 'hashing' in self.__dict__:
+        if self.enable_hashing or force:
             return self.hashing.hash(string)
         return string
 

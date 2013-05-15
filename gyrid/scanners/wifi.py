@@ -213,13 +213,13 @@ class WiFiScanner(core.Scanner):
         def v(addr):
             return self.protocol.valid(addr)
 
-        def h(data):
+        def h(data, force=False):
             if data == "ff:ff:ff:ff:ff:ff":
                 return "ff"
             elif data == None:
                 return "00"
             else:
-                return self.mgr.privacy_process(data)
+                return self.mgr.privacy_process(data, force)
 
         def f(fn, timestamp, addr):
             if addr and v(addr):
@@ -356,10 +356,10 @@ class WiFiScanner(core.Scanner):
                         if elt.fields['ID'] == 0:
                             ssid = elt.fields['info']
                         _rawlogger.write(timestamp, frequency, 'MGMT', 'probereq', h(d11.addr1),
-                            h(d11.addr2), ssi, retry, h(ssid))
+                            h(d11.addr2), ssi, retry, h(ssid, force=True))
                         self.mgr.net_send_line(','.join(str(i) for i in ['WIFI_RAW', self.mac, timestamp,
                             frequency, 'mgmt', 'probereq', h(d11.addr1), h(d11.addr2), ssi,
-                            retry, pw_mgt, h(ssid)]))
+                            retry, pw_mgt, h(ssid, force=True)]))
                         f(_logger_acp.seen_device, timestamp, d11.addr1)
                         f(_logger_dev.seen_device, timestamp, d11.addr1)
                         f(_logger_dev.update_device, timestamp, d11.addr2)
