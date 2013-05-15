@@ -207,6 +207,9 @@ class AckMap(object):
         """
         self.factory = factory
         self.ackmap = set()
+        self.toAdd = set()
+        self.toClear = set()
+        self.lock = threading.Lock()
 
         self.check_loop = task.LoopingCall(self.__check)
 
@@ -243,7 +246,14 @@ class AckMap(object):
         Add an item to the map.
         """
         ackItem.ackmap = self
-        self.ackmap.add(ackItem)
+        if not self.lock.acquire(False):
+            self.toAdd.add(ackItem)
+        else:
+            if len(self.toAdd) > 0:
+                self.ackmap.update(self.toAdd)
+                self.toAdd.clear()
+            self.ackmap.add(ackItem)
+            self.lock.release()
 
     def clearItem(self, checksum):
         """
@@ -252,29 +262,46 @@ class AckMap(object):
 
         @param   checksum   The checksum to check.
         """
-        item = None
-        for i in self.ackmap:
-            if i.checksum == checksum:
-                item = i
-                break
+        if not self.lock.acquire(False):
+            self.toClear.add(checksum)
+        else:
+            item = None
+            if len(self.toClear) > 0:
+                toClear = set()
+                for i in self.ackmap:
+                    if i.checksum == checksum or \
+                       i.checksum in self.toClear:
+                       toClear.add(i)
+                self.ackmap.difference_update(toClear)
+                self.toClear.clear()
+            else:
+                for i in self.ackmap:
+                    if i.checksum == checksum:
+                        item = i
+                        break
 
-        if item != None:
-            self.ackmap.difference_update([item])
+                if item != None:
+                    self.ackmap.difference_update([item])
+            self.lock.release()
 
     def clear(self):
         """
         Clear the entire map.
         """
+        self.lock.acquire()
         self.ackmap.clear()
+        self.lock.release()
 
     def __check(self):
         """
         Called automatically by the checker loop; should not be called
         directly. Checks each item in the map and resends when necessary.
         """
+        self.lock.acquire()
         for v in self.ackmap:
             v.incrementTimer()
             v.checkResend()
+        self.lock.release()
 
 class LocalServer(LineReceiver):
     """
@@ -371,12 +398,14 @@ class InetClient(Int16StringReceiver):
 
         if self.factory.config['enable_cache'] and not self.factory.cache_full:
             self.factory.cache = open(self.factory.cache_file, 'ab')
+            self.factory.ackmap.lock.acquire()
             for i in self.factory.ackmap.ackmap:
                 self.factory.cache.write(
                     struct.pack('!H', i.msg.ByteSize()) + \
                     i.msg.SerializeToString())
-            self.factory.cache.flush()
             self.factory.ackmap.clear()
+            self.factory.ackmap.lock.release()
+            self.factory.cache.flush()
 
         self.factory.connected = False
 
@@ -530,7 +559,10 @@ class InetClient(Int16StringReceiver):
                 bts = struct.unpack('!H', read)[0]
                 msg = proto.Msg.FromString(self.factory.cache.read(bts))
                 self.sendMsg(msg)
-                read = self.factory.cache.read(2)
+                try:
+                    read = self.factory.cache.read(2)
+                except IOError:
+                    read = False
 
         self.factory.cache.close()
         self.clearCache()
@@ -628,7 +660,7 @@ class InetClientFactory(ReconnectingClientFactory):
             self.connected = False
             if self.client:
                 self.client.transport._writeDisconnected = True
-                self.client.transport.loseConnection()
+                self.client.transport.abortConnection()
 
     def buildMsg(self, data):
         """
