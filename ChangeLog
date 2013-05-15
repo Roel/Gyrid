@@ -1,3 +1,10 @@
+gyrid 0.8.2
+
+    * FIX: Force hashing of WiFi SSID's.
+    * UPD: Terminology and documentation.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 15 May 2013 09:58:43 +0200
+
 gyrid 0.8.1
 
     * FIX: MANIFEST: include core.py
