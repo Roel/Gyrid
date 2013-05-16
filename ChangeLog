@@ -1,3 +1,9 @@
+gyrid 0.8.3
+
+    * FIX: Locking in AckMap.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 15 May 2013 15:15:56 +0200
+
 gyrid 0.8.2
 
     * FIX: Force hashing of WiFi SSID's.
