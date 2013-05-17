@@ -593,8 +593,12 @@ class InetClient(Int16StringReceiver):
             read = self.factory.cache.read(2)
             while read:
                 bts = struct.unpack('!H', read)[0]
-                msg = proto.Msg.FromString(self.factory.cache.read(bts))
-                self.sendMsg(msg)
+                try:
+                    msg = proto.Msg.FromString(self.factory.cache.read(bts))
+                except:
+                    pass
+                else:
+                    self.sendMsg(msg)
                 try:
                     read = self.factory.cache.read(2)
                 except IOError:
