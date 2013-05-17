@@ -323,7 +323,6 @@ class ScanLogger(RSSILogger):
             self.poolchecker.stop()
             del(self.poolchecker)
 
-        self._set_led(2, 0)
         self._set_led(3, 0)
 
     def _set_led(self, id, state):
@@ -388,8 +387,6 @@ class PoolChecker(threading.Thread):
         while self._running:
             self.logger.lock.acquire()
             try:
-                self.logger.switch_led(2)
-
                 tijd = int(time.time())
 
                 to_delete = []
@@ -458,8 +455,6 @@ class WiFiPoolChecker(threading.Thread):
         while self._running:
             self.logger.lock.acquire()
             try:
-                self.logger.switch_led(2)
-
                 tijd = int(time.time())
 
                 to_delete = []

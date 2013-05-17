@@ -370,6 +370,40 @@ class InetClient(Int16StringReceiver):
         self.network.client = self
         self.factory = factory
 
+        self.alix_led_support = (False not in [os.path.exists(
+            '/sys/class/leds/alix:%i' % i) for i in [2, 3]])
+
+    def _set_led(self, id, state):
+        """
+        Set the state of the LED (on/off) with the specified id.
+        Checks if such a LED exists on the system before trying to set it.
+
+        @param  id     The id of the LED (either 2 or 3).
+        @param  state  The new state (0 means off, 1 means on)
+        """
+        if 2 <= id <= 3 and self.alix_led_support \
+            and not os.path.exists('/tmp/gyrid-led-disabled') \
+            and 0 <= state <= 1:
+
+            file = open('/sys/class/leds/alix:%i/brightness' % id, 'w')
+            file.write(str(state))
+            file.close()
+
+    def switch_led(self, id):
+        """
+        Switch the state of the LED (on/off) with the specified id.
+        Checks if such a LED exists on the system before trying to set it.
+        """
+        if 2 <= id <= 3 and self.alix_led_support \
+            and not os.path.exists('/tmp/gyrid-led-disabled'):
+            swap = {0: 1, 1: 0}
+
+            file = open('/sys/class/leds/alix:%i/brightness' % id, 'r')
+            current_state = int(file.read()[0])
+            file.close()
+
+            self._set_led(id, swap[current_state])
+
     def connectionMade(self):
         """
         Called when a new connection has been made.
@@ -386,6 +420,7 @@ class InetClient(Int16StringReceiver):
 
         self.factory.connected = True
         self.factory.ackmap.startChecker()
+        self._set_led(3, 1)
 
     def connectionLost(self, reason):
         """
@@ -408,6 +443,7 @@ class InetClient(Int16StringReceiver):
             self.factory.cache.flush()
 
         self.factory.connected = False
+        self._set_led(3, 0)
 
     def sendLine(self, line):
         """
