@@ -249,11 +249,13 @@ class AckMap(object):
         if not self.lock.acquire(False):
             self.toAdd.add(ackItem)
         else:
-            if len(self.toAdd) > 0:
-                self.ackmap.update(self.toAdd)
-                self.toAdd.clear()
-            self.ackmap.add(ackItem)
-            self.lock.release()
+            try:
+                if len(self.toAdd) > 0:
+                    self.ackmap.update(self.toAdd)
+                    self.toAdd.clear()
+                self.ackmap.add(ackItem)
+            finally:
+                self.lock.release()
 
     def clearItem(self, checksum):
         """
@@ -265,32 +267,36 @@ class AckMap(object):
         if not self.lock.acquire(False):
             self.toClear.add(checksum)
         else:
-            item = None
-            if len(self.toClear) > 0:
-                toClear = set()
-                for i in self.ackmap:
-                    if i.checksum == checksum or \
-                       i.checksum in self.toClear:
-                       toClear.add(i)
-                self.ackmap.difference_update(toClear)
-                self.toClear.clear()
-            else:
-                for i in self.ackmap:
-                    if i.checksum == checksum:
-                        item = i
-                        break
+            try:
+                item = None
+                if len(self.toClear) > 0:
+                    toClear = set()
+                    for i in self.ackmap:
+                        if i.checksum == checksum or \
+                           i.checksum in self.toClear:
+                           toClear.add(i)
+                    self.ackmap.difference_update(toClear)
+                    self.toClear.clear()
+                else:
+                    for i in self.ackmap:
+                        if i.checksum == checksum:
+                            item = i
+                            break
 
-                if item != None:
-                    self.ackmap.difference_update([item])
-            self.lock.release()
+                    if item != None:
+                        self.ackmap.difference_update([item])
+            finally:
+                self.lock.release()
 
     def clear(self):
         """
         Clear the entire map.
         """
-        self.lock.acquire()
-        self.ackmap.clear()
-        self.lock.release()
+        if self.lock.acquire(False):
+            try:
+                self.ackmap.clear()
+            finally:
+                self.lock.release()
 
     def __check(self):
         """
@@ -298,10 +304,12 @@ class AckMap(object):
         directly. Checks each item in the map and resends when necessary.
         """
         self.lock.acquire()
-        for v in self.ackmap:
-            v.incrementTimer()
-            v.checkResend()
-        self.lock.release()
+        try:
+            for v in self.ackmap:
+                v.incrementTimer()
+                v.checkResend()
+        finally:
+            self.lock.release()
 
 class LocalServer(LineReceiver):
     """
@@ -400,12 +408,14 @@ class InetClient(Int16StringReceiver):
         if self.factory.config['enable_cache'] and not self.factory.cache_full:
             self.factory.cache = open(self.factory.cache_file, 'ab')
             self.factory.ackmap.lock.acquire()
-            for i in self.factory.ackmap.ackmap:
-                self.factory.cache.write(
-                    struct.pack('!H', i.msg.ByteSize()) + \
-                    i.msg.SerializeToString())
-            self.factory.ackmap.clear()
-            self.factory.ackmap.lock.release()
+            try:
+                for i in self.factory.ackmap.ackmap:
+                    self.factory.cache.write(
+                        struct.pack('!H', i.msg.ByteSize()) + \
+                        i.msg.SerializeToString())
+                self.factory.ackmap.clear()
+            finally:
+                self.factory.ackmap.lock.release()
             self.factory.cache.flush()
 
         self.factory.connected = False
