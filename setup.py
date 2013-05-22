@@ -76,7 +76,7 @@ wigy = Extension("wigy",
             libraries = ["iw"])
 
 setup(name = "gyrid",
-      version = "0.8.3",
+      version = "0.8.4",
       description = "Mobile device scanner.",
       author = "Roel Huybrechts",
       author_email = "roel.huybrechts@ugent.be",

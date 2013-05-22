@@ -42,6 +42,9 @@ message Msg {
         Type_REQUEST_STARTDATA = 18;
         Type_REQUEST_STATE = 19;
         Type_HOSTNAME = 20;
+
+        Type_ANTENNA_TURN = 21;
+        Type_SCAN_PATTERN = 22;
     }
 
     required Type type = 1;
@@ -69,7 +72,10 @@ message Msg {
     optional RequestState requestState = 19;
     optional Hostname hostname = 20;
 
-    optional bool success = 21;
+    optional AntennaTurn antennaTurn = 21;
+    optional ScanPattern scanPattern = 22;
+
+    optional bool success = 23;
 }
 
 message RequestKeepalive {
@@ -110,6 +116,29 @@ message Info {
     optional string info = 2;
 }
 
+message AntennaTurn {
+    optional bytes sensorMac = 1;
+    optional float timestamp = 2;
+    optional float angle = 3;
+    optional uint32 fixedTimeBuffer = 4;
+}
+
+message ScanPattern {
+    optional bytes sensorMac = 1;
+    optional double startTime = 2;
+    optional float startAngle = 3;
+    optional float stopAngle = 4;
+    optional float scanAngle = 5;
+    optional float inquiryDuration = 6;
+    optional float bufferTime = 7;
+    
+    # Resolutie van draaiboog (ruwheid van de beweging)
+    optional float arcResolution = 8; # degrees
+
+    # Aantal inquiries tussen startAngle en stopAngle
+    optional float turnResolution = 9; # degrees
+}
+
 message StateScanning {
     enum Type {
         Type_STARTED = 1;
@@ -145,7 +174,7 @@ message StateAntenna {
 message Bluetooth_StateInquiry {
     optional double timestamp = 1;
     optional bytes sensorMac = 2;
-    optional float duration = 3;
+    optional uint32 duration = 3; # milliseconds
 }
 
 message Bluetooth_DataIO {
