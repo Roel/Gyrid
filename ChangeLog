@@ -2,8 +2,9 @@ gyrid 0.8.4
 
     * UPD: Use Alix LED 2 to indicate network connection.
     * FIX: Don't fail when parts of the network cache fail to parse.
+	* FIX: Exception handling in AckMap locking.
 
--- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 17 May 2013 12:08:29 +0200
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Mon, 27 May 2013 11:48:41 +0200
 
 gyrid 0.8.3
 
