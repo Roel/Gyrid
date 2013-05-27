@@ -132,11 +132,11 @@ message ScanPattern {
     optional float inquiryDuration = 6;
     optional float bufferTime = 7;
     
-    # Resolutie van draaiboog (ruwheid van de beweging)
-    optional float arcResolution = 8; # degrees
+    // Resolutie van draaiboog (ruwheid van de beweging)
+    optional float arcResolution = 8; // degrees
 
-    # Aantal inquiries tussen startAngle en stopAngle
-    optional float turnResolution = 9; # degrees
+    // Aantal inquiries tussen startAngle en stopAngle
+    optional float turnResolution = 9; // degrees
 }
 
 message StateScanning {
@@ -174,7 +174,7 @@ message StateAntenna {
 message Bluetooth_StateInquiry {
     optional double timestamp = 1;
     optional bytes sensorMac = 2;
-    optional uint32 duration = 3; # milliseconds
+    optional uint32 duration = 3; // milliseconds
 }
 
 message Bluetooth_DataIO {
