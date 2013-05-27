@@ -64,12 +64,9 @@ class InstallData(install_data):
             raise SystemExit('Error while gzipping %(file)s' % str)
         self.data_files.append((dest, ['%(build)s/%(fileLower)s.gz' % str]))
 
-class BuildPy(build_py):
-    def run(self):
-        os.system('protoc --python_out=. gyrid/protocol/gyrid.proto')
-        if os.path.exists('gyrid/protocol/gyrid_pb2.py'):
-            os.rename('gyrid/protocol/gyrid_pb2.py', 'gyrid/protocol/network.py')
-        build_py.run(self)
+os.system('protoc --python_out=. gyrid/protocol/gyrid.proto')
+if os.path.exists('gyrid/protocol/gyrid_pb2.py'):
+    os.rename('gyrid/protocol/gyrid_pb2.py', 'gyrid/protocol/network.py')
 
 wigy = Extension("wigy",
             sources = ["gyrid/wigy/wigy.c"],
@@ -85,5 +82,5 @@ setup(name = "gyrid",
       data_files = [("/etc/init.d", ['init/gyrid']),
                     ("/usr/share/gyrid", ['network_middleware.py', 'bin/gyrid-start']),
                     ("/usr/share/doc/gyrid", ['README.net-api'])],
-      cmdclass = {'build_py': BuildPy, 'install_data': InstallData},
+      cmdclass = {'install_data': InstallData},
       ext_modules = [wigy])
