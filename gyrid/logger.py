@@ -210,7 +210,7 @@ class InquiryLogger(RSSILogger):
             str(self.mac.replace(':','')),
             "%0.3f" % timestamp,
             "new_inquiry",
-            "%0.2f" % duration]))
+            "%i" % (duration*1000)]))
 
 class ScanLogger(RSSILogger):
     """

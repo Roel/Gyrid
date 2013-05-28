@@ -804,7 +804,7 @@ class InetClientFactory(ReconnectingClientFactory):
             m.type = m.Type_BLUETOOTH_STATE_INQUIRY
             d = m.bluetooth_stateInquiry
             d.timestamp = float(data['timestamp'])
-            d.duration = float(data['duration'])
+            d.duration = int(data['duration'])
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
 
