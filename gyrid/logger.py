@@ -533,6 +533,8 @@ class WiFiLogger(ScanLogger):
     def seen_device(self, timestamp, hwid):
         if hwid in self.pool:
             self.update_device(timestamp, hwid)
+            return True
+        return False
 
     def update_device(self, timestamp, hwid):
         """

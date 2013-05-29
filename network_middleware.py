@@ -442,13 +442,15 @@ class InetClient(Int16StringReceiver):
                              await_ack buffer.
         """
         if (not self.factory.config['enable_data_transfer'] and msg.type in [
-            msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW, msg.Type_WIFI_DATARAW]) \
+            msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW, msg.Type_WIFI_DATAIO,
+            msg.Type_WIFI_DATADEVRAW, msg.Type_WIFI_DATARAW]) \
                 or not self.factory.connected:
             if self.factory.config['enable_cache'] \
                 and not self.factory.cache.closed and not self.factory.cache_full \
                 and msg.type in [msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW,
                     msg.Type_BLUETOOTH_STATE_INQUIRY, msg.Type_STATE_SCANNING, msg.Type_INFO,
-                    msg.Type_WIFI_STATE_FREQUENCY, msg.Type_WIFI_DATARAW, msg.Type_STATE_ANTENNA]:
+                    msg.Type_WIFI_STATE_FREQUENCY, msg.Type_WIFI_DATAIO, msg.Type_WIFI_DATADEVRAW,
+                    msg.Type_WIFI_DATARAW, msg.Type_STATE_ANTENNA]:
                     self.factory.cache.write(
                         struct.pack('!H', msg.ByteSize()) + \
                         msg.SerializeToString())
@@ -533,6 +535,7 @@ class InetClient(Int16StringReceiver):
             self.factory.config['enable_data_transfer'] = msg.requestStartdata.enableData
             self.factory.config['enable_bluetooth_raw'] = msg.requestStartdata.enableBluetoothRaw
             self.factory.config['enable_wifi_raw'] = msg.requestStartdata.enableWifiRaw
+            self.factory.config['enable_wifi_devraw'] = msg.requestStartdata.enableWifiDevRaw
             self.factory.config['enable_sensor_mac'] = msg.requestStartdata.enableSensorMac
 
             msg.success = True
@@ -578,6 +581,8 @@ class InetClient(Int16StringReceiver):
                     if msg.type == msg.Type_BLUETOOTH_DATARAW and not self.factory.config['enable_bluetooth_raw']:
                         pass
                     elif msg.type == msg.Type_WIFI_DATARAW and not self.factory.config['enable_wifi_raw']:
+                        pass
+                    elif msg.type == msg.Type_WIFI_DATADEVRAW and not self.factory.config['enable_wifi_devraw']:
                         pass
                     else:
                         self.sendMsg(msg)
@@ -748,18 +753,32 @@ class InetClientFactory(ReconnectingClientFactory):
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
 
+        elif (data.startswith('WIFI_DEVRAW') or data.startswith('CWIFI_DEVRAW')) \
+                and self.config['enable_wifi_devraw']:
+            m = proto.Msg()
+            m.type = m.Type_WIFI_DATADEVRAW
+            w = m.wifi_dataDevRaw
+            if data.startswith('C'): m.cached = True
+            data = dict(zip(['type', 'timestamp', 'sensor_mac', 'hwid', 'freq', 'ssi'], data.split(',')))
+            w.timestamp = float(data['timestamp'])
+            w.hwid = procHwid(data['hwid'])
+            w.ssi = int(data['ssi'])
+            w.frequency = int(data['freq'])
+            if c['enable_sensor_mac']: w.sensorMac = procHwid(data['sensor_mac'])
+            return m
+
         elif (data.startswith('WIFI_RAW') or data.startswith('CWIFI_RAW')) \
                 and self.config['enable_wifi_raw']:
             m = proto.Msg()
             m.type = m.Type_WIFI_DATARAW
             w = m.wifi_dataRaw
             if data.startswith('C'): m.cached = True
-            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'freq', 'type', 'subtype', 'hwid1', 'hwid2', 'ssi', 'retry', 'pw_mgmt', 'extra'],
+            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'freq', 'ftype', 'subtype', 'hwid1', 'hwid2', 'ssi', 'retry', 'pw_mgmt', 'extra'],
                 data.split(',')))
 
             w.frametype = {'data': w.FrameType_DATA,
                            'ctrl': w.FrameType_CTRL,
-                           'mgmt': w.FrameType_MGMT}[data['type']]
+                           'mgmt': w.FrameType_MGMT}[data['ftype']]
 
             if w.frametype == w.FrameType_DATA:
                 w.data.from_ds = 'from-ds' in data['subtype']
