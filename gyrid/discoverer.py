@@ -267,7 +267,7 @@ class Discoverer(object):
         if (rssi == None or \
             not (self.minimum_rssi != None and rssi < self.minimum_rssi)) \
             and (True not in (address.upper().startswith(
-                black_mac.upper()) for black_mac in self.mgr.blacklist)):
+                black_mac) for black_mac in self.mgr.blacklist)):
 
             try:
                 device_class = int(device_class)

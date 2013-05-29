@@ -126,7 +126,7 @@ class ScanManager(object):
                 l = line.strip()
                 macs = self.is_start_mac(l)
                 if macs > 0:
-                    self.blacklist.add(l)
+                    self.blacklist.add(l.upper())
                     macs_listed += macs
             file.close()
             if macs_listed > 0:
