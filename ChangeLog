@@ -1,3 +1,13 @@
+gyrid 0.8.5
+
+	* ADD: WiFi raw device protocol message type.
+	* FIX: Protocol compilation.
+	* FIX: Various protocol improvements.
+	* FIX: Don't send cached data when new config disables it.
+	* UPD: Only scan in the 2.4GHz WiFi spectrum.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 29 May 2013 13:54:27 +0200
+
 gyrid 0.8.4
 
     * UPD: Use Alix LED 2 to indicate network connection.
