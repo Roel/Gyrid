@@ -105,6 +105,7 @@ class WiFi(core.ScanProtocol):
             elif props['Managed'] == 1:
                 self.mgr.log_info("Ignoring WiFi adapter %s (managed by NetworkManager)" \
                     % wprops['PermHwAddress'])
+                self.mgr.blacklist.add(wprops['PermHwAddress'])
 
     def valid(self, addr):
         """
