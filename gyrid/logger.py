@@ -167,7 +167,7 @@ class RSSILogger(InfoLogger):
                 time.localtime(timestamp)),
                 str(hwid),
                 str(rssi)]))
-        self.mgr.net_send_line(",".join(['SIGHT_RSSI',
+        self.mgr.net_send_line(",".join(['BLUETOOTH_RAW',
             str(self.mac.replace(':','')),
             "%0.3f" % timestamp,
             str(hwid),
@@ -258,7 +258,7 @@ class ScanLogger(RSSILogger):
                 str(hwid),
                 str(device_class),
                 str(moving)]))
-        self.mgr.net_send_line(",".join(['SIGHT_CELL',
+        self.mgr.net_send_line(",".join(['BLUETOOTH_IO',
                 str(self.mac.replace(':','')),
                 "%0.3f" % timestamp,
                 str(hwid),

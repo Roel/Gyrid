@@ -696,7 +696,7 @@ class InetClientFactory(ReconnectingClientFactory):
 
         c = self.config
 
-        if data.startswith('SIGHT_CELL') or data.startswith('CACHE_CELL'):
+        if data.startswith('BLUETOOTH_IO') or data.startswith('CBLUETOOTH_IO'):
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_DATAIO
             d = m.bluetooth_dataIO
@@ -710,8 +710,8 @@ class InetClientFactory(ReconnectingClientFactory):
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
             
-        elif (data.startswith('SIGHT_RSSI') or data.startswith('CACHE_RSSI')) \
                 and self.config['enable_raw']:
+        elif (data.startswith('BLUETOOTH_RAW') or data.startswith('CBLUETOOTH_RAW')) \
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_DATARAW
             d = m.bluetooth_dataRaw
