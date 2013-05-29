@@ -531,7 +531,8 @@ class InetClient(Int16StringReceiver):
 
         elif msg.type == msg.Type_REQUEST_STARTDATA:
             self.factory.config['enable_data_transfer'] = msg.requestStartdata.enableData
-            self.factory.config['enable_raw'] = msg.requestStartdata.enableRaw
+            self.factory.config['enable_bluetooth_raw'] = msg.requestStartdata.enableBluetoothRaw
+            self.factory.config['enable_wifi_raw'] = msg.requestStartdata.enableWifiRaw
             self.factory.config['enable_sensor_mac'] = msg.requestStartdata.enableSensorMac
 
             msg.success = True
@@ -611,7 +612,8 @@ class InetClientFactory(ReconnectingClientFactory):
         self.client = None
         self.maxDelay = 120
 
-        self.config = {'enable_raw': True,
+        self.config = {'enable_bluetooth_raw': True,
+                       'enable_wifi_raw': False,
                        'enable_sensor_mac': True,
                        'enable_cache': True,
                        'enable_uptime': False,
@@ -710,8 +712,8 @@ class InetClientFactory(ReconnectingClientFactory):
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
             
-                and self.config['enable_raw']:
         elif (data.startswith('BLUETOOTH_RAW') or data.startswith('CBLUETOOTH_RAW')) \
+                and self.config['enable_bluetooth_raw']:
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_DATARAW
             d = m.bluetooth_dataRaw
@@ -742,7 +744,7 @@ class InetClientFactory(ReconnectingClientFactory):
             return m
 
         elif (data.startswith('WIFI_RAW') or data.startswith('CWIFI_RAW')) \
-                and self.config['enable_raw']:
+                and self.config['enable_wifi_raw']:
             m = proto.Msg()
             m.type = m.Type_WIFI_DATARAW
             w = m.wifi_dataRaw

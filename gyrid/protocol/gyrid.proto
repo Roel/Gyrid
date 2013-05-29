@@ -98,8 +98,9 @@ message RequestCaching {
 
 message RequestStartdata {
     optional bool enableData = 1 [default = true];
-    optional bool enableRaw = 2 [default = false];
-    optional bool enableSensorMac = 3 [default = true];
+    optional bool enableBluetoothRaw = 2 [default = false];
+    optional bool enableWifiRaw = 3 [default = false];
+    optional bool enableSensorMac = 4 [default = true];
 }
 
 message Hostname {
