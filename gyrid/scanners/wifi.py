@@ -266,10 +266,10 @@ class WiFiScanner(core.Scanner):
                 d11 = pkt.getlayer(scapy.all.Dot11)
                 fcfield = d11.sprintf('%FCfield%')
 
-                if d11.addr1 and (True in d11.addr1.upper().startswith(b) for b in self.mgr.blacklist):
+                if d11.addr1 and (True in (d11.addr1.upper().startswith(b) for b in self.mgr.blacklist)):
                     return
 
-                if d11.addr2 and (True in d11.addr2.upper().startswith(b) for b in self.mgr.blacklist):
+                if d11.addr2 and (True in (d11.addr2.upper().startswith(b) for b in self.mgr.blacklist)):
                     return
 
                 retry = ''

@@ -624,6 +624,7 @@ class InetClientFactory(ReconnectingClientFactory):
 
         self.config = {'enable_bluetooth_raw': True,
                        'enable_wifi_raw': False,
+                       'enable_wifi_devraw': False,
                        'enable_sensor_mac': True,
                        'enable_cache': True,
                        'enable_uptime': False,
