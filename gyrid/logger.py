@@ -82,7 +82,6 @@ class WiFiRawLogger(InfoLogger):
         self.mac = mac
         InfoLogger.__init__(self, mgr, self._get_log_location())
 
-        #self.enable = self.mgr.config.get_value('enable_wifiraw_log')
         self.enable = True
 
     def _get_log_id(self):
@@ -117,12 +116,6 @@ class WiFiRawLogger(InfoLogger):
             a.extend([str(i) for i in [frequency, type, subtype, hwid1, hwid2, rssi, retry, info]])
 
             self.logger.info(",".join(a))
-            #self.mgr.net_send_line(",".join(['SIGHT_RSSI',
-            #    str(self.mac.replace(':','')),
-            #    "%0.3f" % timestamp,
-            #    str(mac_address.replace(':','')),
-            #    str(rssi)]))
-
 
 class RSSILogger(InfoLogger):
     """
