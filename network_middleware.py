@@ -575,7 +575,12 @@ class InetClient(Int16StringReceiver):
                 except:
                     pass
                 else:
-                    self.sendMsg(msg)
+                    if msg.type == msg.Type_BLUETOOTH_DATARAW and not self.factory.config['enable_bluetooth_raw']:
+                        pass
+                    elif msg.type == msg.Type_WIFI_DATARAW and not self.factory.config['enable_wifi_raw']:
+                        pass
+                    else:
+                        self.sendMsg(msg)
                 try:
                     read = self.factory.cache.read(2)
                 except IOError:
