@@ -481,6 +481,7 @@ class InetClient(Int16StringReceiver):
             if not msg.requestKeepalive.enable:
                 self.factory.config['enable_keepalive'] = -1
             else:
+                self.factory.config['enable_keepalive'] = msg.requestKeepalive.interval
                 self.factory.keepalive_loop.start(
                     self.factory.config['enable_keepalive'], now=False)
 
