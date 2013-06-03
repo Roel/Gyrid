@@ -72,7 +72,7 @@ message Msg {
     optional RequestCaching requestCaching = 18;
     optional RequestStartdata requestStartdata = 19;
     optional RequestState requestState = 20;
-    optional Hostname hostname = 21;
+    optional string hostname = 21;
 
     optional AntennaTurn antennaTurn = 22;
     optional ScanPattern scanPattern = 23;
@@ -104,10 +104,6 @@ message RequestStartdata {
     optional bool enableWifiRaw = 3 [default = false];
     optional bool enableWifiDevRaw = 4 [default = false];
     optional bool enableSensorMac = 5 [default = true];
-}
-
-message Hostname {
-    optional string hostname = 1;
 }
 
 message Uptime {

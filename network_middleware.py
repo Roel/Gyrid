@@ -473,7 +473,7 @@ class InetClient(Int16StringReceiver):
         if msg.type == msg.Type_REQUEST_HOSTNAME:
             m = proto.Msg()
             m.type = m.Type_HOSTNAME
-            m.hostname.hostname = socket.gethostname()
+            m.hostname = socket.gethostname()
             self.sendMsg(m, await_ack=False)
 
         elif msg.type == msg.Type_REQUEST_KEEPALIVE:
