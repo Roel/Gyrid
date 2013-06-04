@@ -1,3 +1,10 @@
+gyrid 0.8.6
+
+	* FIX: Keepalive checking.
+	* UPD: Protocol update.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Mon, 03 Jun 2013 16:37:53 +0200
+
 gyrid 0.8.5
 
 	* ADD: WiFi raw device protocol message type.
