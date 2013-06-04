@@ -90,13 +90,10 @@ class WiFiRawLogger(InfoLogger):
     def _get_log_location(self):
         return self.mgr.get_wifiraw_log_location(self.mac)
 
-    def _get_log_processing(self):
-        return False
-
     def _get_logger(self):
         logger = logging.getLogger(self._get_log_id())
         handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
-            self._get_log_location(), self._get_log_processing())
+            self._get_log_location())
         handler.setFormatter(logging.Formatter("%(message)s"))
         logger.addHandler(handler)
         return logger
@@ -140,13 +137,10 @@ class RSSILogger(InfoLogger):
     def _get_log_location(self):
         return self.mgr.get_rssi_log_location(self.mac)
 
-    def _get_log_processing(self):
-        return False
-
     def _get_logger(self):
         logger = logging.getLogger(self._get_log_id())
         handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
-            self._get_log_location(), self._get_log_processing())
+            self._get_log_location())
         handler.setFormatter(logging.Formatter("%(message)s"))
         logger.addHandler(handler)
         return logger
