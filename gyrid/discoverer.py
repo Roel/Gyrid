@@ -275,6 +275,7 @@ class Discoverer(object):
                 device_class = -1
 
             hwid = self.mgr.privacy_process(address)
+            hwid = hwid.replace(':', '')
 
             self.hooks.device_discovered(hwid, device_class, rssi)
 

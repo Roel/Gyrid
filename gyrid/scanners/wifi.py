@@ -224,7 +224,7 @@ class WiFiScanner(core.Scanner):
             elif data == None:
                 return "00"
             else:
-                return self.mgr.privacy_process(data, force)
+                return self.mgr.privacy_process(data, force).replace(':', '')
 
         def f(fn, timestamp, addr):
             if addr and v(addr):
