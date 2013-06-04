@@ -1,3 +1,10 @@
+gyrid 0.8.7
+
+	* UPD: Remove log processing on rotation.
+	* UPD: Remove colons from logged MAC-addresses.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 04 Jun 2013 09:51:54 +0200
+
 gyrid 0.8.6
 
 	* FIX: Keepalive checking.
