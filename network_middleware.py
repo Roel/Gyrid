@@ -456,8 +456,7 @@ class InetClient(Int16StringReceiver):
                         msg.SerializeToString())
         else:
             if self.transport != None:
-                Int16StringReceiver.sendString(self, struct.pack('!H', msg.ByteSize()) + \
-                    msg.SerializeToString())
+                Int16StringReceiver.sendString(self, msg.SerializeToString())
                 if await_ack and self.factory.config['enable_cache']:
                     self.factory.ackmap.addItem(AckItem(msg))
 
