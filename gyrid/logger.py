@@ -160,11 +160,13 @@ class RSSILogger(InfoLogger):
                 self.time_format,
                 time.localtime(timestamp)),
                 str(hwid),
+                str(device_class),
                 str(rssi)]))
         self.mgr.net_send_line(",".join(['BLUETOOTH_RAW',
             str(self.mac.replace(':','')),
             "%0.3f" % timestamp,
             str(hwid),
+            str(device_class),
             str(rssi)]))
 
 class InquiryLogger(RSSILogger):

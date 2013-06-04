@@ -194,7 +194,8 @@ message Bluetooth_DataRaw {
     optional double timestamp = 1;
     optional bytes sensorMac = 2;
     optional bytes hwid = 3;
-    optional sint32 rssi = 4;
+    optional uint32 deviceclass = 4;
+    optional sint32 rssi = 5;
 }
 
 message WiFi_StateFrequency {

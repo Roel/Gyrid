@@ -729,10 +729,11 @@ class InetClientFactory(ReconnectingClientFactory):
             m.type = m.Type_BLUETOOTH_DATARAW
             d = m.bluetooth_dataRaw
             if data.startswith('CACHE_RSSI'): m.cached = True
-            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac', 'rssi'],
+            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac', 'deviceclass', 'rssi'],
                 data.split(',')))
             d.timestamp = float(data['timestamp'])
             d.hwid = procHwid(data['mac'])
+            d.deviceclass = int(data['deviceclass'])
             d.rssi = int(data['rssi'])
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
