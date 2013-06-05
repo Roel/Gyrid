@@ -575,6 +575,7 @@ class InetClient(Int16StringReceiver):
                 bts = struct.unpack('!H', read)[0]
                 try:
                     msg = proto.Msg.FromString(self.factory.cache.read(bts))
+                    msg.cached = True
                 except:
                     pass
                 else:
