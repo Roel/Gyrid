@@ -1,3 +1,11 @@
+gyrid 0.8.8
+
+	* FIX: Don't prepend message length twice when sending message over the
+	         network.
+	* UPD: Add deviceclass to raw Bluetooth data.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 05 Jun 2013 09:44:49 +0200
+
 gyrid 0.8.7
 
 	* UPD: Remove log processing on rotation.

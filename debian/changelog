@@ -1,3 +1,10 @@
+gyrid (0.8.8-0) unstable; urgency=low
+
+  * New upstream release.
+  * 
+
+ -- Roel Huybrechts <roel.huybrechts@ugent.be>  Wed, 05 Jun 2013 09:45:28 +0200
+
 gyrid (0.8.7-0) unstable; urgency=low
 
   * New upstream release.
