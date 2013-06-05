@@ -714,7 +714,7 @@ class InetClientFactory(ReconnectingClientFactory):
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_DATAIO
             d = m.bluetooth_dataIO
-            if data.startswith('CACHE_CELL'): m.cached = True
+            if data.startswith('C'): m.cached = True
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac',
                 'deviceclass', 'move'], data.split(',')))
             d.timestamp = float(data['timestamp'])
@@ -729,7 +729,7 @@ class InetClientFactory(ReconnectingClientFactory):
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_DATARAW
             d = m.bluetooth_dataRaw
-            if data.startswith('CACHE_RSSI'): m.cached = True
+            if data.startswith('C'): m.cached = True
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac', 'deviceclass', 'rssi'],
                 data.split(',')))
             d.timestamp = float(data['timestamp'])
