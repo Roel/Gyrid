@@ -26,8 +26,9 @@ import dbus
 import dbus.mainloop.glib
 import time
 
-from gyrid import core, discoverer, logger
-
+from gyrid import core
+import discoverer
+import logger
 
 class Bluetooth(core.ScanProtocol):
     """

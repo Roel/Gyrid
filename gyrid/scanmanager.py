@@ -29,14 +29,13 @@ import threading
 import time
 
 import configuration
-import discoverer
 import hashing
 import logger
 import network
 import wigy
 
-import scanners.bluetooth
-import scanners.wifi
+import scanners.bluetooth.scanner
+import scanners.wifi.scanner
 
 import scapy.all
 
@@ -89,8 +88,8 @@ class ScanManager(object):
         self.hashing = hashing.Hashing(self)
         self.read_blacklist()
 
-        bluetooth = scanners.bluetooth.Bluetooth(self)
-        wifi = scanners.wifi.WiFi(self)
+        bluetooth = scanners.bluetooth.scanner.Bluetooth(self)
+        wifi = scanners.wifi.scanner.WiFi(self)
 
     def init_network_middleware(self):
         """
