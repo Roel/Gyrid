@@ -1,3 +1,11 @@
+gyrid 0.8.10
+
+	* FIX: Only take source address into account when processing WiFi frames.
+	* FIX: Improvements in network middleware regarding reconnecting.
+	* UPD: Add duration to WiFi frequency state messages.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 06 Jun 2013 13:52:48 +0200
+
 gyrid 0.8.9
 
 	* FIX: Zippingfilehandler in arduino.py.
