@@ -908,9 +908,12 @@ class InetClientFactory(ReconnectingClientFactory):
             and not os.path.exists('/tmp/gyrid-led-disabled') \
             and 0 <= state <= 1:
 
-            file = open('/sys/class/leds/alix:%i/brightness' % id, 'w')
-            file.write(str(state))
-            file.close()
+            try:
+                file = open('/sys/class/leds/alix:%i/brightness' % id, 'w')
+                file.write(str(state))
+                file.close()
+            except:
+                pass
 
     def clientConnectionLost(self, connector, reason):
         """
