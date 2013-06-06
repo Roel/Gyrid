@@ -839,7 +839,7 @@ class InetClientFactory(ReconnectingClientFactory):
 
         elif data.startswith('STATE') and ('frequency' in data) and \
             self.config['enable_state_frequency']:
-            data = dict(zip(['type', 'hwType', 'sensor_mac', 'timestamp', 'subtype', 'frequency'],
+            data = dict(zip(['type', 'hwType', 'sensor_mac', 'timestamp', 'subtype', 'frequency', 'duration'],
                 data.split(',')))
             m = proto.Msg()
             m.type = m.Type_WIFI_STATE_FREQUENCY
@@ -847,6 +847,7 @@ class InetClientFactory(ReconnectingClientFactory):
             d.timestamp = float(data['timestamp'])
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             d.frequency = int(data['frequency'])
+            d.duration = int(data['duration'])
             return m
 
         elif data.startswith('STATE') and ('antenna_rotation' in data) and \

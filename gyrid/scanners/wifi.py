@@ -181,6 +181,7 @@ class WiFiScanner(core.Scanner):
         """
         cnt = 0
         freq = 0
+        duration = 1
         while self.running and not self.mgr.main.stopping:
             if len(self.frequencies) == 0:
                 self.running = False
@@ -202,9 +203,9 @@ class WiFiScanner(core.Scanner):
                     self.frequencies.pop(cnt)
                 else:
                     if self.running:
-                        self.mgr.net_send_line("STATE,wifi,%s,%0.3f,frequency,%i" %
-                            (self.mac.replace(':','').lower(), time.time(), freq))
-                        time.sleep(1)
+                        self.mgr.net_send_line("STATE,wifi,%s,%0.3f,frequency,%i,%i" %
+                            (self.mac.replace(':','').lower(), time.time(), freq, duration*1000))
+                        time.sleep(duration)
 
     @core.threaded
     def start_scanning(self):

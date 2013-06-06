@@ -202,6 +202,7 @@ message WiFi_StateFrequency {
     optional double timestamp = 1;
     optional bytes sensorMac = 2;
     optional uint32 frequency = 3;
+    optional uint32 duration = 4; // milliseconds
 }
 
 message WiFi_DataIO {
