@@ -377,12 +377,17 @@ class InetClient(Int16StringReceiver):
         self.network = network
         self.network.client = self
         self.factory = factory
+        self.hostport = None
+        self.last_keepalive = -1
+        self.keepalive_loop = task.LoopingCall(self.keepalive)
 
     def connectionMade(self):
         """
         Called when a new connection has been made.
         Close the cache.
         """
+        self.hostport = (self.transport.getHost().host, self.transport.getHost().port)
+        self.factory.connections.add(self.hostport)
         if not self.factory.cache.closed:
             self.factory.cache.flush()
             self.factory.cache.close()
@@ -392,7 +397,6 @@ class InetClient(Int16StringReceiver):
         except AssertionError:
             pass
 
-        self.factory.connected = True
         self.factory.ackmap.startChecker()
         self.factory.set_led(2, 1)
 
@@ -401,6 +405,13 @@ class InetClient(Int16StringReceiver):
         Called when the connection has been lost.
         Open cache file and write await_ack buffer to cache.
         """
+        self.factory.connections.remove(self.hostport)
+
+        try:
+            self.keepalive_loop.stop()
+        except AssertionError:
+            pass
+
         if not self.factory.cache.closed:
             self.factory.cache.flush()
             self.factory.cache.close()
@@ -418,8 +429,18 @@ class InetClient(Int16StringReceiver):
                 self.factory.ackmap.lock.release()
             self.factory.cache.flush()
 
-        self.factory.connected = False
-        self.factory.set_led(2, 0)
+        if len(self.factory.connections) < 1:
+            self.factory.set_led(2, 0)
+
+    def keepalive(self):
+        """
+        Checks if a keepalive has been received recently and closes
+        the connection otherwise.
+        """
+        t = self.factory.config['enable_keepalive']
+        if self.last_keepalive < int(time.time() - (t+0.1*t)):
+            self.transport._writeDisconnected = True
+            self.transport.abortConnection()
 
     def sendLine(self, line):
         """
@@ -444,7 +465,7 @@ class InetClient(Int16StringReceiver):
         if (not self.factory.config['enable_data_transfer'] and msg.type in [
             msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW, msg.Type_WIFI_DATAIO,
             msg.Type_WIFI_DATADEVRAW, msg.Type_WIFI_DATARAW]) \
-                or not self.factory.connected:
+                or len(self.factory.connections) < 1:
             if self.factory.config['enable_cache'] \
                 and not self.factory.cache.closed and not self.factory.cache_full \
                 and msg.type in [msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW,
@@ -481,7 +502,7 @@ class InetClient(Int16StringReceiver):
                 self.factory.config['enable_keepalive'] = -1
             else:
                 self.factory.config['enable_keepalive'] = msg.requestKeepalive.interval
-                self.factory.keepalive_loop.start(
+                self.keepalive_loop.start(
                     self.factory.config['enable_keepalive'], now=False)
 
             msg.success = True
@@ -489,7 +510,7 @@ class InetClient(Int16StringReceiver):
 
         elif msg.type == msg.Type_KEEPALIVE and \
             self.factory.config['enable_keepalive'] > 0:
-            self.factory.last_keepalive = int(time.time())
+            self.last_keepalive = int(time.time())
             m = proto.Msg()
             m.type = m.Type_KEEPALIVE
             self.sendMsg(m, await_ack=False)
@@ -637,14 +658,13 @@ class InetClientFactory(ReconnectingClientFactory):
         self.alix_led_support = (False not in [os.path.exists(
             '/sys/class/leds/alix:%i' % i) for i in [2, 3]])
 
-        self.connected = False
+        self.connections = set()
         self.cache_full = False
         self.cache_file = '/var/tmp/gyrid-network.cache'
         self.cache_maxsize = self.network.config.get_value('network_cache_limit')
         self.cache = open(self.cache_file, 'ab')
         self.ackmap = AckMap(self)
 
-        self.keepalive_loop = task.LoopingCall(self.keepalive)
         self.cachesize_loop = task.LoopingCall(self.checkCacheSize)
 
         self.buildProtocol(None)
@@ -655,16 +675,10 @@ class InetClientFactory(ReconnectingClientFactory):
         Initialise per-connection variables.
         Starts and stops looping calls.
         """
-        self.last_keepalive = -1
-
         self.config['enable_data_transfer'] = False
         self.config['enable_keepalive'] = -1
 
         self.cachesize_loop.start(10)
-        try:
-            self.keepalive_loop.stop()
-        except AssertionError:
-            pass
 
     def checkCacheSize(self):
         """
@@ -682,18 +696,6 @@ class InetClientFactory(ReconnectingClientFactory):
                 self.cachesize_loop.stop()
             except AssertionError:
                 pass
-
-    def keepalive(self):
-        """
-        Checks if a keepalive has been received recently and closes
-        the connection otherwise.
-        """
-        t = self.config['enable_keepalive']
-        if self.last_keepalive < int(time.time() - (t+0.1*t)):
-            self.connected = False
-            if self.client:
-                self.client.transport._writeDisconnected = True
-                self.client.transport.abortConnection()
 
     def buildMsg(self, data):
         """
@@ -924,7 +926,6 @@ class InetClientFactory(ReconnectingClientFactory):
         ReconnectingClientFactory.clientConnectionLost(
             self, connector, reason)
         self.ackmap.stopChecker()
-        self.set_led(2, 0)
 
         self.init()
 
@@ -934,7 +935,6 @@ class InetClientFactory(ReconnectingClientFactory):
         """
         ReconnectingClientFactory.clientConnectionFailed(
             self, connector, reason)
-        self.set_led(2, 0)
 
         if 'OpenSSL.SSL.Error' in str(reason):
             self.network.exit_code = 3
