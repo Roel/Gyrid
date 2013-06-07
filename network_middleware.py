@@ -626,8 +626,7 @@ class InetClient(Int16StringReceiver):
         try:
             msg = proto.Msg.FromString(self.factory.cache.read(bts))
             self.cacheItemCount += 1
-            #print "read item %s from disk (item %i out of %i)" % (AckMap.checksum(msg.SerializeToString()),
-                    self.cacheItemCount, self.cacheItemTotal)
+            #print "read item %s from disk (item %i out of %i)" % (AckMap.checksum(msg.SerializeToString()), self.cacheItemCount, self.cacheItemTotal)
         except:
             pass
         else:
