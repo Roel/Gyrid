@@ -238,6 +238,7 @@ class WiFiScanner(core.Scanner):
 
         def devraw(timestamp, sensorMac, addr, frequency, ssi):
             if addr and v(addr):
+                _logger_devraw.write(timestamp, frequency, h(addr), ssi)
                 self.mgr.net_send_line(','.join(str(i) for i in ['WIFI_DEVRAW',
                     timestamp, sensorMac, h(addr), frequency, ssi]))
 
@@ -449,11 +450,12 @@ class WiFiScanner(core.Scanner):
 
         if self.mac not in self.protocol.loggers:
             _rawlogger = logger.WiFiRawLogger(self.mgr, self.mac)
+            _logger_devraw = logger.WiFiDevRawLogger(self.mgr, self.mac)
             _logger_dev = logger.WiFiLogger(self.mgr, self.mac, 'DEV')
             _logger_acp = logger.WiFiLogger(self.mgr, self.mac, 'ACP')
-            self.protocol.loggers[self.mac] = (_rawlogger, _logger_dev, _logger_acp)
+            self.protocol.loggers[self.mac] = (_rawlogger, _logger_devraw, _logger_dev, _logger_acp)
         else:
-            _rawlogger, _logger_dev, _logger_acp = self.protocol.loggers[self.mac]
+            _rawlogger, _logger_devraw, _logger_dev, _logger_acp = self.protocol.loggers[self.mac]
 
         _logger_dev.start()
         _logger_acp.start()
