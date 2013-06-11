@@ -398,7 +398,7 @@ class InetClient(Int16StringReceiver):
         self.factory = factory
         self.hostport = None
         self.last_keepalive = -1
-        self.cachedItemAck = None
+        self.cachedItemsAck = None
         self.keepalive_loop = task.LoopingCall(self.keepalive)
 
     def connectionMade(self):
@@ -557,8 +557,9 @@ class InetClient(Int16StringReceiver):
         elif msg.type == msg.Type_ACK:
             ack = binascii.b2a_hex(msg.ack)
             self.factory.ackmap.clearItem(ack)
-            if self.cachedItemAck and ack == self.cachedItemAck:
-                self.readNextCachedItem()
+            self.cachedItemsAck.discard(ack)
+            if self.cachedItemsAck and len(self.cachedItemsAck <= 2):
+                self.readNextCachedItems(10)
 
         elif msg.type == msg.Type_REQUEST_STATE:
             self.factory.config['enable_state_scanning'] = msg.requestState.enableScanning
@@ -611,34 +612,35 @@ class InetClient(Int16StringReceiver):
                 m.uptime.systemStartup = self.network.host_up_since
                 self.sendMsg(m, await_ack=False)
 
-    def readNextCachedItem(self):
-        #print "reading cached disk item"
-        try:
-            read = self.factory.cache.read(2)
-            bts = struct.unpack('!H', read)[0]
-        except:
-            self.cacheItemAck = None
-            self.factory.cache.close()
-            if self.cacheItemCount >= self.cacheItemTotal:
-                self.clearCache()
-            return
+    def readNextCachedItems(self, amount=1):
+        for i in range(amount):
+            #print "reading cached disk item"
+            try:
+                read = self.factory.cache.read(2)
+                bts = struct.unpack('!H', read)[0]
+            except:
+                self.cachedItemsAck = None
+                self.factory.cache.close()
+                if self.cacheItemCount >= self.cacheItemTotal:
+                    self.clearCache()
+                break
 
-        try:
-            msg = proto.Msg.FromString(self.factory.cache.read(bts))
-            self.cacheItemCount += (bts + 2)
-            #print "read item %s from disk (item %i out of %i)" % (AckMap.checksum(msg.SerializeToString()), self.cacheItemCount, self.cacheItemTotal)
-        except:
-            pass
-        else:
-            if msg.type == msg.Type_BLUETOOTH_DATARAW and not self.factory.config['enable_bluetooth_raw']:
-                pass
-            elif msg.type == msg.Type_WIFI_DATARAW and not self.factory.config['enable_wifi_raw']:
-                pass
-            elif msg.type == msg.Type_WIFI_DATADEVRAW and not self.factory.config['enable_wifi_devraw']:
+            try:
+                msg = proto.Msg.FromString(self.factory.cache.read(bts))
+                self.cacheItemCount += (bts + 2)
+                #print "read item %s from disk (item %i out of %i)" % (AckMap.checksum(msg.SerializeToString()), self.cacheItemCount, self.cacheItemTotal)
+            except:
                 pass
             else:
-                self.cachedItemAck = AckMap.checksum(msg.SerializeToString())
-                self.sendMsg(msg)
+                if msg.type == msg.Type_BLUETOOTH_DATARAW and not self.factory.config['enable_bluetooth_raw']:
+                    pass
+                elif msg.type == msg.Type_WIFI_DATARAW and not self.factory.config['enable_wifi_raw']:
+                    pass
+                elif msg.type == msg.Type_WIFI_DATADEVRAW and not self.factory.config['enable_wifi_devraw']:
+                    pass
+                else:
+                    self.cachedItemsAck.add(AckMap.checksum(msg.SerializeToString()))
+                    self.sendMsg(msg)
 
     def pushCache(self):
         """
@@ -655,7 +657,8 @@ class InetClient(Int16StringReceiver):
             self.factory.cache = open(self.factory.cache_file, 'rb')
 
             if self.factory.config['enable_cache']:
-                self.readNextCachedItem()
+                self.cachedItemsAck = set()
+                self.readNextCachedItems(10)
 
     def clearCache(self):
         """
