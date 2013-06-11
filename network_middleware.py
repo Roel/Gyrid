@@ -445,9 +445,9 @@ class InetClient(Int16StringReceiver):
             try:
                 for i in self.factory.ackmap.ackmap:
                     self.factory.cache.write(
-                        struct.pack('!H', i.msg.ByteSize()) + \
-                        i.msg.SerializeToString())
                     #print "written item %s to disk cache" % AckMap.checksum(i.msg.SerializeToString())
+                        i.msg.SerializeToString() + \
+                        struct.pack('!H', i.msg.ByteSize()))
                 self.factory.ackmap.clear()
             finally:
                 self.factory.ackmap.lock.release()
@@ -498,9 +498,9 @@ class InetClient(Int16StringReceiver):
                     msg.Type_WIFI_STATE_FREQUENCY, msg.Type_WIFI_DATAIO, msg.Type_WIFI_DATADEVRAW,
                     msg.Type_WIFI_DATARAW, msg.Type_STATE_ANTENNA]:
                     self.factory.cache.write(
-                        struct.pack('!H', msg.ByteSize()) + \
-                        msg.SerializeToString())
                     #print "written item %s to disk cache" % AckMap.checksum(msg.SerializeToString())
+                        msg.SerializeToString() + \
+                        struct.pack('!H', msg.ByteSize()))
         else:
             #print "sending msg %s with ACK %s" % (AckMap.checksum(msg.SerializeToString()), str(await_ack))
             if self.transport != None:
@@ -557,9 +557,10 @@ class InetClient(Int16StringReceiver):
         elif msg.type == msg.Type_ACK:
             ack = binascii.b2a_hex(msg.ack)
             self.factory.ackmap.clearItem(ack)
-            self.cachedItemsAck.discard(ack)
-            if self.cachedItemsAck and len(self.cachedItemsAck <= 2):
-                self.readNextCachedItems(10)
+            if self.cachedItemsAck:
+                self.cachedItemsAck.discard(ack)
+                if len(self.cachedItemsAck) <= 2:
+                    self.readNextCachedItems(100)
 
         elif msg.type == msg.Type_REQUEST_STATE:
             self.factory.config['enable_state_scanning'] = msg.requestState.enableScanning
@@ -616,19 +617,20 @@ class InetClient(Int16StringReceiver):
         for i in range(amount):
             #print "reading cached disk item"
             try:
+                self.factory.cache.seek(-2, 1)
                 read = self.factory.cache.read(2)
                 bts = struct.unpack('!H', read)[0]
+                self.factory.cache.seek(-2-bts, 1)
             except:
                 self.cachedItemsAck = None
                 self.factory.cache.close()
-                if self.cacheItemCount >= self.cacheItemTotal:
-                    self.clearCache()
                 break
 
+            rawmsg = self.factory.cache.read(bts)
+            self.factory.cache.seek(-bts, 1)
             try:
-                msg = proto.Msg.FromString(self.factory.cache.read(bts))
-                self.cacheItemCount += (bts + 2)
                 #print "read item %s from disk (item %i out of %i)" % (AckMap.checksum(msg.SerializeToString()), self.cacheItemCount, self.cacheItemTotal)
+                msg = proto.Msg.FromString(rawmsg)
             except:
                 pass
             else:
@@ -639,8 +641,10 @@ class InetClient(Int16StringReceiver):
                 elif msg.type == msg.Type_WIFI_DATADEVRAW and not self.factory.config['enable_wifi_devraw']:
                     pass
                 else:
+                    msg.cached = True
                     self.cachedItemsAck.add(AckMap.checksum(msg.SerializeToString()))
                     self.sendMsg(msg)
+        self.factory.cache.truncate()
 
     def pushCache(self):
         """
@@ -652,13 +656,12 @@ class InetClient(Int16StringReceiver):
         #print "pushing disk cache"
 
         if os.path.isfile(self.factory.cache_file):
-            self.cacheItemTotal = os.path.getsize(self.factory.cache_file)
-            self.cacheItemCount = 0
-            self.factory.cache = open(self.factory.cache_file, 'rb')
+            self.factory.cache = open(self.factory.cache_file, 'r+b')
+            self.factory.cache.seek(0, 2)
 
             if self.factory.config['enable_cache']:
                 self.cachedItemsAck = set()
-                self.readNextCachedItems(10)
+                self.readNextCachedItems(100)
 
     def clearCache(self):
         """
