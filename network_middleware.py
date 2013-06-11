@@ -40,6 +40,7 @@ import struct
 import sys
 import threading
 import time
+import traceback
 import zlib
 
 import gyrid.configuration as configuration
@@ -64,6 +65,8 @@ class Network(object):
             '/etc/gyrid/gyrid.conf')
         atexit.register(self.exit)
         self.exit_code = 0
+
+        sys.excepthook = self._handle_exception
 
         inet_factory = InetClientFactory(self)
         local_factory = LocalServerFactory(self, inet_factory)
@@ -102,6 +105,20 @@ class Network(object):
                 else:
                     reactor.connectTCP(self.host[0], self.port, inet_factory)
                     reactor.run()
+
+    def _handle_exception(self, etype, evalue, etraceback):
+        """
+        Handle the exception by writing information to the error log.
+        """
+        exc = ''.join(traceback.format_exception(etype, evalue, etraceback))
+        f = open('/var/log/gyrid/network-error.log', 'a')
+        f.write(time.strftime("%Y%m%d-%H%M%S-%Z\n"))
+        f.write("Error: unhandled exception: %s, %s\n\n" % \
+            (etype.__name__, evalue))
+        f.write(' '.join(traceback.format_exception(etype, evalue,
+            etraceback)))
+        f.write('\n')
+        f.close()
 
     def exit(self):
         """
