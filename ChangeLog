@@ -1,3 +1,9 @@
+gyrid 0.9
+
+	* FIX: Improvements in network middleware regarding pushing of cache.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 07 Jun 2013 12:05:04 +0200
+
 gyrid 0.8.10
 
 	* FIX: Only take source address into account when processing WiFi frames.
