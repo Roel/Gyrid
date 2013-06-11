@@ -619,13 +619,13 @@ class InetClient(Int16StringReceiver):
         except:
             self.cacheItemAck = None
             self.factory.cache.close()
-            if self.cacheItemCount == self.cacheItemTotal:
+            if self.cacheItemCount >= self.cacheItemTotal:
                 self.clearCache()
             return
 
         try:
             msg = proto.Msg.FromString(self.factory.cache.read(bts))
-            self.cacheItemCount += 1
+            self.cacheItemCount += (bts + 2)
             #print "read item %s from disk (item %i out of %i)" % (AckMap.checksum(msg.SerializeToString()), self.cacheItemCount, self.cacheItemTotal)
         except:
             pass
@@ -649,27 +649,13 @@ class InetClient(Int16StringReceiver):
             self.factory.cache.close()
         #print "pushing disk cache"
 
-        self.factory.cache = open(self.factory.cache_file, 'rb')
-        items = 0
-        try:
-            read = self.factory.cache.read(2)
-            while read:
-                try:
-                    bts = struct.unpack('!H', read)[0]
-                    self.factory.cache.read(bts)
-                    items += 1
-                    read = self.factory.cache.read(2)
-                except:
-                    break
-        except:
-            pass
-        #print "%i items in disk cache" % items
-        self.cacheItemTotal = items
-        self.cacheItemCount = 0
-        self.factory.cache.seek(0)
+        if os.path.isfile(self.factory.cache_file):
+            self.cacheItemTotal = os.path.getsize(self.factory.cache_file)
+            self.cacheItemCount = 0
+            self.factory.cache = open(self.factory.cache_file, 'rb')
 
-        if self.factory.config['enable_cache']:
-            self.readNextCachedItem()
+            if self.factory.config['enable_cache']:
+                self.readNextCachedItem()
 
     def clearCache(self):
         """
