@@ -624,6 +624,7 @@ class InetClient(Int16StringReceiver):
                 self.factory.cache.seek(-2-bts, 1)
             except:
                 self.cachedItemsAck = None
+                self.factory.cache.truncate()
                 self.factory.cache.close()
                 break
 
@@ -645,7 +646,9 @@ class InetClient(Int16StringReceiver):
                     msg.cached = True
                     self.cachedItemsAck.add(AckMap.checksum(msg.SerializeToString()))
                     self.sendMsg(msg)
-        self.factory.cache.truncate()
+
+        if not self.factory.cache.closed:
+            self.factory.cache.truncate()
 
     def pushCache(self):
         """
