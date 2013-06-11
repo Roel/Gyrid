@@ -462,9 +462,9 @@ class InetClient(Int16StringReceiver):
             try:
                 for i in self.factory.ackmap.ackmap:
                     self.factory.cache.write(
-                    #print "written item %s to disk cache" % AckMap.checksum(i.msg.SerializeToString())
                         i.msg.SerializeToString() + \
                         struct.pack('!H', i.msg.ByteSize()))
+                    #print "written item %s to disk cache" % AckMap.checksum(i.msg.SerializeToString())
                 self.factory.ackmap.clear()
             finally:
                 self.factory.ackmap.lock.release()
@@ -515,9 +515,9 @@ class InetClient(Int16StringReceiver):
                     msg.Type_WIFI_STATE_FREQUENCY, msg.Type_WIFI_DATAIO, msg.Type_WIFI_DATADEVRAW,
                     msg.Type_WIFI_DATARAW, msg.Type_STATE_ANTENNA]:
                     self.factory.cache.write(
-                    #print "written item %s to disk cache" % AckMap.checksum(msg.SerializeToString())
                         msg.SerializeToString() + \
                         struct.pack('!H', msg.ByteSize()))
+                    #print "written item %s to disk cache" % AckMap.checksum(msg.SerializeToString())
         else:
             #print "sending msg %s with ACK %s" % (AckMap.checksum(msg.SerializeToString()), str(await_ack))
             if self.transport != None:
@@ -648,8 +648,8 @@ class InetClient(Int16StringReceiver):
             rawmsg = self.factory.cache.read(bts)
             self.factory.cache.seek(-bts, 1)
             try:
-                #print "read item %s from disk (item %i out of %i)" % (AckMap.checksum(msg.SerializeToString()), self.cacheItemCount, self.cacheItemTotal)
                 msg = proto.Msg.FromString(rawmsg)
+                #print "read item %s from disk" % (AckMap.checksum(msg.SerializeToString()))
             except:
                 pass
             else:
