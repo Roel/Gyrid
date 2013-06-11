@@ -566,6 +566,7 @@ class InetClient(Int16StringReceiver):
             self.factory.config['enable_state_scanning'] = msg.requestState.enableScanning
             self.factory.config['enable_state_inquiry'] = msg.requestState.bluetooth_enableInquiry
             self.factory.config['enable_state_frequency'] = msg.requestState.wifi_enableFrequency
+            self.factory.config['enable_state_frequencyloop'] = msg.requestState.wifi_enableFrequencyLoop
             self.factory.config['enable_state_antenna'] = msg.requestState.enableAntenna
 
             msg.success = True
@@ -700,7 +701,8 @@ class InetClientFactory(ReconnectingClientFactory):
                        'enable_uptime': False,
                        'enable_state_scanning': True,
                        'enable_state_inquiry': True,
-                       'enable_state_frequency': True,
+                       'enable_state_frequency': False,
+                       'enable_state_frequencyloop': True,
                        'enable_state_antenna': True}
 
         self.alix_led_support = (False not in [os.path.exists(
@@ -887,7 +889,21 @@ class InetClientFactory(ReconnectingClientFactory):
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
 
-        elif data.startswith('STATE') and ('frequency' in data) and \
+        elif data.startswith('STATE') and ('frequency_loop' in data) and \
+            self.config['enable_state_frequencyloop']:
+            data = dict(zip(['type', 'hwType', 'sensor_mac', 'timestamp', 'subtype', 'duration', 'frequencies'],
+                data.split(',')))
+            m = proto.Msg()
+            m.type = m.Type_WIFI_STATE_FREQUENCYLOOP
+            d = m.wifi_stateFrequencyLoop
+            d.timestamp = float(data['timestamp'])
+            if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            d.duration = int(data['duration'])
+            for f in data['frequencies'].split(';'):
+                d.frequency.append(int(f))
+            return m
+
+        elif data.startswith('STATE') and ('frequency,' in data) and \
             self.config['enable_state_frequency']:
             data = dict(zip(['type', 'hwType', 'sensor_mac', 'timestamp', 'subtype', 'frequency', 'duration'],
                 data.split(',')))

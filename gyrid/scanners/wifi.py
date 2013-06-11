@@ -182,18 +182,23 @@ class WiFiScanner(core.Scanner):
         cnt = 0
         freq = 0
         duration = 1
+        freqs_done = []
         while self.running and not self.mgr.main.stopping:
             if len(self.frequencies) == 0:
                 self.running = False
             elif cnt >= len(self.frequencies):
                 cnt = 0
+                self.mgr.net_send_line("STATE,wifi,%s,%0.3f,frequency_loop,%i,%s" %
+                    (self.mac.replace(':','').lower(), time.time(), duration*1000, ";".join(
+                        str(i) for i in freqs_done)))
+                freqs_done[:] = []
             else:
                 try:
                     if cnt < len(self.frequencies):
-                        wigy.set_frequency(self.iface, self.frequencies[cnt])
-                        self.mgr.debug("%s: Frequency set to %i Hz" % (self.mac,
-                            self.frequencies[cnt]))
                         freq = self.frequencies[cnt]
+                        wigy.set_frequency(self.iface, freq)
+                        self.mgr.debug("%s: Frequency set to %i Hz" % (self.mac, freq))
+                        freqs_done.append(freq)
                         cnt += 1
                 except IOError:
                     self.mgr.debug("%s: Frequency of %i Hz is not supported" % (self.mac,
