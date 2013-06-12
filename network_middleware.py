@@ -211,10 +211,7 @@ class AckMap(object):
         @param   data   The data to process.
         @return         The CRC32 checksum.
         """
-        r = '%x' % abs(zlib.crc32(data))
-        if len(r) % 2 != 0:
-            r = '0' + r
-        return r
+        return '%08x' % abs(zlib.crc32(data))
 
     def __init__(self, factory):
         """
