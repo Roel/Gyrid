@@ -1,3 +1,13 @@
+gyrid 0.9.1
+
+	* FIX: Improvements in network middleware regarding pushing of cache,
+			 it should now start faster and be more reliable.
+	* FIX: Introduce WiFi 'frequency loop' message to reduce network traffic.
+	* FIX: Log unhandled exceptions from network middleware.
+	* ADD: Log WiFi raw device stream locally too.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 11 Jun 2013 15:17:13 +0200
+
 gyrid 0.9
 
 	* FIX: Improvements in network middleware regarding pushing of cache.
