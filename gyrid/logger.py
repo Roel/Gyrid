@@ -114,6 +114,50 @@ class WiFiRawLogger(InfoLogger):
 
             self.logger.info(",".join(a))
 
+class WiFiDevRawLogger(InfoLogger):
+    def __init__(self, mgr, mac):
+        """
+        Initialisation of the logfile.
+
+        @param  mgr   Reference to Scanmanager instance.
+        @param  mac   The MAC-address of the adapter used for scanning.
+        """
+        self.mgr = mgr
+        self.mac = mac
+        InfoLogger.__init__(self, mgr, self._get_log_location())
+
+        self.enable = True
+
+    def _get_log_id(self):
+        return '%s-wifidevraw' % self.mac
+
+    def _get_log_location(self):
+        return self.mgr.get_wifidevraw_log_location(self.mac)
+
+    def _get_logger(self):
+        logger = logging.getLogger(self._get_log_id())
+        handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
+            self._get_log_location())
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(handler)
+        return logger
+
+    def write(self, timestamp, frequency, hwid, rssi):
+        """
+        Append the parameters to the logfile on a new line and flush the file.
+        Try sending the data over the network.
+
+        @param  timestamp      UNIX timestamp.
+        @param  mac_address    Hardware address of the Bluetooth device.
+        @param  device_class   Device class of the Bluetooth device.
+        @param  rssi           The RSSI value of the received Bluetooth signal.
+        """
+        if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
+            a = [time.strftime(self.time_format, time.localtime(timestamp))]
+            a.extend([str(i) for i in [frequency, hwid, rssi]])
+
+            self.logger.info(",".join(a))
+
 class RSSILogger(InfoLogger):
     """
     The RSSI logger takes care of the logging of RSSI-enabled queries.

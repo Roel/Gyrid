@@ -27,25 +27,26 @@ message Msg {
         Type_BLUETOOTH_STATE_INQUIRY = 5;
 
         Type_WIFI_STATE_FREQUENCY = 6;
-        Type_WIFI_DATARAW = 7;
-        Type_WIFI_DATADEVRAW = 8;
-        Type_WIFI_DATAIO = 9;
+        Type_WIFI_STATE_FREQUENCYLOOP = 7;
+        Type_WIFI_DATARAW = 8;
+        Type_WIFI_DATADEVRAW = 9;
+        Type_WIFI_DATAIO = 10;
 
-        Type_INFO = 10;
-        Type_STATE_SCANNING = 11;
-        Type_STATE_GYRID = 12;
-        Type_STATE_ANTENNA = 13;
-        Type_UPTIME = 14;
-        Type_REQUEST_HOSTNAME = 15;
-        Type_REQUEST_KEEPALIVE = 16;
-        Type_REQUEST_UPTIME = 17;
-        Type_REQUEST_CACHING = 18;
-        Type_REQUEST_STARTDATA = 19;
-        Type_REQUEST_STATE = 20;
-        Type_HOSTNAME = 21;
+        Type_INFO = 11;
+        Type_STATE_SCANNING = 12;
+        Type_STATE_GYRID = 13;
+        Type_STATE_ANTENNA = 14;
+        Type_UPTIME = 15;
+        Type_REQUEST_HOSTNAME = 16;
+        Type_REQUEST_KEEPALIVE = 17;
+        Type_REQUEST_UPTIME = 18;
+        Type_REQUEST_CACHING = 19;
+        Type_REQUEST_STARTDATA = 20;
+        Type_REQUEST_STATE = 21;
+        Type_HOSTNAME = 22;
 
-        Type_ANTENNA_TURN = 22;
-        Type_SCAN_PATTERN = 23;
+        Type_ANTENNA_TURN = 23;
+        Type_SCAN_PATTERN = 24;
     }
 
     required Type type = 1;
@@ -58,26 +59,27 @@ message Msg {
     optional Bluetooth_StateInquiry bluetooth_stateInquiry = 6;
 
     optional WiFi_StateFrequency wifi_stateFrequency = 7;
-    optional WiFi_DataRaw wifi_dataRaw = 8;
-    optional WiFi_DataDevRaw wifi_dataDevRaw = 9;
-    optional WiFi_DataIO wifi_dataIO = 10;
+    optional WiFi_StateFrequencyLoop wifi_stateFrequencyLoop = 8;
+    optional WiFi_DataRaw wifi_dataRaw = 9;
+    optional WiFi_DataDevRaw wifi_dataDevRaw = 10;
+    optional WiFi_DataIO wifi_dataIO = 11;
 
-    optional Info info = 11;
-    optional StateScanning stateScanning = 12;
-    optional StateGyrid stateGyrid = 13;
-    optional StateAntenna stateAntenna = 14;
-    optional Uptime uptime = 15;
-    optional RequestKeepalive requestKeepalive = 16;
-    optional bool requestUptime = 17 [default = true];
-    optional RequestCaching requestCaching = 18;
-    optional RequestStartdata requestStartdata = 19;
-    optional RequestState requestState = 20;
-    optional string hostname = 21;
+    optional Info info = 12;
+    optional StateScanning stateScanning = 13;
+    optional StateGyrid stateGyrid = 14;
+    optional StateAntenna stateAntenna = 15;
+    optional Uptime uptime = 16;
+    optional RequestKeepalive requestKeepalive = 17;
+    optional bool requestUptime = 18 [default = true];
+    optional RequestCaching requestCaching = 19;
+    optional RequestStartdata requestStartdata = 20;
+    optional RequestState requestState = 21;
+    optional string hostname = 22;
 
-    optional AntennaTurn antennaTurn = 22;
-    optional ScanPattern scanPattern = 23;
+    optional AntennaTurn antennaTurn = 23;
+    optional ScanPattern scanPattern = 24;
 
-    optional bool success = 24;
+    optional bool success = 25;
 }
 
 message RequestKeepalive {
@@ -89,7 +91,8 @@ message RequestState {
     optional bool bluetooth_enableInquiry = 1 [default = false];
     optional bool enableScanning = 2 [default = true];
     optional bool wifi_enableFrequency = 3 [default = false];
-    optional bool enableAntenna = 4 [default = false];
+    optional bool wifi_enableFrequencyLoop = 4 [default = false];
+    optional bool enableAntenna = 5 [default = false];
 }
 
 message RequestCaching {
@@ -172,6 +175,8 @@ message StateAntenna {
 }
 
 message Bluetooth_StateInquiry {
+    // sent before the start of a the inquiry
+
     optional double timestamp = 1;
     optional bytes sensorMac = 2;
     optional uint32 duration = 3; // milliseconds
@@ -199,9 +204,22 @@ message Bluetooth_DataRaw {
 }
 
 message WiFi_StateFrequency {
+    // sent immediately after the frequency change
+
     optional double timestamp = 1;
     optional bytes sensorMac = 2;
     optional uint32 frequency = 3;
+    optional uint32 duration = 4; // milliseconds
+}
+
+message WiFi_StateFrequencyLoop {
+    // sent after the completion of the frequency loop
+
+    optional double timestamp = 1;
+    optional bytes sensorMac = 2;
+    optional uint32 duration = 3; // milliseconds, per frequency
+    repeated uint32 frequency = 4;
+
 }
 
 message WiFi_DataIO {

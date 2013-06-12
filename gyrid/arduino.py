@@ -56,7 +56,7 @@ class Arduino(object):
             logfile = self.mgr.base_location + mac + '/angle.log'
             self.log = logging.getLogger('%s-angle' % mac)
             handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
-                logfile, False)
+                logfile)
             handler.setFormatter(logging.Formatter("%(message)s"))
             self.log.addHandler(handler)
             self.log.setLevel(logging.INFO)

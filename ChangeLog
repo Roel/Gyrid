@@ -1,3 +1,35 @@
+gyrid 0.9.1
+
+	* FIX: Improvements in network middleware regarding pushing of cache,
+			 it should now start faster and be more reliable.
+	* FIX: Introduce WiFi 'frequency loop' message to reduce network traffic.
+	* FIX: Log unhandled exceptions from network middleware.
+	* ADD: Log WiFi raw device stream locally too.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 11 Jun 2013 15:17:13 +0200
+
+gyrid 0.9
+
+	* FIX: Improvements in network middleware regarding pushing of cache.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Fri, 07 Jun 2013 12:05:04 +0200
+
+gyrid 0.8.10
+
+	* FIX: Only take source address into account when processing WiFi frames.
+	* FIX: Improvements in network middleware regarding reconnecting.
+	* UPD: Add duration to WiFi frequency state messages.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 06 Jun 2013 13:52:48 +0200
+
+gyrid 0.8.9
+
+	* FIX: Zippingfilehandler in arduino.py.
+	* FIX: Set cached flag of cached messages.
+	* FIX: Add exception handling to LED writing.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 06 Jun 2013 09:47:32 +0200
+
 gyrid 0.8.8
 
 	* FIX: Don't prepend message length twice when sending message over the

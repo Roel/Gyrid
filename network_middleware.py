@@ -40,6 +40,7 @@ import struct
 import sys
 import threading
 import time
+import traceback
 import zlib
 
 import gyrid.configuration as configuration
@@ -64,6 +65,8 @@ class Network(object):
             '/etc/gyrid/gyrid.conf')
         atexit.register(self.exit)
         self.exit_code = 0
+
+        sys.excepthook = self._handle_exception
 
         inet_factory = InetClientFactory(self)
         local_factory = LocalServerFactory(self, inet_factory)
@@ -102,6 +105,20 @@ class Network(object):
                 else:
                     reactor.connectTCP(self.host[0], self.port, inet_factory)
                     reactor.run()
+
+    def _handle_exception(self, etype, evalue, etraceback):
+        """
+        Handle the exception by writing information to the error log.
+        """
+        exc = ''.join(traceback.format_exception(etype, evalue, etraceback))
+        f = open('/var/log/gyrid/network-error.log', 'a')
+        f.write(time.strftime("%Y%m%d-%H%M%S-%Z\n"))
+        f.write("Error: unhandled exception: %s, %s\n\n" % \
+            (etype.__name__, evalue))
+        f.write(' '.join(traceback.format_exception(etype, evalue,
+            etraceback)))
+        f.write('\n')
+        f.close()
 
     def exit(self):
         """
@@ -179,6 +196,7 @@ class AckItem(object):
                 self.checksum = AckMap.checksum(self.msg.SerializeToString())
                 client = self.ackmap.factory.client
                 if client != None:
+                    #print "resending msg %s" % msg.checksum
                     client.sendMsg(self.msg, await_ack=False)
 
 class AckMap(object):
@@ -229,7 +247,9 @@ class AckMap(object):
 
         try:
             self.check_loop.start(self.interval, now=False)
+            #print "started ackmap checker"
         except AssertionError:
+            #print "ackmap checker already running"
             pass
 
     def stopChecker(self):
@@ -238,7 +258,9 @@ class AckMap(object):
         """
         try:
             self.check_loop.stop()
+            #print "stopped ackmap checker"
         except AssertionError:
+            #print "ackmap checker already stopped"
             pass
 
     def addItem(self, ackItem):
@@ -247,15 +269,20 @@ class AckMap(object):
         """
         ackItem.ackmap = self
         if not self.lock.acquire(False):
+            #print "adding item %s to temp ackmap" % ackItem.checksum
             self.toAdd.add(ackItem)
         else:
             try:
                 if len(self.toAdd) > 0:
+                    #print "adding items to ackmap: " + ", ".join(i.checksum for i in self.toAdd)
                     self.ackmap.update(self.toAdd)
                     self.toAdd.clear()
+                #print "adding item %s to ackmap" % ackItem.checksum
                 self.ackmap.add(ackItem)
             finally:
                 self.lock.release()
+
+        #print "ackmap size %i" % len(self.ackmap)
 
     def clearItem(self, checksum):
         """
@@ -265,6 +292,7 @@ class AckMap(object):
         @param   checksum   The checksum to check.
         """
         if not self.lock.acquire(False):
+            #print "clearing item %s in temp clearmap" % checksum
             self.toClear.add(checksum)
         else:
             try:
@@ -276,6 +304,7 @@ class AckMap(object):
                            i.checksum in self.toClear:
                            toClear.add(i)
                     self.ackmap.difference_update(toClear)
+                    #print "clearing items: " + ", ".join(i.checksum for i in self.toClear)
                     self.toClear.clear()
                 else:
                     for i in self.ackmap:
@@ -284,9 +313,12 @@ class AckMap(object):
                             break
 
                     if item != None:
+                        #print "clearing item %s" % item.checksum
                         self.ackmap.difference_update([item])
             finally:
                 self.lock.release()
+
+        #print "ackmap size %i" % len(self.ackmap)
 
     def clear(self):
         """
@@ -295,14 +327,18 @@ class AckMap(object):
         if self.lock.acquire(False):
             try:
                 self.ackmap.clear()
+                #print "cleared entire ackmap"
             finally:
                 self.lock.release()
+
+        #print "ackmap size %i" % len(self.ackmap)
 
     def __check(self):
         """
         Called automatically by the checker loop; should not be called
         directly. Checks each item in the map and resends when necessary.
         """
+        #print "checking ackmap for items to be resent"
         self.lock.acquire()
         try:
             for v in self.ackmap:
@@ -377,12 +413,19 @@ class InetClient(Int16StringReceiver):
         self.network = network
         self.network.client = self
         self.factory = factory
+        self.hostport = None
+        self.last_keepalive = -1
+        self.cachedItemsAck = None
+        self.keepalive_loop = task.LoopingCall(self.keepalive)
 
     def connectionMade(self):
         """
         Called when a new connection has been made.
         Close the cache.
         """
+        self.hostport = (self.transport.getHost().host, self.transport.getHost().port)
+        #print "connection made from" + str(self.hostport)
+        self.factory.connections.add(self.hostport)
         if not self.factory.cache.closed:
             self.factory.cache.flush()
             self.factory.cache.close()
@@ -392,7 +435,6 @@ class InetClient(Int16StringReceiver):
         except AssertionError:
             pass
 
-        self.factory.connected = True
         self.factory.ackmap.startChecker()
         self.factory.set_led(2, 1)
 
@@ -401,6 +443,15 @@ class InetClient(Int16StringReceiver):
         Called when the connection has been lost.
         Open cache file and write await_ack buffer to cache.
         """
+        self.factory.connections.remove(self.hostport)
+        #print "connection lost from" + str(self.hostport)
+        #print "%i connections remaining" % len(self.factory.connections)
+
+        try:
+            self.keepalive_loop.stop()
+        except AssertionError:
+            pass
+
         if not self.factory.cache.closed:
             self.factory.cache.flush()
             self.factory.cache.close()
@@ -411,15 +462,27 @@ class InetClient(Int16StringReceiver):
             try:
                 for i in self.factory.ackmap.ackmap:
                     self.factory.cache.write(
-                        struct.pack('!H', i.msg.ByteSize()) + \
-                        i.msg.SerializeToString())
+                        i.msg.SerializeToString() + \
+                        struct.pack('!H', i.msg.ByteSize()))
+                    #print "written item %s to disk cache" % AckMap.checksum(i.msg.SerializeToString())
                 self.factory.ackmap.clear()
             finally:
                 self.factory.ackmap.lock.release()
             self.factory.cache.flush()
 
-        self.factory.connected = False
-        self.factory.set_led(2, 0)
+        if len(self.factory.connections) < 1:
+            self.factory.set_led(2, 0)
+
+    def keepalive(self):
+        """
+        Checks if a keepalive has been received recently and closes
+        the connection otherwise.
+        """
+        t = self.factory.config['enable_keepalive']
+        if self.last_keepalive < int(time.time() - (t+0.1*t)):
+            #print "keepalive failed, disconnecting transport"
+            self.transport._writeDisconnected = True
+            self.transport.abortConnection()
 
     def sendLine(self, line):
         """
@@ -444,7 +507,7 @@ class InetClient(Int16StringReceiver):
         if (not self.factory.config['enable_data_transfer'] and msg.type in [
             msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW, msg.Type_WIFI_DATAIO,
             msg.Type_WIFI_DATADEVRAW, msg.Type_WIFI_DATARAW]) \
-                or not self.factory.connected:
+                or len(self.factory.connections) < 1:
             if self.factory.config['enable_cache'] \
                 and not self.factory.cache.closed and not self.factory.cache_full \
                 and msg.type in [msg.Type_BLUETOOTH_DATAIO, msg.Type_BLUETOOTH_DATARAW,
@@ -452,13 +515,16 @@ class InetClient(Int16StringReceiver):
                     msg.Type_WIFI_STATE_FREQUENCY, msg.Type_WIFI_DATAIO, msg.Type_WIFI_DATADEVRAW,
                     msg.Type_WIFI_DATARAW, msg.Type_STATE_ANTENNA]:
                     self.factory.cache.write(
-                        struct.pack('!H', msg.ByteSize()) + \
-                        msg.SerializeToString())
+                        msg.SerializeToString() + \
+                        struct.pack('!H', msg.ByteSize()))
+                    #print "written item %s to disk cache" % AckMap.checksum(msg.SerializeToString())
         else:
+            #print "sending msg %s with ACK %s" % (AckMap.checksum(msg.SerializeToString()), str(await_ack))
             if self.transport != None:
-                Int16StringReceiver.sendString(self, msg.SerializeToString())
                 if await_ack and self.factory.config['enable_cache']:
                     self.factory.ackmap.addItem(AckItem(msg))
+                Int16StringReceiver.sendString(self, msg.SerializeToString())
+                #print "sent msg %s" % AckMap.checksum(msg.SerializeToString())
 
     def stringReceived(self, data):
         """
@@ -481,7 +547,7 @@ class InetClient(Int16StringReceiver):
                 self.factory.config['enable_keepalive'] = -1
             else:
                 self.factory.config['enable_keepalive'] = msg.requestKeepalive.interval
-                self.factory.keepalive_loop.start(
+                self.keepalive_loop.start(
                     self.factory.config['enable_keepalive'], now=False)
 
             msg.success = True
@@ -489,7 +555,7 @@ class InetClient(Int16StringReceiver):
 
         elif msg.type == msg.Type_KEEPALIVE and \
             self.factory.config['enable_keepalive'] > 0:
-            self.factory.last_keepalive = int(time.time())
+            self.last_keepalive = int(time.time())
             m = proto.Msg()
             m.type = m.Type_KEEPALIVE
             self.sendMsg(m, await_ack=False)
@@ -506,12 +572,18 @@ class InetClient(Int16StringReceiver):
             self.sendMsg(msg, await_ack=False)
 
         elif msg.type == msg.Type_ACK:
-            self.factory.ackmap.clearItem(binascii.b2a_hex(msg.ack))
+            ack = binascii.b2a_hex(msg.ack)
+            self.factory.ackmap.clearItem(ack)
+            if self.cachedItemsAck:
+                self.cachedItemsAck.discard(ack)
+                if len(self.cachedItemsAck) <= 2:
+                    self.readNextCachedItems(100)
 
         elif msg.type == msg.Type_REQUEST_STATE:
             self.factory.config['enable_state_scanning'] = msg.requestState.enableScanning
             self.factory.config['enable_state_inquiry'] = msg.requestState.bluetooth_enableInquiry
             self.factory.config['enable_state_frequency'] = msg.requestState.wifi_enableFrequency
+            self.factory.config['enable_state_frequencyloop'] = msg.requestState.wifi_enableFrequencyLoop
             self.factory.config['enable_state_antenna'] = msg.requestState.enableAntenna
 
             msg.success = True
@@ -559,6 +631,42 @@ class InetClient(Int16StringReceiver):
                 m.uptime.systemStartup = self.network.host_up_since
                 self.sendMsg(m, await_ack=False)
 
+    def readNextCachedItems(self, amount=1):
+        for i in range(amount):
+            #print "reading cached disk item"
+            try:
+                self.factory.cache.seek(-2, 1)
+                read = self.factory.cache.read(2)
+                bts = struct.unpack('!H', read)[0]
+                self.factory.cache.seek(-2-bts, 1)
+            except:
+                self.cachedItemsAck = None
+                self.factory.cache.truncate()
+                self.factory.cache.close()
+                break
+
+            rawmsg = self.factory.cache.read(bts)
+            self.factory.cache.seek(-bts, 1)
+            try:
+                msg = proto.Msg.FromString(rawmsg)
+                #print "read item %s from disk" % (AckMap.checksum(msg.SerializeToString()))
+            except:
+                pass
+            else:
+                if msg.type == msg.Type_BLUETOOTH_DATARAW and not self.factory.config['enable_bluetooth_raw']:
+                    pass
+                elif msg.type == msg.Type_WIFI_DATARAW and not self.factory.config['enable_wifi_raw']:
+                    pass
+                elif msg.type == msg.Type_WIFI_DATADEVRAW and not self.factory.config['enable_wifi_devraw']:
+                    pass
+                else:
+                    msg.cached = True
+                    self.cachedItemsAck.add(AckMap.checksum(msg.SerializeToString()))
+                    self.sendMsg(msg)
+
+        if not self.factory.cache.closed:
+            self.factory.cache.truncate()
+
     def pushCache(self):
         """
         Push trough the cached data. Clears the cache afterwards.
@@ -566,33 +674,15 @@ class InetClient(Int16StringReceiver):
         if not self.factory.cache.closed:
             self.factory.cache.flush()
             self.factory.cache.close()
+        #print "pushing disk cache"
 
-        self.factory.cache = open(self.factory.cache_file, 'rb')
+        if os.path.isfile(self.factory.cache_file):
+            self.factory.cache = open(self.factory.cache_file, 'r+b')
+            self.factory.cache.seek(0, 2)
 
-        if self.factory.config['enable_cache']:
-            read = self.factory.cache.read(2)
-            while read:
-                bts = struct.unpack('!H', read)[0]
-                try:
-                    msg = proto.Msg.FromString(self.factory.cache.read(bts))
-                except:
-                    pass
-                else:
-                    if msg.type == msg.Type_BLUETOOTH_DATARAW and not self.factory.config['enable_bluetooth_raw']:
-                        pass
-                    elif msg.type == msg.Type_WIFI_DATARAW and not self.factory.config['enable_wifi_raw']:
-                        pass
-                    elif msg.type == msg.Type_WIFI_DATADEVRAW and not self.factory.config['enable_wifi_devraw']:
-                        pass
-                    else:
-                        self.sendMsg(msg)
-                try:
-                    read = self.factory.cache.read(2)
-                except IOError:
-                    read = False
-
-        self.factory.cache.close()
-        self.clearCache()
+            if self.factory.config['enable_cache']:
+                self.cachedItemsAck = set()
+                self.readNextCachedItems(100)
 
     def clearCache(self):
         """
@@ -605,6 +695,7 @@ class InetClient(Int16StringReceiver):
         self.factory.cache = open(self.factory.cache_file, 'wb')
         self.factory.cache.truncate()
         self.factory.cache.close()
+        #print "cleared disk cache"
 
         self.factory.cache_full = False
 
@@ -630,20 +721,20 @@ class InetClientFactory(ReconnectingClientFactory):
                        'enable_uptime': False,
                        'enable_state_scanning': True,
                        'enable_state_inquiry': True,
-                       'enable_state_frequency': True,
+                       'enable_state_frequency': False,
+                       'enable_state_frequencyloop': True,
                        'enable_state_antenna': True}
 
         self.alix_led_support = (False not in [os.path.exists(
             '/sys/class/leds/alix:%i' % i) for i in [2, 3]])
 
-        self.connected = False
+        self.connections = set()
         self.cache_full = False
         self.cache_file = '/var/tmp/gyrid-network.cache'
         self.cache_maxsize = self.network.config.get_value('network_cache_limit')
         self.cache = open(self.cache_file, 'ab')
         self.ackmap = AckMap(self)
 
-        self.keepalive_loop = task.LoopingCall(self.keepalive)
         self.cachesize_loop = task.LoopingCall(self.checkCacheSize)
 
         self.buildProtocol(None)
@@ -654,16 +745,10 @@ class InetClientFactory(ReconnectingClientFactory):
         Initialise per-connection variables.
         Starts and stops looping calls.
         """
-        self.last_keepalive = -1
-
         self.config['enable_data_transfer'] = False
         self.config['enable_keepalive'] = -1
 
         self.cachesize_loop.start(10)
-        try:
-            self.keepalive_loop.stop()
-        except AssertionError:
-            pass
 
     def checkCacheSize(self):
         """
@@ -681,18 +766,6 @@ class InetClientFactory(ReconnectingClientFactory):
                 self.cachesize_loop.stop()
             except AssertionError:
                 pass
-
-    def keepalive(self):
-        """
-        Checks if a keepalive has been received recently and closes
-        the connection otherwise.
-        """
-        t = self.config['enable_keepalive']
-        if self.last_keepalive < int(time.time() - (t+0.1*t)):
-            self.connected = False
-            if self.client:
-                self.client.transport._writeDisconnected = True
-                self.client.transport.abortConnection()
 
     def buildMsg(self, data):
         """
@@ -713,7 +786,7 @@ class InetClientFactory(ReconnectingClientFactory):
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_DATAIO
             d = m.bluetooth_dataIO
-            if data.startswith('CACHE_CELL'): m.cached = True
+            if data.startswith('C'): m.cached = True
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac',
                 'deviceclass', 'move'], data.split(',')))
             d.timestamp = float(data['timestamp'])
@@ -728,7 +801,7 @@ class InetClientFactory(ReconnectingClientFactory):
             m = proto.Msg()
             m.type = m.Type_BLUETOOTH_DATARAW
             d = m.bluetooth_dataRaw
-            if data.startswith('CACHE_RSSI'): m.cached = True
+            if data.startswith('C'): m.cached = True
             data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac', 'deviceclass', 'rssi'],
                 data.split(',')))
             d.timestamp = float(data['timestamp'])
@@ -836,9 +909,23 @@ class InetClientFactory(ReconnectingClientFactory):
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
 
-        elif data.startswith('STATE') and ('frequency' in data) and \
+        elif data.startswith('STATE') and ('frequency_loop' in data) and \
+            self.config['enable_state_frequencyloop']:
+            data = dict(zip(['type', 'hwType', 'sensor_mac', 'timestamp', 'subtype', 'duration', 'frequencies'],
+                data.split(',')))
+            m = proto.Msg()
+            m.type = m.Type_WIFI_STATE_FREQUENCYLOOP
+            d = m.wifi_stateFrequencyLoop
+            d.timestamp = float(data['timestamp'])
+            if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
+            d.duration = int(data['duration'])
+            for f in data['frequencies'].split(';'):
+                d.frequency.append(int(f))
+            return m
+
+        elif data.startswith('STATE') and ('frequency,' in data) and \
             self.config['enable_state_frequency']:
-            data = dict(zip(['type', 'hwType', 'sensor_mac', 'timestamp', 'subtype', 'frequency'],
+            data = dict(zip(['type', 'hwType', 'sensor_mac', 'timestamp', 'subtype', 'frequency', 'duration'],
                 data.split(',')))
             m = proto.Msg()
             m.type = m.Type_WIFI_STATE_FREQUENCY
@@ -846,6 +933,7 @@ class InetClientFactory(ReconnectingClientFactory):
             d.timestamp = float(data['timestamp'])
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             d.frequency = int(data['frequency'])
+            d.duration = int(data['duration'])
             return m
 
         elif data.startswith('STATE') and ('antenna_rotation' in data) and \
@@ -893,6 +981,7 @@ class InetClientFactory(ReconnectingClientFactory):
         """
         self.resetDelay()
         self.client = InetClient(self.network, self)
+        #print "built protocol"
         return self.client
 
     def set_led(self, id, state):
@@ -907,9 +996,13 @@ class InetClientFactory(ReconnectingClientFactory):
             and not os.path.exists('/tmp/gyrid-led-disabled') \
             and 0 <= state <= 1:
 
-            file = open('/sys/class/leds/alix:%i/brightness' % id, 'w')
-            file.write(str(state))
-            file.close()
+            try:
+                file = open('/sys/class/leds/alix:%i/brightness' % id, 'w')
+                file.write(str(state))
+                file.close()
+                #print "set led %i to %i" % (id, state)
+            except:
+                pass
 
     def clientConnectionLost(self, connector, reason):
         """
@@ -918,8 +1011,8 @@ class InetClientFactory(ReconnectingClientFactory):
         """
         ReconnectingClientFactory.clientConnectionLost(
             self, connector, reason)
+        #print "client connection lost"
         self.ackmap.stopChecker()
-        self.set_led(2, 0)
 
         self.init()
 
@@ -929,7 +1022,7 @@ class InetClientFactory(ReconnectingClientFactory):
         """
         ReconnectingClientFactory.clientConnectionFailed(
             self, connector, reason)
-        self.set_led(2, 0)
+        #print "client connection failed"
 
         if 'OpenSSL.SSL.Error' in str(reason):
             self.network.exit_code = 3
