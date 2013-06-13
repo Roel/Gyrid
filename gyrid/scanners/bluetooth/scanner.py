@@ -81,22 +81,38 @@ class ScanPattern(object):
                     time.sleep(self.start_time-t)
                 elif self.stop_time:
                     if t <= self.stop_time:
+                        scantime = self.inquiry_duration+self.buffer_time
+                        st = scantime - (t % scantime)
+                        if scantime-st <= 0.2:
+                            print "diff %f" % (scantime-st)
+                            st = 0
+                        if st > 0:
+                            print "sleeping for %f seconds (sync)" % st
+                            time.sleep(st)
                         inquiry_function()
                         if self.buffer_time > 0:
-                            print "buffering for %f seconds" % self.buffer_time
+                            print "sleeping for %f seconds (buffer)" % self.buffer_time
                             time.sleep(self.buffer_time)
                     else:
                         self.done = True
                 else:
+                    scantime = self.inquiry_duration+self.buffer_time
+                    st = scantime - (t % scantime)
+                    if scantime-st <= 0.2:
+                        print "diff %f" % (scantime-st)
+                        st = 0
+                    if st > 0:
+                        print "sleeping for %f seconds (sync)" % st
+                        time.sleep(st)
                     inquiry_function()
                     if self.buffer_time > 0:
-                        print "buffering for %f seconds" % self.buffer_time
+                        print "sleeping for %f seconds (buffer)" % self.buffer_time
                         time.sleep(self.buffer_time)
             elif self.stop_time:
                 if t <= self.stop_time:
                     inquiry_function()
                     if self.buffer_time > 0:
-                        print "buffering for %f seconds" % self.buffer_time
+                        print "sleeping for %f seconds (buffer)" % self.buffer_time
                         time.sleep(self.buffer_time)
                 else:
                     self.done = True
@@ -120,9 +136,9 @@ class Bluetooth(core.ScanProtocol):
 
         self.excluded_devices = self.mgr.config.get_value('excluded_devices')
         self.scan_pattern = ScanPattern(self.mgr,
-            start_time = int(time.time())+20,
-            stop_time = int(time.time())+60,
-            buffer_time = 2,
+            start_time = 1371127500,
+            #stop_time = int(time.time())+60,
+            buffer_time = 9.76,
             inquiry_length = 8)
 
         bluez_obj = self.mgr._dbus_systembus.get_object('org.bluez', '/')
@@ -234,9 +250,6 @@ class BluetoothScanner(core.Scanner):
         self.init()
         while (not self.mgr.main.stopping) and (not self.scan_pattern.done):
             self.scan_pattern.what_now(self.discoverer.inquiry_with_rssi)
-
-        if self.mgr.main.stopping:
-            self.logger.stop()
 
     def init(self):
         if self.discoverer.init() == 0:
