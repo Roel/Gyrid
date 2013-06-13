@@ -142,7 +142,7 @@ class WiFiPoolChecker(threading.Thread):
         them to the logfile as being moved 'out'.
         """
         previous = 0
-        while self._running:
+        while self._running and not self.mgr.main.stopping:
             self.logger.lock.acquire()
             try:
                 tijd = int(time.time())

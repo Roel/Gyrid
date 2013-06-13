@@ -29,7 +29,7 @@ class Discoverer(object):
     Bluetooth discover, this class provides device discovery. Heavily based on
     the PyBluez advanced inquiry with RSSI example.
     """
-    def __init__(self, mgr, logger, logger_rssi, logger_inquiry, device_id, mac):
+    def __init__(self, scanner, logger, logger_rssi, logger_inquiry, device_id, mac):
         """
         Initialisation of the Discoverer. Store the reference to the loggers and
         query the necessary configuration options.
@@ -43,14 +43,21 @@ class Discoverer(object):
         @param  device_id       The ID of the Bluetooth device used for scanning.
         @param  mac             The MAC address of the Bluetooth scanning device.
         """
-        self.mgr = mgr
+        self.scanner = scanner
+        self.mgr = self.scanner.mgr
         self.logger = logger
         self.logger_rssi = logger_rssi
         self.logger_inquiry = logger_inquiry
         self.device_id = device_id
         self.mac = mac
-        self.buffer_size = int(math.ceil(
-            self.mgr.config.get_value('buffer_size')/1.28))
+        self.scan_pattern = self.scanner.scan_pattern
+
+        if self.scan_pattern:
+            self.buffer_size = self.scan_pattern.inquiry_length
+        else:
+            self.buffer_size = int(math.ceil(
+                self.mgr.config.get_value('buffer_size')/1.28))
+
         self.minimum_rssi = self.mgr.config.get_value('minimum_rssi')
         self.done = False
 
@@ -168,7 +175,7 @@ class Discoverer(object):
         if status != 0: return -1
         return 0
 
-    def _device_inquiry_with_with_rssi(self):
+    def inquiry_with_rssi(self):
         """
         Perform a Bluetooth inquiry with RSSI reception.
         """
@@ -235,12 +242,12 @@ class Discoverer(object):
         # restore old filter
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
 
-    def find(self):
+    def loop_scan(self):
         """
         Start scanning.
         """
         while not self.done and not self.mgr.main.stopping:
-            end = self._device_inquiry_with_with_rssi()
+            end = self.inquiry_with_with_rssi()
             if self.mgr.main.stopping:
                 end = "Shutting down"
 

@@ -24,11 +24,87 @@ Module implementing the Bluetooth scanning functionality.
 
 import dbus
 import dbus.mainloop.glib
+import math
 import time
 
 from gyrid import core
 import discoverer
 import logger
+
+class ScanPattern(object):
+    def __init__(self, mgr, sensor_mac = None,
+            start_time = None,
+            stop_time = None,
+            start_angle = 0,
+            stop_angle = 0,
+            scan_angle = 0,
+            inquiry_length = None,
+            buffer_time = 0,
+            arc_resolution = 0,
+            turn_resolution = 0):
+        self.mgr = mgr
+        self.sensor_mac = sensor_mac
+        self.start_time = start_time
+        self.stop_time = stop_time
+        self.start_angle = start_angle
+        self.stop_angle = stop_angle
+        self.scan_angle = scan_angle
+        self.inquiry_length = inquiry_length
+        self.buffer_time = buffer_time
+        self.arc_resolution = arc_resolution
+        self.turn_resolution = turn_resolution
+
+        if not self.inquiry_length:
+            self.inquiry_length = int(math.ceil(self.mgr.config.get_value('buffer_size')/1.28))
+
+        self.inquiry_duration = 1.28*self.inquiry_length
+
+        self.scanners = set()
+        self.done = False
+
+    def applies_to(self, mac):
+        if self.sensor_mac == None:
+            return True
+
+        return self.sensor_mac.lower().replace(':','') == mac.lower().replace(':','')
+
+    def what_now(self, inquiry_function):
+        if self.start_time or self.stop_time:
+            t = time.time()
+
+            if self.start_time:
+                if t < (self.start_time - self.inquiry_duration):
+                    print "sleeping for %f seconds" % self.inquiry_duration
+                    time.sleep(self.inquiry_duration)
+                elif t < self.start_time:
+                    print "sleeping for %f seconds" % (self.start_time-t)
+                    time.sleep(self.start_time-t)
+                elif self.stop_time:
+                    if t <= self.stop_time:
+                        inquiry_function()
+                        if self.buffer_time > 0:
+                            print "buffering for %f seconds" % self.buffer_time
+                            time.sleep(self.buffer_time)
+                    else:
+                        self.done = True
+                else:
+                    inquiry_function()
+                    if self.buffer_time > 0:
+                        print "buffering for %f seconds" % self.buffer_time
+                        time.sleep(self.buffer_time)
+            elif self.stop_time:
+                if t <= self.stop_time:
+                    inquiry_function()
+                    if self.buffer_time > 0:
+                        print "buffering for %f seconds" % self.buffer_time
+                        time.sleep(self.buffer_time)
+                else:
+                    self.done = True
+        else:
+            inquiry_function()
+            if self.buffer_time > 0:
+                print "buffering for %f seconds" % self.buffer_time
+                time.sleep(self.buffer_time)
 
 class Bluetooth(core.ScanProtocol):
     """
@@ -43,6 +119,11 @@ class Bluetooth(core.ScanProtocol):
         core.ScanProtocol.__init__(self, mgr)
 
         self.excluded_devices = self.mgr.config.get_value('excluded_devices')
+        self.scan_pattern = ScanPattern(self.mgr,
+            start_time = int(time.time())+20,
+            stop_time = int(time.time())+60,
+            buffer_time = 2,
+            inquiry_length = 8)
 
         bluez_obj = self.mgr._dbus_systembus.get_object('org.bluez', '/')
         self._dbus_bluez_manager = dbus.Interface(bluez_obj,
@@ -115,11 +196,57 @@ class BluetoothScanner(core.Scanner):
         core.Scanner.__init__(self, mgr, protocol)
         self.mac = device.GetProperties()['Address']
         self.device = device
+        self.scan_pattern = None
         self.dev_id = int(str(path).split('/')[-1].strip('hci'))
+
+        self.available = not self.device.GetProperties()['Discovering']
+        if not self.available:
+            self.mgr.debug("Adapter %s is still discovering, " % self.mac + \
+                    "waiting for the scan to end")
+            self.device.connect_to_signal("PropertyChanged",
+                self.property_changed, path_keyword='path')
+        else:
+            self.protocol.active_adapters.append(self.mac)
+
+        if self.protocol.scan_pattern.applies_to(self.mac):
+            self.protocol.scan_pattern.scanners.add(self)
+            self.apply_scan_pattern(self.protocol.scan_pattern)
+
+        if self.mac not in self.protocol.loggers:
+            self.logger = logger.ScanLogger(self.mgr, self.mac)
+            self.logger_rssi = logger.RSSILogger(self.mgr, self.mac)
+            self.logger_inquiry = logger.InquiryLogger(self.mgr, self.mac)
+            self.protocol.loggers[self.mac] = (self.logger, self.logger_rssi, self.logger_inquiry)
+        else:
+            self.logger, self.logger_rssi, self.logger_inquiry = self.protocol.loggers[self.mac]
+
+        self.discoverer = discoverer.Discoverer(self, self.logger, self.logger_rssi,
+            self.logger_inquiry, self.dev_id, self.mac)
 
         if not self.protocol.is_excluded(self.dev_id, self.mac):
             device.SetProperty('Discoverable', False)
-            self.start_scanning()
+
+        if self.available:
+            self.start()
+
+    @core.threaded
+    def start(self):
+        self.init()
+        while (not self.mgr.main.stopping) and (not self.scan_pattern.done):
+            self.scan_pattern.what_now(self.discoverer.inquiry_with_rssi)
+
+        if self.mgr.main.stopping:
+            self.logger.stop()
+
+    def init(self):
+        if self.discoverer.init() == 0:
+            self.mgr.log_info("Started scanning with Bluetooth adapter %s" % self.mac)
+            self.mgr.net_send_line("STATE,bluetooth,%s,%0.3f,started_scanning" % (
+                self.mac.replace(':',''), time.time()))
+            self.logger.start()
+
+    def apply_scan_pattern(self, scan_pattern):
+        self.scan_pattern = scan_pattern
 
     def property_changed(self, property, value, path):
         """
@@ -127,11 +254,13 @@ class BluetoothScanner(core.Scanner):
         it is used to listen for the Discovering=False signal to restart
         scanning.
         """
-        if property == "Discovering" and \
-                value == False:
-            if self.mac not in self.active_adapters \
-                and not self.protocol.is_excluded(self.dev_id, self.mac):
-                self.start_scanning()
+        if property == "Discovering" and value == False:
+            if self.mac not in self.protocol.active_adapters \
+                and not self.protocol.is_excluded(self.dev_id, self.mac) \
+                and not self.scan_pattern:
+                    self.available = True
+                    self.protocol.active_adapters.append(self.mac)
+                    self.start()
 
     @core.threaded
     def start_scanning(self):
@@ -143,7 +272,6 @@ class BluetoothScanner(core.Scanner):
 
         @param  device_id   The device to use for scanning.
         """
-        self.mac
         if self.mac != '00:00:00:00:00:00':
             if self.device.GetProperties()['Discovering']:
                 if self.mac in self.protocol.active_adapters:
@@ -163,14 +291,14 @@ class BluetoothScanner(core.Scanner):
                     _logger, _logger_rssi, _logger_inquiry = self.protocol.loggers[self.mac]
 
                 _discoverer = discoverer.Discoverer(self.mgr, _logger, _logger_rssi,
-                    _logger_inquiry, self.dev_id, self.mac)
+                    _logger_inquiry, self.dev_id, self.mac, self.scan_pattern)
 
                 if _discoverer.init() == 0:
                     self.mgr.log_info("Started scanning with Bluetooth adapter %s" % self.mac)
                     self.mgr.net_send_line("STATE,bluetooth,%s,%0.3f,started_scanning" % (
                         self.mac.replace(':',''), time.time()))
                     _logger.start()
-                    end_cause = _discoverer.find()
+                    end_cause = _discoverer.loop_scan()
                     _logger.stop()
                     self.mgr.log_info("Stopped scanning with Bluetooth adapter %s%s" % \
                         (self.mac, end_cause))

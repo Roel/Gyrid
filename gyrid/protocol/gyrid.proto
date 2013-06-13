@@ -129,17 +129,18 @@ message AntennaTurn {
 message ScanPattern {
     optional bytes sensorMac = 1;
     optional double startTime = 2;
-    optional float startAngle = 3;
-    optional float stopAngle = 4;
-    optional float scanAngle = 5;
-    optional float inquiryDuration = 6;
-    optional float bufferTime = 7;
+    optional double stopTime = 3;
+    optional float startAngle = 4;
+    optional float stopAngle = 5;
+    optional float scanAngle = 6;
+    optional float inquiryDuration = 7;
+    optional float bufferTime = 8;
     
     // Resolutie van draaiboog (ruwheid van de beweging)
-    optional float arcResolution = 8; // degrees
+    optional float arcResolution = 9; // degrees
 
     // Aantal inquiries tussen startAngle en stopAngle
-    optional float turnResolution = 9; // degrees
+    optional float turnResolution = 10; // degrees
 }
 
 message StateScanning {
