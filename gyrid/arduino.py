@@ -43,6 +43,12 @@ class Arduino(object):
 
         self.dev = self.get_conf()
         self.conn = self.get_conn()
+        self.sweep_init_time = 0.675
+
+        self.sweep(0, 180, 2.5)
+        time.sleep(2.5)
+        self.sweep(180, 0, 2.5)
+        time.sleep(2.5)
 
         self.angle = 0
 
@@ -67,6 +73,12 @@ class Arduino(object):
         if not frm:
             frm = self.angle
         return 0.0035 * abs(to-frm)
+
+    def sweep_time(self, frm, to):
+        r = 0
+        if frm != self.angle:
+            r += self.turn_time(time, frm)
+        return r + self.sweep_init_time
 
     def turn(self, angle):
         if not 0 <= angle <= 180:
@@ -95,6 +107,7 @@ class Arduino(object):
         self.write('%ib' % stop_angle)
         self.write('%id' % (duration*1000/abs(stop_angle-start_angle)))
         self.write('s')
+        time.sleep(self.sweep_init_time) #experimentally measured
         Timer(duration, self.set_angle, [stop_angle]).start()
 
     def get_conf(self):
