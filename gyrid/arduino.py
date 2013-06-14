@@ -63,13 +63,20 @@ class Arduino(object):
     def set_angle(self, angle):
         self.angle = angle
 
+    def turn_time(self, to, frm=None):
+        if not frm:
+            frm = self.angle
+        return 0.0035 * abs(to-frm)
+
     def turn(self, angle):
         if not 0 <= angle <= 180:
             raise ValueError
 
-        self.write('%ir' % angle)
-        time.sleep(0.0035 * abs(self.angle-angle))
-        self.angle = angle
+        if angle != self.angle:
+            print "turning to %i (previously at %i), taking %f seconds" % (angle, self.angle,0.0035 * abs(self.angle-angle))
+            self.write('%ir' % angle)
+            time.sleep(0.0035 * abs(self.angle-angle))
+            self.angle = angle
 
     def sweep(self, start_angle, stop_angle, duration):
         if not 0 <= start_angle <= 180:
@@ -79,6 +86,11 @@ class Arduino(object):
         if duration <= 0:
             raise ValueError
         
+        if start_angle != self.angle:
+            print "pre sweep turn to %i (previously at %i), taking %f seconds" % (start_angle, self.angle,0.0035 * abs(self.angle-angle))
+            time.sleep(self.turn_time(start_angle))
+
+        print "sweeping from %i to %i in %f seconds" % (start_angle, stop_angle, duration)
         self.write('%ia' % start_angle)
         self.write('%ib' % stop_angle)
         self.write('%id' % (duration*1000/abs(stop_angle-start_angle)))
