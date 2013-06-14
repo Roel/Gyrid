@@ -64,11 +64,21 @@ class Arduino(object):
         self.angle = angle
 
     def turn(self, angle):
+        if not 0 <= angle <= 180:
+            raise ValueError
+
         self.write('%ir' % angle)
         time.sleep(0.0035 * abs(self.angle-angle))
         self.angle = angle
 
     def sweep(self, start_angle, stop_angle, duration):
+        if not 0 <= start_angle <= 180:
+            raise ValueError
+        if not 0 <= stop_angle <= 180:
+            raise ValueError
+        if duration <= 0:
+            raise ValueError
+        
         self.write('%ia' % start_angle)
         self.write('%ib' % stop_angle)
         self.write('%id' % (duration*1000/abs(stop_angle-start_angle)))

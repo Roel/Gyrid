@@ -61,19 +61,27 @@ class ScanPattern(object):
         self.arduino = arduino.Arduino(self.mgr, self.sensor_mac)
         self.scanners = set()
         self.done = False
+        self.scan_direction_up = self.stop_angle >= self.start_angle
 
         self.angle_current_idx = 0
         self.angle_startpoints = range(start_angle, stop_angle, (stop_angle-start_angle)/turn_resolution)
         self.angle_startpoints.append(stop_angle)
+        print self.angle_startpoints
 
         i = 0
         scan_around_startpoint_instead_of_from_startpoint = abs(self.stop_angle-self.start_angle) != self.turn_resolution*self.scan_angle
         while i < len(self.angle_startpoints):
             if 0 < i < len(self.angle_startpoints)-1 and scan_around_startpoint_instead_of_from_startpoint:
-                self.angle_startpoints[i] = self.angle_startpoints[i]-self.scan_angle/2
+                if self.scan_direction_up:
+                    self.angle_startpoints[i] = self.angle_startpoints[i]-self.scan_angle/2
+                else:
+                    self.angle_startpoints[i] = self.angle_startpoints[i]+self.scan_angle/2
             elif i == len(self.angle_startpoints)-1:
                 if scan_around_startpoint_instead_of_from_startpoint:
-                    self.angle_startpoints[i] = self.angle_startpoints[i]-self.scan_angle
+                    if self.scan_direction_up:
+                        self.angle_startpoints[i] = self.angle_startpoints[i]-self.scan_angle
+                    else:
+                        self.angle_startpoints[i] = self.angle_startpoints[i]+self.scan_angle
                 else:
                     del(self.angle_startpoints[i])
             i += 1
@@ -114,8 +122,12 @@ class ScanPattern(object):
                         print "turning to %i" % new_angle
                         self.arduino.turn(new_angle)
                         if self.scan_angle > 0:
-                            print "sweeping from %i to %i in %f seconds" % (new_angle, new_angle+self.scan_angle, self.inquiry_duration)
-                            self.arduino.sweep(new_angle, new_angle+self.scan_angle, self.inquiry_duration)
+                            if self.scan_direction_up:
+                                print "sweeping from %i to %i in %f seconds" % (new_angle, new_angle+self.scan_angle, self.inquiry_duration)
+                                self.arduino.sweep(new_angle, new_angle+self.scan_angle, self.inquiry_duration)
+                            else:
+                                print "sweeping from %i to %i in %f seconds" % (new_angle, new_angle-self.scan_angle, self.inquiry_duration)
+                                self.arduino.sweep(new_angle, new_angle-self.scan_angle, self.inquiry_duration)
                         inquiry_function()
                         if self.buffer_time > 0:
                             print "sleeping for %f seconds (buffer)" % self.buffer_time
@@ -138,8 +150,12 @@ class ScanPattern(object):
                     print "turning to %i" % new_angle
                     self.arduino.turn(new_angle)
                     if self.scan_angle > 0:
-                        print "sweeping from %i to %i in %f seconds" % (new_angle, new_angle+self.scan_angle, self.inquiry_duration)
-                        self.arduino.sweep(new_angle, new_angle+self.scan_angle, self.inquiry_duration)
+                        if self.scan_direction_up:
+                            print "sweeping from %i to %i in %f seconds" % (new_angle, new_angle+self.scan_angle, self.inquiry_duration)
+                            self.arduino.sweep(new_angle, new_angle+self.scan_angle, self.inquiry_duration)
+                        else:
+                            print "sweeping from %i to %i in %f seconds" % (new_angle, new_angle-self.scan_angle, self.inquiry_duration)
+                            self.arduino.sweep(new_angle, new_angle-self.scan_angle, self.inquiry_duration)
                     inquiry_function()
                     if self.buffer_time > 0:
                         print "sleeping for %f seconds (buffer)" % self.buffer_time
@@ -160,8 +176,12 @@ class ScanPattern(object):
             print "turning to %i" % new_angle
             self.arduino.turn(new_angle)
             if self.scan_angle > 0:
-                print "sweeping from %i to %i in %f seconds" % (new_angle, new_angle+self.scan_angle, self.inquiry_duration)
-                self.arduino.sweep(new_angle, new_angle+self.scan_angle, self.inquiry_duration)
+                if self.scan_direction_up:
+                    print "sweeping from %i to %i in %f seconds" % (new_angle, new_angle+self.scan_angle, self.inquiry_duration)
+                    self.arduino.sweep(new_angle, new_angle+self.scan_angle, self.inquiry_duration)
+                else:
+                    print "sweeping from %i to %i in %f seconds" % (new_angle, new_angle-self.scan_angle, self.inquiry_duration)
+                    self.arduino.sweep(new_angle, new_angle-self.scan_angle, self.inquiry_duration)
             inquiry_function()
             if self.buffer_time > 0:
                 print "buffering for %f seconds" % self.buffer_time
@@ -183,10 +203,10 @@ class Bluetooth(core.ScanProtocol):
         self.scan_pattern = ScanPattern(self.mgr,
             #start_time = 1371127500,
             #stop_time = int(time.time())+60,
-            start_angle = 0,
-            stop_angle = 90,
-            scan_angle = 90,
-            turn_resolution = 1,
+            start_angle = 90,
+            stop_angle = 0,
+            scan_angle = 10,
+            turn_resolution = 3,
             #buffer_time = 9.76,
             inquiry_length = 4)
 
