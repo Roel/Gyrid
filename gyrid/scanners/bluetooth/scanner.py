@@ -150,9 +150,10 @@ class ScanPattern(object):
                                 print "sleeping for %f seconds (sync + buffer)" % st
                                 time.sleep(st)
                             else:
-                                print "sleeping for %f seconds (%f buffer - %f correction)" % (
-                                    self.buffer_time-self.buffer_correction, self.buffer_time, self.buffer_correction)
-                                time.sleep(self.buffer_time-self.buffer_correction)
+                                if self.buffer_correction < self.buffer_time:
+                                    print "sleeping for %f seconds (%f buffer - %f correction)" % (
+                                        self.buffer_time-self.buffer_correction, self.buffer_time, self.buffer_correction)
+                                    time.sleep(self.buffer_time-self.buffer_correction)
                     else:
                         self.done = True
                 else:
@@ -196,9 +197,10 @@ class ScanPattern(object):
                             print "sleeping for %f seconds (sync + buffer)" % st
                             time.sleep(st)
                         else:
-                            print "sleeping for %f seconds (%f buffer - %f correction)" % (
-                                self.buffer_time-self.buffer_correction, self.buffer_time, self.buffer_correction)
-                            time.sleep(self.buffer_time-self.buffer_correction)
+                            if self.buffer_correction < self.buffer_time:
+                                print "sleeping for %f seconds (%f buffer - %f correction)" % (
+                                    self.buffer_time-self.buffer_correction, self.buffer_time, self.buffer_correction)
+                                time.sleep(self.buffer_time-self.buffer_correction)
             elif self.stop_time:
                 if t <= self.stop_time or not self.pattern_finished:
                     inquiry_function()
@@ -241,12 +243,12 @@ class Bluetooth(core.ScanProtocol):
         self.excluded_devices = self.mgr.config.get_value('excluded_devices')
         self.scan_pattern = ScanPattern(self.mgr,
             start_time = 1371127500,
-            stop_time = int(time.time())+20,
+            #stop_time = int(time.time())+20,
             start_angle = 0,
-            stop_angle = 90,
-            scan_angle = 10,
-            turn_resolution = 2,
-            buffer_time = 9.76,
+            stop_angle = 180,
+            scan_angle = 180,
+            turn_resolution = 1,
+            buffer_time = 12-10.24,
             inquiry_length = 8)
 
         bluez_obj = self.mgr._dbus_systembus.get_object('org.bluez', '/')
