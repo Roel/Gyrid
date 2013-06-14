@@ -23,6 +23,7 @@ import logging.handlers
 import os
 import serial
 import time
+from threading import Timer
 
 import zippingfilehandler
 
@@ -40,28 +41,10 @@ class Arduino(object):
         self.mgr = mgr
         self.mac = mac
 
-        self.dev, self.resolution = self.get_conf()
-
-        self.has_been_connected = False
-
-        if self.dev:
-            self.angle = 0
-            self.asc = True
-            self.first_inquiry = True
-
-            mac = self.mac.replace(':', '')
-            self.time_format = self.mgr.config.get_value('time_format')
-
-            self.mgr.makedirs(self.mgr.base_location + mac)
-            logfile = self.mgr.base_location + mac + '/angle.log'
-            self.log = logging.getLogger('%s-angle' % mac)
-            handler = zippingfilehandler.CompressingRotatingFileHandler(self.mgr,
-                logfile)
-            handler.setFormatter(logging.Formatter("%(message)s"))
-            self.log.addHandler(handler)
-            self.log.setLevel(logging.INFO)
-
+        self.dev = self.get_conf()
         self.conn = self.get_conn()
+
+        self.angle = 0
 
     def write(self, string):
         """
@@ -76,6 +59,21 @@ class Arduino(object):
             return False
         else:
             return True
+
+    def set_angle(self, angle):
+        self.angle = angle
+
+    def turn(self, angle):
+        self.write('%ir' % angle)
+        time.sleep(0.0035 * abs(self.angle-angle))
+        self.angle = angle
+
+    def sweep(self, start_angle, stop_angle, duration):
+        self.write('%ia' % start_angle)
+        self.write('%ib' % stop_angle)
+        self.write('%id' % (duration*1000/abs(stop_angle-start_angle)))
+        self.write('s')
+        Timer(duration, self.set_angle, [stop_angle]).start()
 
     def get_conf(self):
         """
@@ -93,10 +91,10 @@ class Arduino(object):
             for line in file:
                 l = line.strip().split(',')
                 mac = self.mgr.is_valid_mac(l[0])
-                resolution = int(l[2]) if len(l) >= 3 else 10
-                if mac and mac == self.mac:
-                    return '/dev/' + l[1], resolution
-        return None, None
+                if self.mac and mac and mac != self.mac:
+                    return
+                return '/dev/' + l[1]
+        return None
 
     def get_conn(self):
         """
@@ -107,14 +105,14 @@ class Arduino(object):
                 conn = serial.Serial(self.dev, 19200)
                 time.sleep(2)
                 conn.write('0')
-                conn.write('s')
+                conn.write('r')
                 time.sleep(0.0035 * 180)
                 self.angle = 0
-                self.mgr.debug("%s: Antenna initialised to %i degrees" % (
-                    self.mac, self.angle))
-                self.mgr.net_send_line(','.join([str(i) for i in ['STATE',
-                    'bluetooth', self.mac.replace(':','').lower(),
-                    '%0.3f' % time.time(), 'antenna_rotation', self.angle]]))
+                #self.mgr.debug("%s: Antenna initialised to %i degrees" % (
+                #    self.mac, self.angle))
+                #self.mgr.net_send_line(','.join([str(i) for i in ['STATE',
+                #    'bluetooth', self.mac.replace(':','').lower(),
+                #    '%0.3f' % time.time(), 'antenna_rotation', self.angle]]))
                 self.asc = True
                 self.first_inquiry = True
                 self.has_been_connected = True
@@ -122,55 +120,6 @@ class Arduino(object):
             except (serial.SerialException, OSError):
                 return None
         return None
-
-    def turn(self):
-        """
-        Turn the platform based on the current angle and the turning
-        resolution.
-        """
-        if self.dev and not self.conn:
-            self.conn = self.get_conn()
-
-        if self.conn and not self.first_inquiry:
-            d_angle = 180.0/self.resolution
-
-            if self.asc:
-                angle = self.angle + d_angle
-            else:
-                angle = self.angle - d_angle
-
-            if not (0 < angle < 180):
-                self.asc = not self.asc
-
-            if angle < 0:
-                angle = 0
-
-            if angle > 180:
-                angle = 180
-
-            if self.write('%i' % angle) and self.write('s'):
-                time.sleep(0.0035 * 180)
-                self.angle = angle
-                self.mgr.debug("%s: Antenna turning to %i degrees" % (
-                    self.mac, self.angle))
-                self.mgr.net_send_line(','.join([str(i) for i in ['STATE',
-                    'bluetooth', self.mac.replace(':','').lower(),
-                    '%0.3f' % time.time(), 'antenna_rotation',
-                    '%0.2f' % self.angle]]))
-
-        self.first_inquiry = False
-
-    def write_log(self, address, device_class, rssi):
-        """
-        Write a detection to the angle log, which contains all
-        fields of the rssi log plus the angle of the platform
-        at which the detection was received.
-        """
-        if self.has_been_connected:
-            timestamp = int(time.time())
-            self.log.info(",".join([time.strftime(self.time_format,
-                time.localtime(timestamp)), str(address),
-                str(rssi), "%0.2f" % self.angle]))
 
     def stop(self):
         if self.conn:

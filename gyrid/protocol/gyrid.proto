@@ -135,9 +135,6 @@ message ScanPattern {
     optional float scanAngle = 6;
     optional float inquiryDuration = 7;
     optional float bufferTime = 8;
-    
-    // Resolutie van draaiboog (ruwheid van de beweging)
-    optional float arcResolution = 9; // degrees
 
     // Aantal inquiries tussen startAngle en stopAngle
     optional float turnResolution = 10; // degrees

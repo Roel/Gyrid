@@ -312,10 +312,10 @@ class PoolChecker(threading.Thread):
                      'gone': len(to_delete)}
                 previous = current
 
-                self.mgr.debug("%s: " % self.logger.mac +
-                    "Device pool checked: %(current)i device" % d + \
-                    ("s " if current != 1 else " ") + \
-                    "(%(new)i new, %(gone)i disappeared)" % d)
+                #self.mgr.debug("%s: " % self.logger.mac +
+                #    "Device pool checked: %(current)i device" % d + \
+                #    ("s " if current != 1 else " ") + \
+                #    "(%(new)i new, %(gone)i disappeared)" % d)
 
             finally:
                 self.logger.lock.release()
