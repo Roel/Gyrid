@@ -124,7 +124,7 @@ class ScanPattern(object):
                 elif self.stop_time:
                     if t <= self.stop_time or not self.pattern_finished:
                         if self.pattern_finished:
-                            st = self.pattern_duration - (t % self.pattern_duration)
+                            st = self.pattern_duration - ((t-self.start_time) % self.pattern_duration)
                             if self.pattern_duration-st <= 0.2:
                                 print "diff %f" % (self.pattern_duration-st)
                                 st = 0
@@ -154,7 +154,7 @@ class ScanPattern(object):
                         if self.buffer_time > 0:
                             if self.pattern_finished:
                                 t = time.time()
-                                st = self.pattern_duration - (t % self.pattern_duration)
+                                st = self.pattern_duration - ((t-self.start_time) % self.pattern_duration)
                                 self.buffer_correction = (self.buffer_time-st)/(len(self.angle_startpoints)*1.0)
                                 print "sleeping for %f seconds (sync + buffer)" % st
                                 time.sleep(st)
@@ -167,7 +167,7 @@ class ScanPattern(object):
                         self.done = True
                 else:
                     if self.pattern_finished:
-                        st = self.pattern_duration - (t % self.pattern_duration)
+                        st = self.pattern_duration - ((t-self.start_time) % self.pattern_duration)
                         if self.pattern_duration-st <= 0.2:
                             print "diff %f" % (self.pattern_duration-st)
                             st = 0
@@ -206,13 +206,13 @@ class ScanPattern(object):
                     if self.buffer_time > 0:
                         if self.pattern_finished:
                             t = time.time()
-                            st = self.pattern_duration - (t % self.pattern_duration)
+                            st = self.pattern_duration - ((t-self.start_time) % self.pattern_duration)
                             self.buffer_correction = (self.buffer_time-st)/(len(self.angle_startpoints)*1.0)
                             turntime = self.arduino.turn_time(self.angle_startpoints[0])
                             if turntime and turntime < st:
                                 self.arduino.turn(self.angle_startpoints[0])
                                 st = st - turntime
-                            print "sleeping for %f seconds (sync + buffer + turn)" % st
+                            print "sleeping for %f seconds (sync + turn)" % st
                             time.sleep(st)
                         else:
                             if self.buffer_correction < self.buffer_time:
@@ -262,14 +262,14 @@ class Bluetooth(core.ScanProtocol):
 
         self.excluded_devices = self.mgr.config.get_value('excluded_devices')
         self.scan_pattern = ScanPattern(self.mgr,
-            start_time = int(time.time())+20,
+            start_time = 1371220680,
             #stop_time = int(time.time())+20,
-            start_angle = 90,
+            start_angle = 0,
             stop_angle = 180,
             scan_angle = 10,
-            turn_resolution = 3,
-            buffer_time = 12-10.24,
-            inquiry_length = 8)
+            turn_resolution = 18,
+            buffer_time = 6-5.12,
+            inquiry_length = 4)
 
         bluez_obj = self.mgr._dbus_systembus.get_object('org.bluez', '/')
         self._dbus_bluez_manager = dbus.Interface(bluez_obj,
