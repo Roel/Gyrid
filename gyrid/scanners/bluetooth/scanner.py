@@ -111,17 +111,27 @@ class ScanPattern(object):
                     time.sleep(self.start_time-t)
                 elif self.stop_time:
                     if t <= self.stop_time or not self.pattern_finished:
-                        st = self.pattern_duration - (t % self.pattern_duration)
-                        if self.pattern_duration-st <= 0.2:
-                            print "diff %f" % (self.pattern_duration-st)
-                            st = 0
-                        if st > 0:
-                            print "sleeping for %f seconds (sync)" % st
-                            time.sleep(st)
+                        if self.pattern_finished:
+                            st = self.pattern_duration - (t % self.pattern_duration)
+                            if self.pattern_duration-st <= 0.2:
+                                print "diff %f" % (self.pattern_duration-st)
+                                st = 0
+                            if st > 0:
+                                if st > self.inquiry_duration:
+                                    st = self.inquiry_duration
+                                    print "sleeping for %f seconds (sync)" % st
+                                    time.sleep(st)
+                                    return
+                                else:
+                                    print "sleeping for %f seconds (sync)" % st
+                                    time.sleep(st)
                         new_angle = self.angle_startpoints[self.angle_current_idx]
                         self.angle_current_idx += 1
                         if self.angle_current_idx == len(self.angle_startpoints):
                             self.angle_current_idx = 0
+                            self.pattern_finished = True
+                        else:
+                            self.pattern_finished = False
                         print "turning to %i" % new_angle
                         self.arduino.turn(new_angle)
                         if self.scan_angle > 0:
@@ -133,8 +143,16 @@ class ScanPattern(object):
                                 self.arduino.sweep(new_angle, new_angle-self.scan_angle, self.inquiry_duration)
                         inquiry_function()
                         if self.buffer_time > 0:
-                            print "sleeping for %f seconds (buffer)" % self.buffer_time
-                            time.sleep(self.buffer_time)
+                            if self.pattern_finished:
+                                t = time.time()
+                                st = self.pattern_duration - (t % self.pattern_duration)
+                                self.buffer_correction = (self.buffer_time-st)/(len(self.angle_startpoints)*1.0)
+                                print "sleeping for %f seconds (sync + buffer)" % st
+                                time.sleep(st)
+                            else:
+                                print "sleeping for %f seconds (%f buffer - %f correction)" % (
+                                    self.buffer_time-self.buffer_correction, self.buffer_time, self.buffer_correction)
+                                time.sleep(self.buffer_time-self.buffer_correction)
                     else:
                         self.done = True
                 else:
@@ -223,7 +241,7 @@ class Bluetooth(core.ScanProtocol):
         self.excluded_devices = self.mgr.config.get_value('excluded_devices')
         self.scan_pattern = ScanPattern(self.mgr,
             start_time = 1371127500,
-            #stop_time = int(time.time())+60,
+            stop_time = int(time.time())+20,
             start_angle = 0,
             stop_angle = 90,
             scan_angle = 10,
