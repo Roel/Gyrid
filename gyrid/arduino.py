@@ -43,7 +43,7 @@ class Arduino(object):
 
         self.dev = self.get_conf()
         self.conn = self.get_conn()
-        self.sweep_init_time = 0.675
+        self.sweep_init_time = 0
 
         self.sweep(0, 180, 2.5)
         time.sleep(2.5)
