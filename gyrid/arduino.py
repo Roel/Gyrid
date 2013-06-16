@@ -99,7 +99,7 @@ class Arduino(object):
             raise ValueError
         
         if start_angle != self.angle:
-            print "pre sweep turn to %i (previously at %i), taking %f seconds" % (start_angle, self.angle,0.0035 * abs(self.angle-angle))
+            print "pre sweep turn to %i (previously at %i), taking %f seconds" % (start_angle, self.angle,0.0035 * abs(self.angle-start_angle))
             time.sleep(self.turn_time(start_angle))
 
         print "sweeping from %i to %i in %f seconds" % (start_angle, stop_angle, duration)
