@@ -25,6 +25,7 @@ import serial
 import time
 from threading import Timer
 
+import core
 import zippingfilehandler
 
 class Arduino(object):
@@ -44,13 +45,14 @@ class Arduino(object):
         self.dev = self.get_conf()
         self.conn = self.get_conn()
         self.sweep_init_time = 0
+        self.sweep_current = None
+        self.angle = 0
 
         self.sweep(0, 180, 2.5)
         time.sleep(2.5)
         self.sweep(180, 0, 2.5)
         time.sleep(2.5)
 
-        self.angle = 0
 
     def write(self, string):
         """
@@ -68,6 +70,22 @@ class Arduino(object):
 
     def set_angle(self, angle):
         self.angle = angle
+        self.sweep_current = None
+
+    def get_angle(self):
+        r = None
+        if self.sweep_current:
+            sw = self.sweep_current
+            t = int(time.time()*1000)
+            ms_passed = t-sw[2]
+            sweep_up = sw[1] > sw[0]
+            if sweep_up:
+                r = sw[0] + (ms_passed/sw[3])
+            else:
+                r =  sw[0] - (ms_passed/sw[3])
+        else:
+            r = self.angle
+        return r
 
     def turn_time(self, to, frm=None):
         if not frm:
@@ -85,7 +103,7 @@ class Arduino(object):
             raise ValueError
 
         if angle != self.angle:
-            print "turning to %i (previously at %i), taking %f seconds" % (angle, self.angle,0.0035 * abs(self.angle-angle))
+            print "turning to %i (previously at %i), taking %f seconds" % (angle, self.angle, 0.0035 * abs(self.angle-angle))
             self.write('%ir' % angle)
             time.sleep(0.0035 * abs(self.angle-angle))
             self.angle = angle
@@ -102,13 +120,16 @@ class Arduino(object):
             print "pre sweep turn to %i (previously at %i), taking %f seconds" % (start_angle, self.angle,0.0035 * abs(self.angle-start_angle))
             time.sleep(self.turn_time(start_angle))
 
+        step_delay = int(round(duration*1000/abs(stop_angle-start_angle)))
+
         print "sweeping from %i to %i in %f seconds" % (start_angle, stop_angle, duration)
+        self.sweep_current = (start_angle, stop_angle, int(time.time()*1000), step_delay)
         self.write('%ia' % start_angle)
         self.write('%ib' % stop_angle)
-        self.write('%id' % (duration*1000/abs(stop_angle-start_angle)))
+        self.write('%id' % step_delay)
         self.write('s')
-        time.sleep(self.sweep_init_time) #experimentally measured
-        Timer(duration, self.set_angle, [stop_angle]).start()
+        time.sleep(self.sweep_init_time)
+        Timer(round(duration*1000)/1000, self.set_angle, [stop_angle]).start()
 
     def get_conf(self):
         """

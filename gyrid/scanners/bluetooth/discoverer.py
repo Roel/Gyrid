@@ -264,6 +264,7 @@ class Discoverer(object):
         @param  rssi           The RSSI (RX power level) value of the
                                 discovery. None when none recorded.
         """
+        self.scanner.found_device()
         if (rssi == None or \
             not (self.minimum_rssi != None and rssi < self.minimum_rssi)) \
             and (True not in (address.upper().startswith(
