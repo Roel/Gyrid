@@ -63,9 +63,8 @@ class InfoLogger(object):
         @param  info   The information to write.
         """
         if not (self.mgr.debug_mode and self.mgr.debug_silent):
-            self.logger.info(",".join([time.strftime(
-                self.time_format,
-                time.localtime()), info]))
+            self.logger.info(",".join([self.mgr.format_time(),
+                info]))
         self.mgr.net_send_line(",".join(['INFO',
                 "%0.3f" % time.time(),
                 info]))

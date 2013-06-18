@@ -58,7 +58,7 @@ class RSSILogger(InfoLogger):
         logger.addHandler(handler)
         return logger
 
-    def write(self, timestamp, hwid, device_class, rssi):
+    def write(self, timestamp, hwid, device_class, rssi, angle):
         """
         Append the parameters to the logfile on a new line and flush the file.
         Try sending the data over the network.
@@ -69,12 +69,11 @@ class RSSILogger(InfoLogger):
         @param  rssi           The RSSI value of the received Bluetooth signal.
         """
         if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
-            self.logger.info(",".join([time.strftime(
-                self.time_format,
-                time.localtime(timestamp)),
+            self.logger.info(",".join([self.mgr.format_time(timestamp),
                 str(hwid),
                 str(device_class),
-                str(rssi)]))
+                str(rssi),
+                str(angle)]))
         self.mgr.net_send_line(",".join(['BLUETOOTH_RAW',
             str(self.mac.replace(':','')),
             "%0.3f" % timestamp,
@@ -106,7 +105,7 @@ class InquiryLogger(RSSILogger):
     def write(self, timestamp, duration):
         if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
             self.logger.info(",".join([
-                time.strftime(self.time_format, time.localtime(timestamp)),
+                self.mgr.format_time(timestamp),
                 '%0.2f' % duration]))
         self.mgr.net_send_line(",".join(['STATE','bluetooth',
             str(self.mac.replace(':','')),
@@ -161,9 +160,7 @@ class ScanLogger(RSSILogger):
         @param  moving         Whether the device is moving 'in' or 'out'.
         """
         if not (self.mgr.debug_mode and self.mgr.debug_silent):
-            self.logger.info(",".join([time.strftime(
-                self.time_format,
-                time.localtime(timestamp)),
+            self.logger.info(",".join([self.mgr.format_time(timestamp),
                 str(hwid),
                 str(device_class),
                 str(moving)]))

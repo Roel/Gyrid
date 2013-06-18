@@ -93,7 +93,7 @@ class ScanPattern(object):
         print self.angle_startpoints
         self.pattern_duration = len(self.angle_startpoints)*(self.inquiry_duration+self.buffer_time)
 
-    def what_now(self, inquiry_function):
+    def what_now(self, inquiry_function, args):
         t = time.time()
 
         if self.start_time and t < (self.start_time - self.inquiry_duration):
@@ -155,7 +155,7 @@ class ScanPattern(object):
                     self.scanner.arduino.sweep(new_angle, new_angle+self.scan_angle, self.inquiry_duration)
                 else:
                     self.scanner.arduino.sweep(new_angle, new_angle-self.scan_angle, self.inquiry_duration)
-            inquiry_function()
+            inquiry_function(*args)
             if self.buffer_time > 0:
                 t = time.time()
                 if not self.start_time:
@@ -191,6 +191,7 @@ class ScanPatternFactory(object):
         self.patterns = [
             {'start_time': 1371220680,
              #'stop_time': int(time.time())+20,
+             'sensor_mac': '00:01:95:0D:CF:DC',
              'start_angle': 0,
              'stop_angle': 180,
              'scan_angle': 180,
@@ -218,6 +219,7 @@ class Bluetooth(core.ScanProtocol):
         core.ScanProtocol.__init__(self, mgr)
 
         self.excluded_devices = self.mgr.config.get_value('excluded_devices')
+        print self.excluded_devices
         bluez_obj = self.mgr._dbus_systembus.get_object('org.bluez', '/')
         self._dbus_bluez_manager = dbus.Interface(bluez_obj,
             'org.bluez.Manager')
@@ -234,14 +236,14 @@ class Bluetooth(core.ScanProtocol):
 
         self.initialise_hardware()
 
-    def is_excluded(self, dev_id, mac):
+    def is_excluded(self, path, mac):
         """
         Check if the given device is excluded from scanning.
 
-        @param  dev_id   The device ID of the Bluetooth adapter.
-                            F. ex.: 0 in the case of hci0
         @param  mac      The MAC-address of the device.
         """
+        dev_id = int(str(path).split('/')[-1].strip('hci'))
+        print dev_id
         if dev_id in self.excluded_devices:
             self.mgr.log_info("Ignoring Bluetooth adapter %s (excluded)" % mac)
             return True
@@ -258,12 +260,13 @@ class Bluetooth(core.ScanProtocol):
             addr = adap_iface.GetProperties()['Address']
             self.mgr.debug("Found Bluetooth adapter with address %s" % addr)
 
-            scanner = BluetoothScanner(self.mgr, self, adap_iface, adapter)
-            self.scanners[scanner.mac] = scanner
-            scanner.apply_scan_pattern(self.scan_pattern_factory.make_patterns(scanner))
+            if not self.is_excluded(adapter, addr):
+                scanner = BluetoothScanner(self.mgr, self, adap_iface, adapter)
+                self.scanners[scanner.mac] = scanner
+                scanner.apply_scan_pattern(self.scan_pattern_factory.make_patterns(scanner))
 
-            if scanner.available:
-                scanner.start()
+                if scanner.available:
+                    scanner.start()
 
     def hardware_added(self, path):
         """
@@ -276,12 +279,13 @@ class Bluetooth(core.ScanProtocol):
         self.mgr.debug("Found Bluetooth adapter with address %s" %
                 device.GetProperties()['Address'])
 
-        scanner = BluetoothScanner(self.mgr, self, device, path)
-        self.scanners[scanner.mac] = scanner
-        scanner.apply_scan_pattern(self.scan_pattern_factory.make_patterns(scanner))
+        if not self.is_excluded(path, device.GetProperties()['Address']):
+            scanner = BluetoothScanner(self.mgr, self, device, path)
+            self.scanners[scanner.mac] = scanner
+            scanner.apply_scan_pattern(self.scan_pattern_factory.make_patterns(scanner))
 
-        if scanner.available:
-            scanner.start()
+            if scanner.available:
+                scanner.start()
 
 class BluetoothScanner(core.Scanner):
     """
@@ -324,14 +328,13 @@ class BluetoothScanner(core.Scanner):
 
         self.discoverer = discoverer.Discoverer(self, self.dev_id, self.mac)
 
-        if not self.protocol.is_excluded(self.dev_id, self.mac):
-            device.SetProperty('Discoverable', False)
+        device.SetProperty('Discoverable', False)
 
     @core.threaded
     def start(self):
         self.init()
         while (not self.mgr.main.stopping) and (not self.scan_pattern.done):
-            self.scan_pattern.what_now(self.discoverer.inquiry_with_rssi)
+            self.scan_pattern.what_now(self.discoverer.inquiry_with_rssi, [self.scan_pattern.inquiry_length])
 
     def init(self):
         if self.discoverer.init() == 0:
@@ -368,6 +371,7 @@ class BluetoothScanner(core.Scanner):
         @param  rssi           The RSSI (RX power level) value of the
                                 discovery. None when none recorded.
         """
+        angle = self.arduino.get_angle()
         if (rssi == None or \
             not (self.minimum_rssi != None and rssi < self.minimum_rssi)) \
             and (True not in (address.upper().startswith(
@@ -402,18 +406,14 @@ class BluetoothScanner(core.Scanner):
             self.logger.update_device(timestamp, hwid, device_class)
 
             if rssi != None:
-                self.logger_rssi.write(timestamp, hwid, device_class,
-                    rssi)
-
-        print self.arduino.get_angle()
+                self.logger_rssi.write(timestamp, hwid, device_class, rssi, angle)
 
     def inquiry_started(self, duration):
         self.logger_inquiry.write(time.time(), duration)
         self.mgr.debug("%s: New inquiry" % self.mac)
 
-    def stopped_scanning(self):
+    def stopped_scanning(self, reason):
         self.logger.stop()
-
 
     @core.threaded
     def start_scanning(self):

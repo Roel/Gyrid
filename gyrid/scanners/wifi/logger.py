@@ -68,7 +68,7 @@ class WiFiRawLogger(InfoLogger):
         @param  rssi           The RSSI value of the received Bluetooth signal.
         """
         if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
-            a = [time.strftime(self.time_format, time.localtime(timestamp))]
+            a = [self.mgr.format_time(timestamp)]
             a.extend([str(i) for i in [frequency, type, subtype, hwid1, hwid2, rssi, retry, info]])
 
             self.logger.info(",".join(a))
@@ -112,7 +112,7 @@ class WiFiDevRawLogger(InfoLogger):
         @param  rssi           The RSSI value of the received Bluetooth signal.
         """
         if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
-            a = [time.strftime(self.time_format, time.localtime(timestamp))]
+            a = [self.mgr.format_time(timestamp)]
             a.extend([str(i) for i in [frequency, hwid, rssi]])
 
             self.logger.info(",".join(a))
@@ -219,9 +219,7 @@ class WiFiLogger(ScanLogger):
         @param  moving         Whether the device is moving 'in' or 'out'.
         """
         if not (self.mgr.debug_mode and self.mgr.debug_silent):
-            self.logger.info(",".join([time.strftime(
-                self.time_format,
-                time.localtime(timestamp)),
+            self.logger.info(",".join([self.mgr.format_time(timestamp),
                 str(hwid),
                 str(moving)]))
             self.mgr.net_send_line(','.join(str(i) for i in ['WIFI_IO', self.mac, timestamp,

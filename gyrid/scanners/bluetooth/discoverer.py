@@ -42,13 +42,6 @@ class Discoverer(object):
         self.mgr = self.scanner.mgr
         self.device_id = device_id
         self.mac = mac
-        self.scan_pattern = self.scanner.scan_pattern
-
-        if self.scan_pattern:
-            self.buffer_size = self.scan_pattern.inquiry_length
-        else:
-            self.buffer_size = int(math.ceil(
-                self.mgr.config.get_value('buffer_size')/1.28))
 
         self.done = False
 
@@ -166,7 +159,7 @@ class Discoverer(object):
         if status != 0: return -1
         return 0
 
-    def inquiry_with_rssi(self):
+    def inquiry_with_rssi(self, duration=8):
         """
         Perform a Bluetooth inquiry with RSSI reception.
         """
@@ -178,12 +171,11 @@ class Discoverer(object):
         bluez.hci_filter_set_ptype(flt, bluez.HCI_EVENT_PKT)
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, flt)
 
-        duration = self.buffer_size
         max_responses = 255
         cmd_pkt = struct.pack("BBBBB", 0x33, 0x8b, 0x9e, duration,
             max_responses)
 
-        self.scanner.inquiry_started(self.buffer_size*1.28)
+        self.scanner.inquiry_started(duration*1.28)
 
         bluez.hci_send_cmd(self.sock, bluez.OGF_LINK_CTL, bluez.OCF_INQUIRY,
             cmd_pkt)
@@ -196,7 +188,8 @@ class Discoverer(object):
                 if e[0] == 32:
                     done = True
                     self.done = True
-                    return "adapter lost"
+                    self.scanner.stopped_scanning(self, "adapter lost")
+                    return
             ptype, event, plen = struct.unpack("BBB", pkt[:3])
             if event == bluez.EVT_INQUIRY_RESULT_WITH_RSSI:
                 pkt = pkt[3:]
