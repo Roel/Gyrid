@@ -29,25 +29,17 @@ class Discoverer(object):
     Bluetooth discover, this class provides device discovery. Heavily based on
     the PyBluez advanced inquiry with RSSI example.
     """
-    def __init__(self, scanner, logger, logger_rssi, logger_inquiry, device_id, mac):
+    def __init__(self, scanner, device_id, mac):
         """
         Initialisation of the Discoverer. Store the reference to the loggers and
         query the necessary configuration options.
 
         @param  mgr             Reference to a Scanmanger instance.
-        @param  logger          Reference to a Logger instance.
-        @param  logger_rssi     Reference to a Logger instance which records
-                                  the RSSI values.
-        @param  logger_inquiry  Reference to a Logger instance which records
-                                  the inquiry status.
         @param  device_id       The ID of the Bluetooth device used for scanning.
         @param  mac             The MAC address of the Bluetooth scanning device.
         """
         self.scanner = scanner
         self.mgr = self.scanner.mgr
-        self.logger = logger
-        self.logger_rssi = logger_rssi
-        self.logger_inquiry = logger_inquiry
         self.device_id = device_id
         self.mac = mac
         self.scan_pattern = self.scanner.scan_pattern
@@ -58,7 +50,6 @@ class Discoverer(object):
             self.buffer_size = int(math.ceil(
                 self.mgr.config.get_value('buffer_size')/1.28))
 
-        self.minimum_rssi = self.mgr.config.get_value('minimum_rssi')
         self.done = False
 
     def init(self):
@@ -192,8 +183,7 @@ class Discoverer(object):
         cmd_pkt = struct.pack("BBBBB", 0x33, 0x8b, 0x9e, duration,
             max_responses)
 
-        self.logger_inquiry.write(time.time(), self.buffer_size*1.28)
-        self.mgr.debug("%s: New inquiry" % self.mac)
+        self.scanner.inquiry_started(self.buffer_size*1.28)
 
         bluez.hci_send_cmd(self.sock, bluez.OGF_LINK_CTL, bluez.OCF_INQUIRY,
             cmd_pkt)
@@ -204,7 +194,6 @@ class Discoverer(object):
                 pkt = self.sock.recv(255)
             except bluetooth._bluetooth.error, e:
                 if e[0] == 32:
-                    self.logger.stop()
                     done = True
                     self.done = True
                     return "adapter lost"
@@ -217,7 +206,7 @@ class Discoverer(object):
                     rssi = struct.unpack("b", pkt[1+13*nrsp+i])[0]
                     devclass_raw = pkt[1+8*nrsp+3*i:1+8*nrsp+3*i+3]
                     devclass = struct.unpack ("I", "%s\0" % devclass_raw)[0]
-                    self.device_discovered(addr, devclass, rssi)
+                    self.scanner.device_discovered(addr, devclass, rssi)
             elif event == bluez.EVT_INQUIRY_RESULT:
                 pkt = pkt[3:]
                 nrsp = struct.unpack("B", pkt[0])[0]
@@ -228,7 +217,7 @@ class Discoverer(object):
                     devclass = (devclass_raw[2] << 16) | \
                             (devclass_raw[1] << 8) | \
                             devclass_raw[0]
-                    self.device_discovered(addr, devclass, None)
+                    self.scanner.device_discovered(addr, devclass, None)
             elif event == bluez.EVT_INQUIRY_COMPLETE:
                 done = True
             elif event == bluez.EVT_CMD_STATUS:
@@ -241,63 +230,3 @@ class Discoverer(object):
 
         # restore old filter
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
-
-    def loop_scan(self):
-        """
-        Start scanning.
-        """
-        while not self.done and not self.mgr.main.stopping:
-            end = self.inquiry_with_with_rssi()
-            if self.mgr.main.stopping:
-                end = "Shutting down"
-
-        return " (%s)" % end
-
-    def device_discovered(self, address, device_class, rssi):
-        """
-        Called when discovered a device. Get a UNIX timestamp and call the
-        update method of Logger to update the timestamp, the address and
-        the device_class of the device in the pool.
-
-        @param  address        Hardware address of the Bluetooth device.
-        @param  device_class   Device class of the Bluetooth device.
-        @param  rssi           The RSSI (RX power level) value of the
-                                discovery. None when none recorded.
-        """
-        self.scanner.found_device()
-        if (rssi == None or \
-            not (self.minimum_rssi != None and rssi < self.minimum_rssi)) \
-            and (True not in (address.upper().startswith(
-                black_mac) for black_mac in self.mgr.blacklist)):
-
-            try:
-                device_class = int(device_class)
-            except ValueError:
-                device_class = -1
-
-            hwid = self.mgr.privacy_process(address)
-            hwid = hwid.replace(':', '')
-
-            timestamp = time.time()
-
-            if self.mgr.debug_mode:
-                import gyrid.tools.deviceclass as deviceclass
-                import gyrid.tools.macvendor as macvendor
-
-                device = ', '.join([str(deviceclass.get_major_class(
-                    device_class)), str(deviceclass.get_minor_class(
-                    device_class))])
-                rssi_s = ' with RSSI %d' % rssi if rssi != None else ''
-
-                d = {'hwid': hwid, 'dc': device, 'time': str(timestamp),
-                     'rssi': rssi_s, 'sc': self.mac}
-
-                self.mgr.debug(
-                    "%(sc)s: Found device %(hwid)s [%(dc)s]" % d + \
-                    "%(rssi)s" % d, force=True)
-
-            self.logger.update_device(timestamp, hwid, device_class)
-
-            if rssi != None:
-                self.logger_rssi.write(timestamp, hwid, device_class,
-                    rssi)

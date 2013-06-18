@@ -312,6 +312,7 @@ class BluetoothScanner(core.Scanner):
             self.protocol.active_adapters.append(self.mac)
 
         self.arduino = arduino.Arduino(self.mgr, self.mac)
+        self.minimum_rssi = self.mgr.config.get_value('minimum_rssi')
 
         if self.mac not in self.protocol.loggers:
             self.logger = logger.ScanLogger(self.mgr, self.mac)
@@ -321,8 +322,7 @@ class BluetoothScanner(core.Scanner):
         else:
             self.logger, self.logger_rssi, self.logger_inquiry = self.protocol.loggers[self.mac]
 
-        self.discoverer = discoverer.Discoverer(self, self.logger, self.logger_rssi,
-            self.logger_inquiry, self.dev_id, self.mac)
+        self.discoverer = discoverer.Discoverer(self, self.dev_id, self.mac)
 
         if not self.protocol.is_excluded(self.dev_id, self.mac):
             device.SetProperty('Discoverable', False)
@@ -357,8 +357,63 @@ class BluetoothScanner(core.Scanner):
                     self.protocol.active_adapters.append(self.mac)
                     self.start()
 
-    def found_device(self):
+    def device_discovered(self, address, device_class, rssi):
+        """
+        Called when discovered a device. Get a UNIX timestamp and call the
+        update method of Logger to update the timestamp, the address and
+        the device_class of the device in the pool.
+
+        @param  address        Hardware address of the Bluetooth device.
+        @param  device_class   Device class of the Bluetooth device.
+        @param  rssi           The RSSI (RX power level) value of the
+                                discovery. None when none recorded.
+        """
+        if (rssi == None or \
+            not (self.minimum_rssi != None and rssi < self.minimum_rssi)) \
+            and (True not in (address.upper().startswith(
+                black_mac) for black_mac in self.mgr.blacklist)):
+
+            try:
+                device_class = int(device_class)
+            except ValueError:
+                device_class = -1
+
+            hwid = self.mgr.privacy_process(address)
+            hwid = hwid.replace(':', '')
+
+            timestamp = time.time()
+
+            if self.mgr.debug_mode:
+                import gyrid.tools.deviceclass as deviceclass
+                import gyrid.tools.macvendor as macvendor
+
+                device = ', '.join([str(deviceclass.get_major_class(
+                    device_class)), str(deviceclass.get_minor_class(
+                    device_class))])
+                rssi_s = ' with RSSI %d' % rssi if rssi != None else ''
+
+                d = {'hwid': hwid, 'dc': device, 'time': str(timestamp),
+                     'rssi': rssi_s, 'sc': self.mac}
+
+                self.mgr.debug(
+                    "%(sc)s: Found device %(hwid)s [%(dc)s]" % d + \
+                    "%(rssi)s" % d, force=True)
+
+            self.logger.update_device(timestamp, hwid, device_class)
+
+            if rssi != None:
+                self.logger_rssi.write(timestamp, hwid, device_class,
+                    rssi)
+
         print self.arduino.get_angle()
+
+    def inquiry_started(self, duration):
+        self.logger_inquiry.write(time.time(), duration)
+        self.mgr.debug("%s: New inquiry" % self.mac)
+
+    def stopped_scanning(self):
+        self.logger.stop()
+
 
     @core.threaded
     def start_scanning(self):
