@@ -544,8 +544,11 @@ class InetClient(Int16StringReceiver):
                 self.factory.config['enable_keepalive'] = -1
             else:
                 self.factory.config['enable_keepalive'] = msg.requestKeepalive.interval
-                self.keepalive_loop.start(
-                    self.factory.config['enable_keepalive'], now=False)
+                try:
+                    self.keepalive_loop.start(
+                        self.factory.config['enable_keepalive'], now=False)
+                except AssertionError:
+                    pass
 
             msg.success = True
             self.sendMsg(msg, await_ack=False)
@@ -745,7 +748,10 @@ class InetClientFactory(ReconnectingClientFactory):
         self.config['enable_data_transfer'] = False
         self.config['enable_keepalive'] = -1
 
-        self.cachesize_loop.start(10)
+        try:
+            self.cachesize_loop.start(10)
+        except AssertionError:
+            pass
 
     def checkCacheSize(self):
         """
