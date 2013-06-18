@@ -180,7 +180,6 @@ class Discoverer(object):
         bluez.hci_filter_set_ptype(flt, bluez.HCI_EVENT_PKT)
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, flt)
 
-        duration = self.buffer_size
         max_responses = 255
         cmd_pkt = struct.pack("BBBBB", 0x33, 0x8b, 0x9e, duration,
             max_responses)
@@ -200,7 +199,8 @@ class Discoverer(object):
                     self.logger.stop()
                     done = True
                     self.done = True
-                    return "adapter lost"
+                    self.scanner.stopped_scanning(self, "adapter lost")
+                    return
             ptype, event, plen = struct.unpack("BBB", pkt[:3])
             if event == bluez.EVT_INQUIRY_RESULT_WITH_RSSI:
                 pkt = pkt[3:]

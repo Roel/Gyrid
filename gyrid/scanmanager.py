@@ -206,6 +206,16 @@ class ScanManager(object):
             wigy.set_frequency(interface, freq)
             time.sleep(10)
 
+    def format_time(self, t=None):
+        if not t:
+            t = time.time()
+
+        ms = ''
+        if '%Q' in self.time_format:
+            ms = ('%0.3f' % float('.' + str(t).split('.')[1]))[1:]
+
+        return time.strftime(self.time_format, time.localtime(t)).replace('%Q', ms)
+
     def debug(self, message, force=False):
         """
         Write message to stderr if debug mode is enabled.
@@ -214,13 +224,9 @@ class ScanManager(object):
         @param  force     Force printing even if debug mode is disabled.
         """
         if self.debug_mode or force:
-            extra_time = ""
-            if False in [i in self.time_format for i in ['%H', '%M', '%S']]:
-                extra_time = " (%H:%M:%S)"
-            d = {'time': time.strftime(self.config.get_value('time_format')),
-                 'extra_time': time.strftime(extra_time),
+            d = {'time': self.format_time(),
                  'message': message}
-            sys.stdout.write("%(time)s%(extra_time)s Gyrid: %(message)s.\n" % d)
+            sys.stdout.write("%(time)s Gyrid: %(message)s.\n" % d)
 
     def makedirs(self, path, mode=0755):
         """
