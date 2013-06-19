@@ -22,6 +22,7 @@
 Module implementing the Bluetooth scanning functionality.
 """
 
+import copy
 import dbus
 import dbus.mainloop.glib
 import math
@@ -220,19 +221,9 @@ class ScanPatternFactory(object):
         self.mgr = mgr
         self.proctol = protocol
 
-        self.default_scan_pattern = {'inquiry_length': 8}
+        self.default_scan_pattern = None
 
-        self.patterns = [
-            {'start_time': 1371220680,
-             #'stop_time': int(time.time())+20,
-             'sensor_mac': '00:01:95:0D:CF:DC',
-             'start_angle': 0,
-             'stop_angle': 180,
-             'scan_angle': 180,
-             'turn_resolution': 1,
-             'buffer_time': 12-10.24,
-             'inquiry_length': 8}
-            ]
+        self.patterns = []
 
     def make_patterns(self, scanner):
         r = []
@@ -245,7 +236,7 @@ class ScanPatternFactory(object):
             if not r[i-1].stop_time or (r[i].start_time < r[i-1].stop_time + r[i-1].pattern_duration):
                 r[i-1].stop_time = r[i].start_time - r[i-1].pattern_duration
 
-        if len(r) == 0:
+        if len(r) == 0 and self.default_scan_pattern:
             r.append(ScanPattern(self.mgr, scanner, **self.default_scan_pattern))
 
         return set(r)
@@ -372,6 +363,17 @@ class BluetoothScanner(core.Scanner):
         self.discoverer = discoverer.Discoverer(self, self.dev_id, self.mac)
 
         device.SetProperty('Discoverable', False)
+        Timer(20, self.add_pattern).start()
+        Timer(60, self.clear_patterns).start()
+
+    def clear_patterns(self):
+        print "clearing patterns"
+        self.scan_patterns.clear()
+
+    def add_pattern(self):
+        self.apply_scan_patterns( set([
+            ScanPattern(self.mgr, self, start_time=60, inquiry_length=8, buffer_time=12-10.24, start_angle = 0, stop_angle = 180, scan_angle=180, turn_resolution =1)
+            ]))
 
     def get_active_scan_pattern(self):
         t = time.time()
@@ -415,7 +417,20 @@ class BluetoothScanner(core.Scanner):
             self.logger.start()
 
     def apply_scan_patterns(self, scan_patterns):
-        self.scan_patterns.update(scan_patterns)
+        current_patterns = copy.deepcopy(self.scan_patterns)
+        current_patterns.update(scan_patterns)
+
+        r = []
+        for p in current_patterns:
+            if p.sensor_mac == None or p.sensor_mac == scanner.mac:
+                r.append(p)
+
+        r.sort()
+        for i in range(1, len(r)):
+            if not r[i-1].stop_time or (r[i].start_time < r[i-1].stop_time + r[i-1].pattern_duration):
+                r[i-1].stop_time = r[i].start_time - r[i-1].pattern_duration
+
+        self.scan_patterns = set(r)
 
     def property_changed(self, property, value, path):
         """
