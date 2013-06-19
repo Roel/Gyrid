@@ -127,17 +127,24 @@ message AntennaTurn {
 }
 
 message ScanPattern {
-    optional bytes sensorMac = 1;
-    optional double startTime = 2;
-    optional double stopTime = 3;
-    optional float startAngle = 4;
-    optional float stopAngle = 5;
-    optional float scanAngle = 6;
-    optional float inquiryDuration = 7;
-    optional float bufferTime = 8;
+    enum Action {
+        Action_ADD = 1;
+        Action_REMOVE = 2;
+        Action_REMOVEALL = 3;
+    }
+
+    optional Action action = 1;
+    optional bytes sensorMac = 2;
+    optional double startTime = 3;
+    optional double stopTime = 4;
+    optional uint32 startAngle = 5;
+    optional uint32 stopAngle = 6;
+    optional uint32 scanAngle = 7;
+    optional uint32 inquiryLength = 8;
+    optional float bufferTime = 9;
 
     // Aantal inquiries tussen startAngle en stopAngle
-    optional float turnResolution = 10; // degrees
+    optional uint32 turnResolution = 10; // degrees
 }
 
 message StateScanning {
