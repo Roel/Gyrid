@@ -219,16 +219,66 @@ class ScanPattern(object):
 class ScanPatternFactory(object):
     def __init__(self, mgr, protocol):
         self.mgr = mgr
-        self.proctol = protocol
+        self.protocol = protocol
 
         self.default_scan_pattern = None
 
         self.patterns = []
+        self.read_patterns()
+
+    @core.threaded
+    def read_patterns(self):
+        while not self.mgr.main.stopping:
+            print "READING DA PATTRNS"
+            f = open('/etc/gyrid/bluetooth_scan_patterns.conf', 'r')
+            new_patterns = []
+            for l in f:
+                ll = l.strip().split(',')
+                p = dict(zip(['sensor_mac', 'start_time', 'stop_time', 'start_angle', 'stop_angle', 'scan_angle', 'inquiry_length', 'buffer_time', 'turn_resolution'], ll))
+                if not p['sensor_mac']: p['sensor_mac'] = None
+
+                for i in [('start_time', None), ('stop_time', None), ('buffer_time', 0)]:
+                    if p[i[0]]:
+                        p[i[0]] = float(p[i[0]])
+                    else:
+                        p[i[0]] = i[1]
+
+                for i in [('start_angle', 0), ('stop_angle', 0), ('scan_angle', 0), ('inquiry_length', None), ('turn_resolution', 0)]:
+                    if p[i[0]]:
+                        p[i[0]] = int(p[i[0]])
+                    else:
+                        p[i[0]] = i[1]
+
+                new_patterns.append(p)
+
+            f.close()
+
+            changed_sensors = set()
+            for p in new_patterns:
+                if p not in self.patterns:
+                    changed_sensors.add(p['sensor_mac'])
+                    self.patterns.append(p)
+
+            for p in self.patterns:
+                if p not in new_patterns:
+                    changed_sensors.add(p['sensor_mac'])
+                    self.patterns.remove(p)
+
+            if None in changed_sensors:
+                for s in self.protocol.scanners.values():
+                    s.scan_patterns = self.make_patterns(s)
+            else:
+                for s in self.protocol.scanners.values():
+                    if s.mac in changed_sensors:
+                        s.scan_patterns = self.make_patterns(s)
+
+            time.sleep(10)
 
     def make_patterns(self, scanner):
         r = []
         for p in self.patterns:
-            if p.get('sensor_mac', scanner.mac) == scanner.mac:
+            sensor_mac = p.get('sensor_mac', scanner.mac)
+            if sensor_mac == None or sensor_mac == scanner.mac:
                 r.append(ScanPattern(self.mgr, scanner, **p))
 
         r.sort()
@@ -296,7 +346,6 @@ class Bluetooth(core.ScanProtocol):
             if not self.is_excluded(adapter, addr):
                 scanner = BluetoothScanner(self.mgr, self, adap_iface, adapter)
                 self.scanners[scanner.mac] = scanner
-                scanner.apply_scan_patterns(self.scan_pattern_factory.make_patterns(scanner))
 
                 if scanner.available:
                     scanner.start()
@@ -315,7 +364,6 @@ class Bluetooth(core.ScanProtocol):
         if not self.is_excluded(path, device.GetProperties()['Address']):
             scanner = BluetoothScanner(self.mgr, self, device, path)
             self.scanners[scanner.mac] = scanner
-            scanner.apply_scan_patterns(self.scan_pattern_factory.make_patterns(scanner))
 
             if scanner.available:
                 scanner.start()
@@ -362,18 +410,11 @@ class BluetoothScanner(core.Scanner):
 
         self.discoverer = discoverer.Discoverer(self, self.dev_id, self.mac)
 
+        self.scan_patterns = self.protocol.scan_pattern_factory.make_patterns(self)
+
         device.SetProperty('Discoverable', False)
-        Timer(20, self.add_pattern).start()
-        Timer(60, self.clear_patterns).start()
-
-    def clear_patterns(self):
-        print "clearing patterns"
-        self.scan_patterns.clear()
-
-    def add_pattern(self):
-        self.apply_scan_patterns( set([
-            ScanPattern(self.mgr, self, start_time=60, inquiry_length=8, buffer_time=12-10.24, start_angle = 0, stop_angle = 180, scan_angle=180, turn_resolution =1)
-            ]))
+        #Timer(20, self.add_pattern).start()
+        #Timer(60, self.clear_patterns).start()
 
     def get_active_scan_pattern(self):
         t = time.time()
@@ -415,22 +456,6 @@ class BluetoothScanner(core.Scanner):
             self.mgr.net_send_line("STATE,bluetooth,%s,%0.3f,started_scanning" % (
                 self.mac.replace(':',''), time.time()))
             self.logger.start()
-
-    def apply_scan_patterns(self, scan_patterns):
-        current_patterns = copy.deepcopy(self.scan_patterns)
-        current_patterns.update(scan_patterns)
-
-        r = []
-        for p in current_patterns:
-            if p.sensor_mac == None or p.sensor_mac == scanner.mac:
-                r.append(p)
-
-        r.sort()
-        for i in range(1, len(r)):
-            if not r[i-1].stop_time or (r[i].start_time < r[i-1].stop_time + r[i-1].pattern_duration):
-                r[i-1].stop_time = r[i].start_time - r[i-1].pattern_duration
-
-        self.scan_patterns = set(r)
 
     def property_changed(self, property, value, path):
         """
