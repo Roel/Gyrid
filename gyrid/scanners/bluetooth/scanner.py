@@ -26,6 +26,7 @@ import dbus
 import dbus.mainloop.glib
 import math
 import time
+from threading import Timer
 import sys
 
 from gyrid import arduino, core
@@ -54,6 +55,8 @@ class ScanPattern(object):
         self.inquiry_length = inquiry_length
         self.buffer_time = buffer_time
         self.turn_resolution = turn_resolution
+
+        self.waiting_time = 10
 
         if not self.inquiry_length:
             self.inquiry_length = int(math.ceil(self.mgr.config.get_value('buffer_size')/1.28))
@@ -93,11 +96,42 @@ class ScanPattern(object):
         print self.angle_startpoints
         self.pattern_duration = len(self.angle_startpoints)*(self.inquiry_duration+self.buffer_time)
 
+    def __eq__(self, p):
+        if p == None:
+            return False
+
+        eq = True
+        eq = eq and self.sensor_mac == p.sensor_mac
+        eq = eq and self.start_time == p.start_time
+        eq = eq and self.stop_time == p.stop_time
+        eq = eq and self.start_angle == p.start_angle
+        eq = eq and self.stop_angle == p.stop_angle
+        eq = eq and self.scan_angle == p.scan_angle
+        eq = eq and self.inquiry_length == p.inquiry_length
+        eq = eq and self.buffer_time == p.buffer_time
+        eq = eq and self.turn_resolution == p.turn_resolution
+        return eq
+
+    def __ne__(self, p):
+        return not self.__eq__(p)
+
+    def __cmp__(self, p):
+        if self.start_time == p.start_time and self.stop_time == p.stop_time:
+            return 0
+
+        if self.start_time == p.start_time:
+            return 1 if self.stop_time > p.stop_time else -1
+
+        return 1 if self.start_time > p.start_time else -1
+
+    def stop(self):
+        self.done = True
+
     def what_now(self, inquiry_function, args):
         t = time.time()
 
-        if self.start_time and t < (self.start_time - self.inquiry_duration):
-            st = self.inquiry_duration
+        if self.start_time and t < (self.start_time - self.waiting_time):
+            st = self.waiting_time
             turntime = self.scanner.arduino.turn_time(self.angle_startpoints[0])
             if turntime and turntime < st:
                 self.scanner.arduino.turn(self.angle_startpoints[0])
@@ -120,8 +154,8 @@ class ScanPattern(object):
                     print "diff %f" % (self.pattern_duration-st)
                     st = 0
                 if st > 0:
-                    if st > self.inquiry_duration:
-                        st = self.inquiry_duration
+                    if st > self.waiting_time:
+                        st = self.waiting_time
                         turntime = self.scanner.arduino.turn_time(self.angle_startpoints[0])
                         if turntime and turntime < st:
                             self.scanner.arduino.turn(self.angle_startpoints[0])
@@ -168,8 +202,8 @@ class ScanPattern(object):
                         st = sti
                     else:
                         st = self.buffer_time
-                if st > self.inquiry_duration:
-                    st = self.inquiry_duration
+                if st > self.waiting_time:
+                    st = self.waiting_time
                 turntime = self.scanner.arduino.turn_time(self.angle_startpoints[self.angle_current_idx])
                 if turntime and turntime < st:
                     self.scanner.arduino.turn(self.angle_startpoints[self.angle_current_idx])
@@ -201,10 +235,20 @@ class ScanPatternFactory(object):
             ]
 
     def make_patterns(self, scanner):
+        r = []
         for p in self.patterns:
             if p.get('sensor_mac', scanner.mac) == scanner.mac:
-                return ScanPattern(self.mgr, scanner, **p)
-        return ScanPattern(self.mgr, scanner, **self.default_scan_pattern)
+                r.append(ScanPattern(self.mgr, scanner, **p))
+
+        r.sort()
+        for i in range(1, len(r)):
+            if not r[i-1].stop_time or (r[i].start_time < r[i-1].stop_time + r[i-1].pattern_duration):
+                r[i-1].stop_time = r[i].start_time - r[i-1].pattern_duration
+
+        if len(r) == 0:
+            r.append(ScanPattern(self.mgr, scanner, **self.default_scan_pattern))
+
+        return set(r)
 
 class Bluetooth(core.ScanProtocol):
     """
@@ -219,7 +263,6 @@ class Bluetooth(core.ScanProtocol):
         core.ScanProtocol.__init__(self, mgr)
 
         self.excluded_devices = self.mgr.config.get_value('excluded_devices')
-        print self.excluded_devices
         bluez_obj = self.mgr._dbus_systembus.get_object('org.bluez', '/')
         self._dbus_bluez_manager = dbus.Interface(bluez_obj,
             'org.bluez.Manager')
@@ -243,7 +286,6 @@ class Bluetooth(core.ScanProtocol):
         @param  mac      The MAC-address of the device.
         """
         dev_id = int(str(path).split('/')[-1].strip('hci'))
-        print dev_id
         if dev_id in self.excluded_devices:
             self.mgr.log_info("Ignoring Bluetooth adapter %s (excluded)" % mac)
             return True
@@ -263,7 +305,7 @@ class Bluetooth(core.ScanProtocol):
             if not self.is_excluded(adapter, addr):
                 scanner = BluetoothScanner(self.mgr, self, adap_iface, adapter)
                 self.scanners[scanner.mac] = scanner
-                scanner.apply_scan_pattern(self.scan_pattern_factory.make_patterns(scanner))
+                scanner.apply_scan_patterns(self.scan_pattern_factory.make_patterns(scanner))
 
                 if scanner.available:
                     scanner.start()
@@ -282,7 +324,7 @@ class Bluetooth(core.ScanProtocol):
         if not self.is_excluded(path, device.GetProperties()['Address']):
             scanner = BluetoothScanner(self.mgr, self, device, path)
             self.scanners[scanner.mac] = scanner
-            scanner.apply_scan_pattern(self.scan_pattern_factory.make_patterns(scanner))
+            scanner.apply_scan_patterns(self.scan_pattern_factory.make_patterns(scanner))
 
             if scanner.available:
                 scanner.start()
@@ -303,7 +345,8 @@ class BluetoothScanner(core.Scanner):
         core.Scanner.__init__(self, mgr, protocol)
         self.mac = device.GetProperties()['Address']
         self.device = device
-        self.scan_pattern = None
+        self.scan_patterns = set()
+        self.current_pattern = None
         self.dev_id = int(str(path).split('/')[-1].strip('hci'))
 
         self.available = not self.device.GetProperties()['Discovering']
@@ -330,11 +373,39 @@ class BluetoothScanner(core.Scanner):
 
         device.SetProperty('Discoverable', False)
 
+    def get_active_scan_pattern(self):
+        t = time.time()
+        p = sorted(list(self.scan_patterns))
+        for i in p:
+            print i.start_time
+
+        for i in p:
+            if (t <= i.stop_time or not i.stop_time):
+                return i
+
+        if len(p) > 0:
+            if t <= p[-1].stop_time or not p[-1].stop_time:
+                return p[-1]
+
+        return None
+
     @core.threaded
     def start(self):
         self.init()
-        while (not self.mgr.main.stopping) and (not self.scan_pattern.done):
-            self.scan_pattern.what_now(self.discoverer.inquiry_with_rssi, [self.scan_pattern.inquiry_length])
+        while (not self.mgr.main.stopping):
+            pattern = self.get_active_scan_pattern()
+            if self.current_pattern == None or (self.current_pattern.pattern_finished and pattern != self.current_pattern):
+                self.current_pattern = pattern
+                if pattern:
+                    print "WHIIIIEE GOT SOME NEW THINGS TO TRY :D :D"
+                else:
+                    print "IT'S OVER. DONE. 4EVAH!?"
+
+            if self.current_pattern:
+                self.current_pattern.what_now(self.discoverer.inquiry_with_rssi, [self.current_pattern.inquiry_length])
+            else:
+                print "nothing to do, sleeping for 1 sec"
+                time.sleep(1)
 
     def init(self):
         if self.discoverer.init() == 0:
@@ -343,8 +414,8 @@ class BluetoothScanner(core.Scanner):
                 self.mac.replace(':',''), time.time()))
             self.logger.start()
 
-    def apply_scan_pattern(self, scan_pattern):
-        self.scan_pattern = scan_pattern
+    def apply_scan_patterns(self, scan_patterns):
+        self.scan_patterns.update(scan_patterns)
 
     def property_changed(self, property, value, path):
         """
