@@ -600,6 +600,50 @@ class InetClient(Int16StringReceiver):
                 m.uptime.systemStartup = self.network.host_up_since
                 self.sendMsg(m, await_ack=False)
 
+        elif msg.type == msg.Type_SCAN_PATTERN:
+            sp = msg.scanPattern
+            fl = self.factory.scan_patterns_file
+
+            if sp.action == sp.Action_REMOVEALL:
+                if os.path.isfile(fl):
+                    f = open(fl, 'w')
+                    f.truncate()
+                    f.close()
+            else:
+                s = ""
+                for i in ['sensorMac', 'startTime', 'stopTime', 'startAngle',
+                    'stopAngle', 'scanAngle', 'inquiryLength', 'bufferTime', 'turnResolution']:
+                    if sp.HasField(i):
+                        attr = sp.__getattribute__(i)
+                        if type(attr) is float:
+                            s += '%0.3f' % attr
+                        elif type(attr) is int:
+                            s += '%i' % attr
+                        else:
+                            s += str(attr)
+                    s += ','
+
+                current = []
+                if os.path.isfile(fl):
+                    f = open(fl, 'r')
+                    for line in f:
+                        current.append(line.strip())
+                    f.close()
+
+                if sp.action == sp.Action_ADD:
+                    if s not in current:
+                        current.append(s)
+                        f = open('/etc/gyrid/bluetooth_scan_patterns.conf', 'w')
+                        f.write('\n'.join(current) + '\n')
+                        f.close()
+
+                elif sp.action == sp.Action_REMOVE:
+                    if s in current:
+                        current.remove(s)
+                        f = open('/etc/gyrid/bluetooth_scan_patterns.conf', 'w')
+                        f.write('\n'.join(current) + '\n')
+                        f.close()
+
         elif msg.type == msg.Type_REQUEST_STARTDATA:
             self.factory.config['enable_data_transfer'] = msg.requestStartdata.enableData
             self.factory.config['enable_bluetooth_raw'] = msg.requestStartdata.enableBluetoothRaw
@@ -728,6 +772,7 @@ class InetClientFactory(ReconnectingClientFactory):
         self.connections = set()
         self.cache_full = False
         self.cache_file = '/var/tmp/gyrid-network.cache'
+        self.scan_patterns_file = '/etc/gyrid/bluetooth_scan_patterns.conf'
         self.cache_maxsize = self.network.config.get_value('network_cache_limit')
         self.cache = open(self.cache_file, 'ab')
         self.ackmap = AckMap(self)

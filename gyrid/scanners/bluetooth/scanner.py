@@ -230,7 +230,12 @@ class ScanPatternFactory(object):
     def read_patterns(self):
         while not self.mgr.main.stopping:
             print "READING DA PATTRNS"
-            f = open('/etc/gyrid/bluetooth_scan_patterns.conf', 'r')
+            try:
+                f = open('/etc/gyrid/bluetooth_scan_patterns.conf', 'r')
+            except:
+                time.sleep(10)
+                continue
+
             new_patterns = []
             for l in f:
                 ll = l.strip().split(',')
@@ -442,12 +447,12 @@ class BluetoothScanner(core.Scanner):
                 if pattern:
                     print "WHIIIIEE GOT SOME NEW THINGS TO TRY :D :D"
                 else:
-                    print "IT'S OVER. DONE. 4EVAH!?"
+                    print "NOTHING TO SEE HERE. MOVING RIGHT ALONG."
 
             if self.current_pattern:
                 self.current_pattern.what_now(self.discoverer.inquiry_with_rssi, [self.current_pattern.inquiry_length])
             else:
-                print "nothing to do, sleeping for 1 sec"
+                print "sleeping for 1 sec"
                 time.sleep(1)
 
     def init(self):
