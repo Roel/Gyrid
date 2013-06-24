@@ -188,7 +188,7 @@ class Discoverer(object):
                 if e[0] == 32:
                     done = True
                     self.done = True
-                    self.scanner.stopped_scanning(self, "adapter lost")
+                    self.scanner.stopped_scanning("adapter lost")
                     return
             ptype, event, plen = struct.unpack("BBB", pkt[:3])
             if event == bluez.EVT_INQUIRY_RESULT_WITH_RSSI:

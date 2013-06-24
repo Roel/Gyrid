@@ -30,6 +30,8 @@ import time
 from threading import Timer
 import sys
 
+from bluetooth import _bluetooth as bluez
+
 from gyrid import arduino, core
 import discoverer
 import logger
@@ -394,6 +396,7 @@ class BluetoothScanner(core.Scanner):
         self.device = device
         self.scan_patterns = set()
         self.current_pattern = None
+        self.stopping = False
         self.dev_id = int(str(path).split('/')[-1].strip('hci'))
 
         self.available = not self.device.GetProperties()['Discovering']
@@ -443,7 +446,7 @@ class BluetoothScanner(core.Scanner):
     @core.threaded
     def start(self):
         self.init()
-        while (not self.mgr.main.stopping):
+        while (not self.mgr.main.stopping) and (not self.stopping):
             pattern = self.get_active_scan_pattern()
             if self.current_pattern == None or (self.current_pattern.pattern_finished and pattern != self.current_pattern):
                 self.current_pattern = pattern
@@ -460,6 +463,10 @@ class BluetoothScanner(core.Scanner):
                     time.sleep(5)
                     if self.arduino.reconnect():
                         self.current_pattern.reset()
+                except bluez.error:
+                    print "Bluetooth error, shutting down"
+                    self.stopping = True
+                    self.protocol.active_adapters.remove(self.mac)
             else:
                 print "sleeping for 5 secs"
                 time.sleep(5)
@@ -538,7 +545,9 @@ class BluetoothScanner(core.Scanner):
         self.mgr.debug("%s: New inquiry" % self.mac)
 
     def stopped_scanning(self, reason):
+        self.stopping = True
         self.logger.stop()
+        self.protocol.active_adapters.remove(self.mac)
 
     @core.threaded
     def start_scanning(self):
