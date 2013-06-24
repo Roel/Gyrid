@@ -100,6 +100,10 @@ class ScanPattern(object):
         print self.angle_startpoints
         self.pattern_duration = len(self.angle_startpoints)*(self.inquiry_duration+self.buffer_time)
 
+    def reset(self):
+        self.pattern_finished = True
+        self.angle_current_idx = 0
+
     def __eq__(self, p):
         if p == None:
             return False
@@ -181,13 +185,13 @@ class ScanPattern(object):
                             time.sleep(st)
 
             new_angle = self.angle_startpoints[self.angle_current_idx]
+            self.scanner.arduino.turn(new_angle)
             self.angle_current_idx += 1
             if self.angle_current_idx == len(self.angle_startpoints):
                 self.angle_current_idx = 0
                 self.pattern_finished = True
             else:
                 self.pattern_finished = False
-            self.scanner.arduino.turn(new_angle)
             if self.scan_angle > 0:
                 if self.scan_direction_up:
                     self.scanner.arduino.sweep(new_angle, new_angle+self.scan_angle, self.inquiry_duration)
@@ -449,7 +453,13 @@ class BluetoothScanner(core.Scanner):
                     print "NOTHING TO SEE HERE. MOVING RIGHT ALONG."
 
             if self.current_pattern:
-                self.current_pattern.what_now(self.discoverer.inquiry_with_rssi, [self.current_pattern.inquiry_length])
+                try:
+                    self.current_pattern.what_now(self.discoverer.inquiry_with_rssi, [self.current_pattern.inquiry_length])
+                except IOError:
+                    print "IOError, sleeping for 5 secs"
+                    time.sleep(5)
+                    if self.arduino.reconnect():
+                        self.current_pattern.reset()
             else:
                 print "sleeping for 5 secs"
                 time.sleep(5)

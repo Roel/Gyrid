@@ -42,17 +42,18 @@ class Arduino(object):
         self.mgr = mgr
         self.mac = mac
 
-        self.dev = self.get_conf()
-        self.conn = self.get_conn()
+        self.angle = 0
         self.sweep_init_time = 0
         self.sweep_current = None
+        self.dev = self.get_conf()
+        self.conn = self.get_conn()
+
+    def reconnect(self):
         self.angle = 0
-
-        self.sweep(0, 180, 2.5)
-        time.sleep(2.5)
-        self.sweep(180, 0, 2.5)
-        time.sleep(2.5)
-
+        self.sweep_init_time = 0
+        self.sweep_current = None
+        self.conn = self.get_conn()
+        return self.conn != None
 
     def write(self, string):
         """
@@ -104,7 +105,9 @@ class Arduino(object):
 
         if angle != self.angle:
             print "turning to %i (previously at %i), taking %f seconds" % (angle, self.angle, 0.0035 * abs(self.angle-angle))
-            self.write('%ir' % angle)
+            if not self.write('%ir' % angle):
+                raise IOError
+
             time.sleep(0.0035 * abs(self.angle-angle))
             self.angle = angle
 
@@ -124,10 +127,15 @@ class Arduino(object):
 
         print "sweeping from %i to %i in %f seconds" % (start_angle, stop_angle, duration)
         self.sweep_current = (start_angle, stop_angle, int(time.time()*1000), step_delay)
-        self.write('%ia' % start_angle)
-        self.write('%ib' % stop_angle)
-        self.write('%id' % step_delay)
-        self.write('s')
+        success = True
+        success = success and self.write('%ia' % start_angle)
+        success = success and self.write('%ib' % stop_angle)
+        success = success and self.write('%id' % step_delay)
+        success = success and self.write('s')
+        if not success:
+            self.sweep_current = None
+            raise IOError
+
         time.sleep(self.sweep_init_time)
         Timer(round(duration*1000)/1000, self.set_angle, [stop_angle]).start()
 
@@ -158,21 +166,21 @@ class Arduino(object):
         """
         if self.dev and os.path.exists(self.dev):
             try:
-                conn = serial.Serial(self.dev, 19200)
+                self.conn = serial.Serial(self.dev, 19200)
                 time.sleep(2)
-                conn.write('0')
-                conn.write('r')
+                self.turn(0)
                 time.sleep(0.0035 * 180)
+                self.sweep(0, 180, 2.5)
+                time.sleep(2.5)
+                self.sweep(180, 0, 2.5)
+                time.sleep(2.5)
                 self.angle = 0
                 #self.mgr.debug("%s: Antenna initialised to %i degrees" % (
                 #    self.mac, self.angle))
                 #self.mgr.net_send_line(','.join([str(i) for i in ['STATE',
                 #    'bluetooth', self.mac.replace(':','').lower(),
                 #    '%0.3f' % time.time(), 'antenna_rotation', self.angle]]))
-                self.asc = True
-                self.first_inquiry = True
-                self.has_been_connected = True
-                return conn
+                return self.conn
             except (serial.SerialException, OSError):
                 return None
         return None
