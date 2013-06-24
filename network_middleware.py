@@ -119,6 +119,8 @@ class Network(object):
             etraceback)))
         f.write('\n')
         f.close()
+        self.exit_code = 1
+        self.exit(1)
 
     def exit(self):
         """
