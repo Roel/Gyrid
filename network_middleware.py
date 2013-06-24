@@ -321,14 +321,10 @@ class AckMap(object):
 
     def clear(self):
         """
-        Clear the entire map.
+        Clear the entire map. Does not use locking, caller should use locking.
         """
-        if self.lock.acquire(False):
-            try:
-                self.ackmap.clear()
-                #print "cleared entire ackmap"
-            finally:
-                self.lock.release()
+        self.ackmap.clear()
+        #print "cleared entire ackmap"
 
         #print "ackmap size %i" % len(self.ackmap)
 
