@@ -206,6 +206,7 @@ message Bluetooth_DataRaw {
     optional bytes hwid = 3;
     optional uint32 deviceclass = 4;
     optional sint32 rssi = 5;
+    optional uint32 angle = 6;
 }
 
 message WiFi_StateFrequency {

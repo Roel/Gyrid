@@ -68,6 +68,9 @@ class RSSILogger(InfoLogger):
         @param  device_class   Device class of the Bluetooth device.
         @param  rssi           The RSSI value of the received Bluetooth signal.
         """
+        if not angle:
+            angle = 0
+
         if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
             self.logger.info(",".join([self.mgr.format_time(timestamp),
                 str(hwid),
@@ -79,7 +82,8 @@ class RSSILogger(InfoLogger):
             "%0.3f" % timestamp,
             str(hwid),
             str(device_class),
-            str(rssi)]))
+            str(rssi),
+            str(angle)]))
 
 class InquiryLogger(RSSILogger):
     """
