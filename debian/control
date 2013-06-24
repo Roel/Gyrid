@@ -1,4 +1,4 @@
-Source: gyrid
+Source: gyrid-rotation
 Section: science
 Priority: optional
 Maintainer: Roel Huybrechts <roel.huybrechts@ugent.be>
@@ -12,7 +12,7 @@ Build-Depends-Indep: python-support (>= 1.0.10)
 XS-Python-Version: all
 Standards-Version: 3.8.4
 
-Package: gyrid
+Package: gyrid-rotation
 Architecture: all
 XB-Python-Version: ${python:Versions}
 Depends: ${misc:Depends}, ${python:Depends},

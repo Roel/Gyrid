@@ -8,7 +8,6 @@ gyrid/__init__.py
 gyrid/arduino.py
 gyrid/configuration.py
 gyrid/core.py
-gyrid/discoverer.py
 gyrid/gyrid.py
 gyrid/hashing.py
 gyrid/hooks.py
@@ -18,8 +17,13 @@ gyrid/protocol/__init__.py
 gyrid/protocol/gyrid.proto
 gyrid/scanmanager.py
 gyrid/scanners/__init__.py
-gyrid/scanners/bluetooth.py
-gyrid/scanners/wifi.py
+gyrid/scanners/bluetooth/__init__.py
+gyrid/scanners/bluetooth/discoverer.py
+gyrid/scanners/bluetooth/logger.py
+gyrid/scanners/bluetooth/scanner.py
+gyrid/scanners/wifi/__init__.py
+gyrid/scanners/wifi/logger.py
+gyrid/scanners/wifi/scanner.py
 gyrid/testing/__init__.py
 gyrid/testing/discoverer_playback.py
 gyrid/testing/discoverer_random.py

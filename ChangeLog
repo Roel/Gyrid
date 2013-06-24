@@ -1,3 +1,9 @@
+gyrid-rotation 0.9.1:
+
+	* ADD: Support for Bluetooth scanpatterns and antenna rotation.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Mon, 24 Jun 2013 11:13:38 +0200
+
 gyrid 0.9.1
 
 	* FIX: Improvements in network middleware regarding pushing of cache,
