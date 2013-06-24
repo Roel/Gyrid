@@ -135,13 +135,13 @@ message ScanPattern {
 
     optional Action action = 1;
     optional bytes sensorMac = 2;
-    optional double startTime = 3;
-    optional double stopTime = 4;
+    optional uint32 startTime = 3;
+    optional uint32 stopTime = 4;
     optional uint32 startAngle = 5;
     optional uint32 stopAngle = 6;
     optional uint32 scanAngle = 7;
     optional uint32 inquiryLength = 8;
-    optional float bufferTime = 9;
+    optional uint32 bufferTime = 9;
 
     // Aantal inquiries tussen startAngle en stopAngle
     optional uint32 turnResolution = 10; // degrees

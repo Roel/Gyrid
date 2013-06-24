@@ -58,6 +58,9 @@ class ScanPattern(object):
         self.turn_resolution = turn_resolution
 
         self.waiting_time = 10
+        for i in ['start_time', 'stop_time', 'buffer_time']:
+            if self.__dict__[i]:
+                self.__dict__[i] = self.__dict__[i]/1000.0
 
         if not self.inquiry_length:
             self.inquiry_length = int(math.ceil(self.mgr.config.get_value('buffer_size')/1.28))
@@ -242,13 +245,9 @@ class ScanPatternFactory(object):
                 p = dict(zip(['sensor_mac', 'start_time', 'stop_time', 'start_angle', 'stop_angle', 'scan_angle', 'inquiry_length', 'buffer_time', 'turn_resolution'], ll))
                 if not p['sensor_mac']: p['sensor_mac'] = None
 
-                for i in [('start_time', None), ('stop_time', None), ('buffer_time', 0)]:
-                    if p[i[0]]:
-                        p[i[0]] = float(p[i[0]])
-                    else:
-                        p[i[0]] = i[1]
-
-                for i in [('start_angle', 0), ('stop_angle', 0), ('scan_angle', 0), ('inquiry_length', None), ('turn_resolution', 0)]:
+                for i in [('start_time', None), ('stop_time', None), ('buffer_time', 0),
+                          ('start_angle', 0), ('stop_angle', 0), ('scan_angle', 0),
+                          ('inquiry_length', None), ('turn_resolution', 0)]:
                     if p[i[0]]:
                         p[i[0]] = int(p[i[0]])
                     else:
@@ -452,8 +451,8 @@ class BluetoothScanner(core.Scanner):
             if self.current_pattern:
                 self.current_pattern.what_now(self.discoverer.inquiry_with_rssi, [self.current_pattern.inquiry_length])
             else:
-                print "sleeping for 1 sec"
-                time.sleep(1)
+                print "sleeping for 5 secs"
+                time.sleep(5)
 
     def init(self):
         if self.discoverer.init() == 0:

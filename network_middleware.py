@@ -606,21 +606,18 @@ class InetClient(Int16StringReceiver):
 
             if sp.action == sp.Action_REMOVEALL:
                 if os.path.isfile(fl):
-                    f = open(fl, 'w')
-                    f.truncate()
-                    f.close()
+                    try:
+                        f = open(fl, 'w')
+                        f.truncate()
+                        f.close()
+                    except:
+                        return
             else:
                 s = ""
                 for i in ['sensorMac', 'startTime', 'stopTime', 'startAngle',
                     'stopAngle', 'scanAngle', 'inquiryLength', 'bufferTime', 'turnResolution']:
                     if sp.HasField(i):
-                        attr = sp.__getattribute__(i)
-                        if type(attr) is float:
-                            s += '%0.3f' % attr
-                        elif type(attr) is int:
-                            s += '%i' % attr
-                        else:
-                            s += str(attr)
+                        s += str(sp.__getattribute__(i))
                     s += ','
 
                 current = []
@@ -633,16 +630,25 @@ class InetClient(Int16StringReceiver):
                 if sp.action == sp.Action_ADD:
                     if s not in current:
                         current.append(s)
-                        f = open('/etc/gyrid/bluetooth_scan_patterns.conf', 'w')
-                        f.write('\n'.join(current) + '\n')
-                        f.close()
+                        try:
+                            f = open('/etc/gyrid/bluetooth_scan_patterns.conf', 'w')
+                            f.write('\n'.join(current) + '\n')
+                            f.close()
+                        except:
+                            return
 
                 elif sp.action == sp.Action_REMOVE:
                     if s in current:
                         current.remove(s)
-                        f = open('/etc/gyrid/bluetooth_scan_patterns.conf', 'w')
-                        f.write('\n'.join(current) + '\n')
-                        f.close()
+                        try:
+                            f = open('/etc/gyrid/bluetooth_scan_patterns.conf', 'w')
+                            f.write('\n'.join(current) + '\n')
+                            f.close()
+                        except:
+                            return
+
+            msg.success = True
+            self.sendMsg(msg, await_ack=False)
 
         elif msg.type == msg.Type_REQUEST_STARTDATA:
             self.factory.config['enable_data_transfer'] = msg.requestStartdata.enableData
