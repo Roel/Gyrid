@@ -60,9 +60,7 @@ class ScanPattern(object):
         self.turn_resolution = turn_resolution
 
         self.waiting_time = 10
-        for i in ['start_time', 'stop_time', 'buffer_time']:
-            if self.__dict__[i]:
-                self.__dict__[i] = self.__dict__[i]/1000.0
+        self.buffer_time = buffer_time/1000.0
 
         if not self.inquiry_length:
             self.inquiry_length = int(math.ceil(self.mgr.config.get_value('buffer_size')/1.28))
