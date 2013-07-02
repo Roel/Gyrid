@@ -289,8 +289,8 @@ class Discoverer(object):
                      'rssi': rssi_s, 'sc': self.mac}
 
                 self.mgr.debug(
-                    "%(sc)s: Found device %(hwid)s [%(dc)s " % d + \
-                    "]%(rssi)s" % d, force=True)
+                    "%(sc)s: Found device %(hwid)s [%(dc)s]" % d + \
+                    "%(rssi)s" % d, force=True)
 
             self.logger.update_device(timestamp, hwid, device_class)
 
