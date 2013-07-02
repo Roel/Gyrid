@@ -181,7 +181,7 @@ class Discoverer(object):
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, flt)
 
         max_responses = 255
-        cmd_pkt = struct.pack("BBBBB", 0x33, 0x8b, 0x9e, duration,
+        cmd_pkt = struct.pack("BBBBB", 0x33, 0x8b, 0x9e, self.buffer_size,
             max_responses)
 
         self.logger_inquiry.write(time.time(), self.buffer_size*1.28)
