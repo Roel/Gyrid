@@ -24,8 +24,6 @@ import math
 import struct
 import time
 
-import hooks
-
 class Discoverer(object):
     """
     Bluetooth discover, this class provides device discovery. Heavily based on
@@ -54,7 +52,6 @@ class Discoverer(object):
         self.buffer_size = int(math.ceil(
             self.mgr.config.get_value('buffer_size')/1.28))
         self.minimum_rssi = self.mgr.config.get_value('minimum_rssi')
-        self.hooks = hooks.Hooks(self.mgr, self)
         self.done = False
 
     def init(self):
@@ -188,7 +185,6 @@ class Discoverer(object):
         cmd_pkt = struct.pack("BBBBB", 0x33, 0x8b, 0x9e, duration,
             max_responses)
 
-        self.hooks.pre_inquiry()
         self.logger_inquiry.write(time.time(), self.buffer_size*1.28)
         self.mgr.debug("%s: New inquiry" % self.mac)
 
@@ -236,8 +232,6 @@ class Discoverer(object):
             else:
                 self.mgr.debug('Unrecognized Bluetooth packet type received')
 
-        self.hooks.post_inquiry()
-
         # restore old filter
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
 
@@ -250,7 +244,6 @@ class Discoverer(object):
             if self.mgr.main.stopping:
                 end = "Shutting down"
 
-        self.hooks.stop()
         return " (%s)" % end
 
     def device_discovered(self, address, device_class, rssi):
@@ -276,8 +269,6 @@ class Discoverer(object):
 
             hwid = self.mgr.privacy_process(address)
             hwid = hwid.replace(':', '')
-
-            self.hooks.device_discovered(hwid, device_class, rssi)
 
             timestamp = time.time()
 
