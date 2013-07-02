@@ -1,3 +1,10 @@
+gyrid-rotation 0.9.2:
+
+	* ADD: Send angles with Bluetooth raw data messages.
+	* FIX: Starttime and stoptime should be second resolution.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Thu, 27 Jun 2013 14:38:07 +0200
+
 gyrid-rotation 0.9.1:
 
 	* ADD: Support for Bluetooth scanpatterns and antenna rotation.
