@@ -240,7 +240,11 @@ class Discoverer(object):
         Start scanning.
         """
         while not self.done and not self.mgr.main.stopping:
-            end = self._device_inquiry_with_with_rssi()
+            try:
+                end = self._device_inquiry_with_with_rssi()
+            except Exception, e:
+                end = e.message
+                self.done = True
             if self.mgr.main.stopping:
                 end = "Shutting down"
 
