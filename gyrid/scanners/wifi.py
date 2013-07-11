@@ -263,7 +263,6 @@ class WiFiScanner(core.Scanner):
                 if 'flags' in radiotap_values:
                     fl = radiotap_values['flags']
                     if fl & 0b10000 == 0b10000 and fl & 0b1000000 == 0b1000000:
-                        self.mgr.debug("%s: Bad packet received" % self.mac)
                         return # we don't process packets that are known to be bad
                     elif fl & 0b10000 != 0b10000:
                         if not self.fcs_support_logged:
