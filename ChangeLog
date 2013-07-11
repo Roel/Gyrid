@@ -1,3 +1,14 @@
+gyrid 0.9.2
+
+	* FIX: Checksums should always be 4 bytes in length.
+	* FIX: Enable WiFi devraw messages by default so these are cached.
+	* FIX: Add exception handling around keepalive loops.
+	* FIX: Exit after except hook.
+	* REM: Arduino and hooks.
+	* ADD: Introduce microsecond level logging.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 02 Jul 2013 14:44:07 +0200
+
 gyrid 0.9.1
 
 	* FIX: Improvements in network middleware regarding pushing of cache,
