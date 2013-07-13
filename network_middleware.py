@@ -560,7 +560,7 @@ class InetClient(Int16StringReceiver):
 
         elif msg.type == msg.Type_REQUEST_CACHING:
             if msg.requestCaching.pushCache:
-                reactor.callInThread(self.pushCache)
+                self.pushCache()
             elif msg.requestCaching.clearCache:
                 self.clearCache()
 
