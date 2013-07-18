@@ -5,3 +5,9 @@ set -e
 #DEBHELPER#
 
 update-rc.d gyrid defaults 95 02
+
+if which invoke-rc.d >/dev/null 2>&1; then
+    invoke-rc.d gyrid restart
+else
+    /etc/init.d/gyrid restart
+fi
