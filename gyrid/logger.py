@@ -556,9 +556,7 @@ class WiFiLogger(ScanLogger):
         @param  moving         Whether the device is moving 'in' or 'out'.
         """
         if not (self.mgr.debug_mode and self.mgr.debug_silent):
-            self.logger.info(",".join([time.strftime(
-                self.time_format,
-                time.localtime(timestamp)),
+            self.logger.info(",".join([self.mgr.format_time(timestamp),
                 str(hwid),
                 str(moving)]))
             self.mgr.net_send_line(','.join(str(i) for i in ['WIFI_IO', self.mac, timestamp,
