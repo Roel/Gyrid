@@ -234,15 +234,17 @@ class InquiryLogger(RSSILogger):
     def _get_log_location(self):
         return self.mgr.get_inquiry_log_location(self.mac)
 
-    def write(self, timestamp, duration):
-        if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
-            self.logger.info(",".join([self.mgr.format_time(timestamp),
-                '%0.2f' % duration]))
+    def new_inquiry(self, timestamp, duration):
         self.mgr.net_send_line(",".join(['STATE','bluetooth',
             str(self.mac.replace(':','')),
             "%0.3f" % timestamp,
             "new_inquiry",
             "%i" % (duration*1000)]))
+
+    def inquiry_done(self, timestamp, duration, num_responses):
+        if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
+            self.logger.info(",".join([self.mgr.format_time(timestamp),
+                '%0.2f' % duration, str(num_responses)]))
 
 class FrequencyLogger(RSSILogger):
     """

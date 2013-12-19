@@ -241,10 +241,11 @@ class Discoverer(object):
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, flt)
 
         max_responses = 0 # unlimited number of responses
+        cnt_responses = 0
         cmd_pkt = struct.pack("BBBBB", 0x33, 0x8b, 0x9e, self.buffer_size,
             max_responses)
 
-        self.logger_inquiry.write(time.time(), self.buffer_size*1.28)
+        self.logger_inquiry.new_inquiry(time.time(), self.buffer_size*1.28)
         self.mgr.debug("%s: New inquiry" % self.mac)
 
         bluez.hci_send_cmd(self.sock, bluez.OGF_LINK_CTL, bluez.OCF_INQUIRY,
@@ -266,6 +267,7 @@ class Discoverer(object):
             if event == bluez.EVT_INQUIRY_RESULT_WITH_RSSI:
                 pkt = pkt[3:]
                 nrsp = struct.unpack("B", pkt[0])[0]
+                cnt_responses += nrsp
                 if nrsp > 1:
                     self.mgr.log_info("%s: Discarding %i responses queued into a single result event" % (self.mac, nrsp))
                     continue
@@ -276,6 +278,7 @@ class Discoverer(object):
                     devclass = struct.unpack ("I", "%s\0" % devclass_raw)[0]
                     self.device_discovered(timestamp, addr, devclass, None, rssi)
             elif event == 0x2f: # EVT_EXTENDED_INQUIRY_RESULT
+                cnt_responses += 1
                 pkt = pkt[3:]
                 addr = bluez.ba2str(pkt[1:1+6])
                 rssi = struct.unpack("b", pkt[14])[0]
@@ -300,6 +303,7 @@ class Discoverer(object):
             elif event == bluez.EVT_INQUIRY_RESULT:
                 pkt = pkt[3:]
                 nrsp = struct.unpack("B", pkt[0])[0]
+                cnt_responses += nrsp
                 if nrsp > 1:
                     self.mgr.log_info("%s: Discarding %i responses queued into a single result event" % (self.mac, nrsp))
                     continue
@@ -320,6 +324,8 @@ class Discoverer(object):
                     done = True
             else:
                 self.mgr.debug('Unrecognized Bluetooth packet type received')
+
+        self.logger_inquiry.inquiry_done(time.time(), self.buffer_size*1.28, cnt_responses)
 
         # restore old filter
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
