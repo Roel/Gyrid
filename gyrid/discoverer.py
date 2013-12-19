@@ -106,6 +106,11 @@ class Discoverer(object):
                     self.mgr.debug(s)
                     return 1
 
+        # Reset Inquiry TX Power to 0.
+        r = self._write_inquiry_tx_power(0)
+        if r == 0:
+            self.mgr.log_info("%s: Inquiry TX power set to 0" % self.mac)
+
         return 0
 
     def _read_inquiry_mode(self):
@@ -167,6 +172,73 @@ class Discoverer(object):
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
         if status != 0: return -1
         return 0
+
+    def _write_inquiry_tx_power(self, power):
+        """
+        Returns 0 on success, error status code or -1 on failure.
+        """
+        if not self._check_command_support(18, 0b10):
+            return -1
+
+        # save current filter
+        old_filter = self.sock.getsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, 14)
+
+        # Setup socket filter to receive only events related to the
+        # read_inquiry_mode command
+        flt = bluez.hci_filter_new()
+        opcode = bluez.cmd_opcode_pack(bluez.OGF_HOST_CTL, 0x0059)
+        bluez.hci_filter_set_ptype(flt, bluez.HCI_EVENT_PKT)
+        bluez.hci_filter_set_event(flt, bluez.EVT_CMD_COMPLETE);
+        bluez.hci_filter_set_opcode(flt, opcode)
+        self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, flt)
+
+        # first read the current inquiry mode.
+        bluez.hci_send_cmd(self.sock, bluez.OGF_HOST_CTL,
+                0x0059, struct.pack("b", power))
+
+        pkt = self.sock.recv(255)
+
+        status = struct.unpack("xxxxxxB", pkt)[0]
+
+        # restore old filter
+        self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
+        return status
+
+    def _check_command_support(self, octet, mask):
+        """
+        Checks if a certain command is supported by the Bluetooth sensor.
+
+        @param  octet   The octet of the command.
+        @param  mask    The bitmask of the command.
+                           Both as defined in the Bluetooth specification v4.0 pp. 447 (pdf 693).
+        """
+        # save current filter
+        old_filter = self.sock.getsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, 14)
+
+        # Setup socket filter to receive only events related to the
+        # read_inquiry_mode command
+        flt = bluez.hci_filter_new()
+        opcode = bluez.cmd_opcode_pack(0x04, 0x0002)
+        bluez.hci_filter_set_ptype(flt, bluez.HCI_EVENT_PKT)
+        bluez.hci_filter_set_event(flt, bluez.EVT_CMD_COMPLETE);
+        bluez.hci_filter_set_opcode(flt, opcode)
+        self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, flt)
+
+        # Send the Read Local Supported Commands command
+        bluez.hci_send_cmd(self.sock, 0x04, 0x0002)
+
+        pkt = self.sock.recv(65)
+
+        status = struct.unpack("65B", pkt)
+        status = status[6:]
+
+        # restore old filter
+        self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
+
+        # Check if the requested bit is set.
+        if len(status) >= octet+1:
+            return status[octet+1] & mask == mask
+        return False
 
     def _device_inquiry_with_with_rssi(self):
         """
