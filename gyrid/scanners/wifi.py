@@ -173,7 +173,6 @@ class WiFiScanner(core.Scanner):
             self.start_scanning()
             self.loop_frequencies()
 
-
     @core.threaded
     def loop_frequencies(self):
         """
@@ -191,6 +190,8 @@ class WiFiScanner(core.Scanner):
                 self.mgr.net_send_line("STATE,wifi,%s,%0.3f,frequency_loop,%i,%s" %
                     (self.mac.replace(':','').lower(), time.time(), duration*1000, ";".join(
                         str(i) for i in freqs_done)))
+                if '_logger_freq' in self.__dict__:
+                    self._logger_freq.write(time.time(), str(duration), [str(i) for i in freqs_done])
                 freqs_done[:] = []
             else:
                 try:
@@ -452,9 +453,10 @@ class WiFiScanner(core.Scanner):
             _logger_devraw = logger.WiFiDevRawLogger(self.mgr, self.mac)
             _logger_dev = logger.WiFiLogger(self.mgr, self.mac, 'DEV')
             _logger_acp = logger.WiFiLogger(self.mgr, self.mac, 'ACP')
-            self.protocol.loggers[self.mac] = (_rawlogger, _logger_devraw, _logger_dev, _logger_acp)
+            self._logger_freq = logger.FrequencyLogger(self.mgr, self.mac)
+            self.protocol.loggers[self.mac] = (_rawlogger, _logger_devraw, _logger_dev, _logger_acp, self._logger_freq)
         else:
-            _rawlogger, _logger_devraw, _logger_dev, _logger_acp = self.protocol.loggers[self.mac]
+            _rawlogger, _logger_devraw, _logger_dev, _logger_acp, self._logger_freq = self.protocol.loggers[self.mac]
 
         _logger_dev.start()
         _logger_acp.start()

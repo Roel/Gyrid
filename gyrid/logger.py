@@ -244,6 +244,32 @@ class InquiryLogger(RSSILogger):
             "new_inquiry",
             "%i" % (duration*1000)]))
 
+class FrequencyLogger(RSSILogger):
+    """
+    The inquiry logger takes care of the logging of inquiry starttimes.
+    """
+    def __init__(self, mgr, mac):
+        """
+        Initialisation of the logfile.
+
+        @param  mgr   Reference to Scanmanager instance.
+        @param  mac   The MAC-address of the adapter used for scanning.
+        """
+        RSSILogger.__init__(self, mgr, mac)
+
+        self.enable = self.mgr.config.get_value('enable_inquiry_log')
+
+    def _get_log_id(self):
+        return '%s-wififrequency' % self.mac
+
+    def _get_log_location(self):
+        return self.mgr.get_frequency_log_location(self.mac)
+
+    def write(self, timestamp, duration, frequencies):
+        if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
+            self.logger.info(",".join([self.mgr.format_time(timestamp), duration,
+                ','.join(frequencies)]))
+
 class ScanLogger(RSSILogger):
     """
     The Logger class handles all writing to the logfile and stores a pool

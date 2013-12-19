@@ -282,6 +282,14 @@ class ScanManager(object):
         """
         raise NotImplementedError
 
+    def get_frequency_log_location(self):
+        """
+        Get the location of the logfile for frequencyloop stoptimes.
+
+        Implement this method in a subclass.
+        """
+        raise NotImplementedError
+
     def stop(self):
         """
         Use this function in a subclass.
@@ -335,6 +343,11 @@ class DefaultScanManager(ScanManager):
         mac = mac.replace(':','')
         self.makedirs(self.base_location + mac)
         return self.base_location + mac + '/inquiry.log'
+
+    def get_frequency_log_location(self, mac):
+        mac = mac.replace(':','')
+        self.makedirs(self.base_location + mac)
+        return self.base_location + mac + '/wifi-frequency.log'
 
     def get_info_log_location(self):
         return self.base_location + 'messages.log'
