@@ -803,12 +803,13 @@ class InetClientFactory(ReconnectingClientFactory):
             m.type = m.Type_BLUETOOTH_DATARAW
             d = m.bluetooth_dataRaw
             if data.startswith('C'): m.cached = True
-            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac', 'deviceclass', 'rssi'],
-                data.split(',')))
+            data = dict(zip(['type', 'sensor_mac', 'timestamp', 'mac', 'deviceclass',
+                'tx_power', 'rssi'], data.split(',')))
             d.timestamp = float(data['timestamp'])
             d.hwid = procHwid(data['mac'])
             d.deviceclass = int(data['deviceclass'])
             d.rssi = int(data['rssi'])
+            if data['tx_power'] != '': d.tx_power = int(data['tx_power'])
             if c['enable_sensor_mac']: d.sensorMac = procHwid(data['sensor_mac'])
             return m
 

@@ -188,7 +188,7 @@ class RSSILogger(InfoLogger):
         logger.addHandler(handler)
         return logger
 
-    def write(self, timestamp, hwid, device_class, rssi):
+    def write(self, timestamp, hwid, device_class, tx_pwr, rssi):
         """
         Append the parameters to the logfile on a new line and flush the file.
         Try sending the data over the network.
@@ -196,18 +196,21 @@ class RSSILogger(InfoLogger):
         @param  timestamp      UNIX timestamp.
         @param  hwid           Hardware id of the Bluetooth device.
         @param  device_class   Device class of the Bluetooth device.
+        @param  tx_pwr         The TX power level of the inquiry response packet.
         @param  rssi           The RSSI value of the received Bluetooth signal.
         """
         if self.enable and not (self.mgr.debug_mode and self.mgr.debug_silent):
             self.logger.info(",".join([self.mgr.format_time(timestamp),
                 str(hwid),
                 str(device_class),
+                str(tx_pwr),
                 str(rssi)]))
         self.mgr.net_send_line(",".join(['BLUETOOTH_RAW',
             str(self.mac.replace(':','')),
             "%0.3f" % timestamp,
             str(hwid),
             str(device_class),
+            str(tx_pwr),
             str(rssi)]))
 
 class InquiryLogger(RSSILogger):

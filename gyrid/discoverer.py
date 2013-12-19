@@ -54,6 +54,13 @@ class Discoverer(object):
         self.minimum_rssi = self.mgr.config.get_value('minimum_rssi')
         self.done = False
 
+        self.preferred_inquiry_modes = [0x02, 0x01, 0x00]
+
+        self.eir_datatypes = {
+            0x0a: ('tx_power_level', 'b', lambda x: x.__getitem__(0))
+            #0x09: ('complete_local_name', 'c', lambda x: "".join(x))
+        }
+
     def init(self):
         """
         Initialise the Bluetooth device used for scanning.
@@ -68,43 +75,24 @@ class Discoverer(object):
             self.mgr.debug(s)
             return 1
 
-        try:
-            mode = self._read_inquiry_mode()
-        except:
-            s = 'Error reading inquiry mode on device %i. ' % self.device_id + \
-                'We need a 1.2+ Bluetooth device'
-            self.mgr.main.log_error('Error', '%s.' % s)
-            self.mgr.debug(s)
-            return 1
-
-        if mode != 1:
-            try:
-                result = self._write_inquiry_mode(1)
-            except:
-                s = 'Error writing inquiry mode on device %i' % self.device_id
-                self.mgr.main.log_error('Error', '%s.' % s)
-                self.mgr.debug(s)
-                return 1
-
-            if result != 0:
-                s = 'Adapter %s does not support RSSI enabled ' % self.mac \
-                    + 'inquiries, disabling RSSI detections'
-                self.mgr.log_info(s)
+        # Check support for reading and writing inquiry mode
+        if self._check_command_support(12, 0b11000000):
+            for imode in self.preferred_inquiry_modes:
                 try:
-                    result = self._write_inquiry_mode(0)
+                    result = self._write_inquiry_mode(imode)
                 except:
-                    s = 'Error writing inquiry mode on device %i' % \
-                        self.device_id
+                    s = 'Error writing inquiry mode %i on device %i' % (imode, self.device_id)
                     self.mgr.main.log_error('Error', '%s.' % s)
                     self.mgr.debug(s)
-                    return 1
+                    continue
 
                 if result != 0:
-                    s = 'Error setting inquiry mode on ' + \
-                        'device %i' % self.device_id
-                    self.mgr.main.log_error('Error', '%s.' % s)
-                    self.mgr.debug(s)
-                    return 1
+                    s = '%s: Adapter does not support requested inquiry mode %i' % (self.mac, imode)
+                    self.mgr.log_info(s)
+                else:
+                    s = '%s: Using inquiry mode %i' % (self.mac, imode)
+                    self.mgr.log_info(s)
+                    break
 
         # Reset Inquiry TX Power to 0.
         r = self._write_inquiry_tx_power(0)
@@ -282,7 +270,29 @@ class Discoverer(object):
                     rssi = struct.unpack("b", pkt[1+13*nrsp+i])[0]
                     devclass_raw = pkt[1+8*nrsp+3*i:1+8*nrsp+3*i+3]
                     devclass = struct.unpack ("I", "%s\0" % devclass_raw)[0]
-                    self.device_discovered(addr, devclass, rssi)
+                    self.device_discovered(addr, devclass, None, rssi)
+            elif event == 0x2f: # EVT_EXTENDED_INQUIRY_RESULT
+                pkt = pkt[3:]
+                addr = bluez.ba2str(pkt[1:1+6])
+                rssi = struct.unpack("b", pkt[14])[0]
+                devclass_raw = pkt[9:9+3]
+                devclass = struct.unpack ("I", "%s\0" % devclass_raw)[0]
+                eir_data = {}
+
+                eir = pkt[15:]
+                eir_idx = 0
+                while eir_idx < len(eir):
+                    l = struct.unpack("B", eir[eir_idx])[0]
+                    eir_idx += 1
+                    if l > 0:
+                        data_type = struct.unpack("B", eir[eir_idx])[0]
+                        eir_idx += 1
+                        data = None
+                        if data_type in self.eir_datatypes:
+                            dt = self.eir_datatypes[data_type]
+                            eir_data[dt[0]] = dt[2](struct.unpack("%i%s" % ((l-1), dt[1]), eir[eir_idx:eir_idx+l-1]))
+                        eir_idx += (l-1)
+                self.device_discovered(addr, devclass, eir_data.get('tx_power_level', None), rssi)
             elif event == bluez.EVT_INQUIRY_RESULT:
                 pkt = pkt[3:]
                 nrsp = struct.unpack("B", pkt[0])[0]
@@ -293,7 +303,7 @@ class Discoverer(object):
                     devclass = (devclass_raw[2] << 16) | \
                             (devclass_raw[1] << 8) | \
                             devclass_raw[0]
-                    self.device_discovered(addr, devclass, None)
+                    self.device_discovered(addr, devclass, None, None)
             elif event == bluez.EVT_INQUIRY_COMPLETE:
                 done = True
             elif event == bluez.EVT_CMD_STATUS:
@@ -322,7 +332,7 @@ class Discoverer(object):
 
         return " (%s)" % end
 
-    def device_discovered(self, address, device_class, rssi):
+    def device_discovered(self, address, device_class, tx_pwr, rssi):
         """
         Called when discovered a device. Get a UNIX timestamp and call the
         update method of Logger to update the timestamp, the address and
@@ -330,6 +340,7 @@ class Discoverer(object):
 
         @param  address        Hardware address of the Bluetooth device.
         @param  device_class   Device class of the Bluetooth device.
+        @param  tx_pwr         The TX power level of the inquiry packet.
         @param  rssi           The RSSI (RX power level) value of the
                                 discovery. None when none recorded.
         """
@@ -356,16 +367,17 @@ class Discoverer(object):
                     device_class)), str(tools.deviceclass.get_minor_class(
                     device_class))])
                 rssi_s = ' with RSSI %d' % rssi if rssi != None else ''
+                txpwr_s = ', TX power %d' % tx_pwr if tx_pwr != None else ''
 
                 d = {'hwid': hwid, 'dc': device, 'time': str(timestamp),
-                     'rssi': rssi_s, 'sc': self.mac}
+                     'rssi': rssi_s, 'txpwr': txpwr_s, 'sc': self.mac}
 
                 self.mgr.debug(
                     "%(sc)s: Found device %(hwid)s [%(dc)s]" % d + \
-                    "%(rssi)s" % d, force=True)
+                    "%(rssi)s%(txpwr)s" % d, force=True)
 
             self.logger.update_device(timestamp, hwid, device_class)
 
+            tx_pwr = '' if tx_pwr == None else tx_pwr
             if rssi != None:
-                self.logger_rssi.write(timestamp, hwid, device_class,
-                    rssi)
+                self.logger_rssi.write(timestamp, hwid, device_class, tx_pwr, rssi)
