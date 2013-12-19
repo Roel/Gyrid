@@ -266,6 +266,9 @@ class Discoverer(object):
             if event == bluez.EVT_INQUIRY_RESULT_WITH_RSSI:
                 pkt = pkt[3:]
                 nrsp = struct.unpack("B", pkt[0])[0]
+                if nrsp > 1:
+                    self.mgr.log_info("%s: Discarding %i responses queued into a single result event" % (self.mac, nrsp))
+                    continue
                 for i in range(nrsp):
                     addr = bluez.ba2str(pkt[1+6*i:1+6*i+6])
                     rssi = struct.unpack("b", pkt[1+13*nrsp+i])[0]
@@ -297,6 +300,9 @@ class Discoverer(object):
             elif event == bluez.EVT_INQUIRY_RESULT:
                 pkt = pkt[3:]
                 nrsp = struct.unpack("B", pkt[0])[0]
+                if nrsp > 1:
+                    self.mgr.log_info("%s: Discarding %i responses queued into a single result event" % (self.mac, nrsp))
+                    continue
                 for i in range(nrsp):
                     addr = bluez.ba2str(pkt[1+6*i:1+6*i+6])
                     devclass_raw = struct.unpack("BBB",
