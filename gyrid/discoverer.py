@@ -262,6 +262,7 @@ class Discoverer(object):
                     self.scanner.stopped_scanning(self, "adapter lost")
                     return
             ptype, event, plen = struct.unpack("BBB", pkt[:3])
+            timestamp = time.time()
             if event == bluez.EVT_INQUIRY_RESULT_WITH_RSSI:
                 pkt = pkt[3:]
                 nrsp = struct.unpack("B", pkt[0])[0]
@@ -270,7 +271,7 @@ class Discoverer(object):
                     rssi = struct.unpack("b", pkt[1+13*nrsp+i])[0]
                     devclass_raw = pkt[1+8*nrsp+3*i:1+8*nrsp+3*i+3]
                     devclass = struct.unpack ("I", "%s\0" % devclass_raw)[0]
-                    self.device_discovered(addr, devclass, None, rssi)
+                    self.device_discovered(timestamp, addr, devclass, None, rssi)
             elif event == 0x2f: # EVT_EXTENDED_INQUIRY_RESULT
                 pkt = pkt[3:]
                 addr = bluez.ba2str(pkt[1:1+6])
@@ -292,7 +293,7 @@ class Discoverer(object):
                             dt = self.eir_datatypes[data_type]
                             eir_data[dt[0]] = dt[2](struct.unpack("%i%s" % ((l-1), dt[1]), eir[eir_idx:eir_idx+l-1]))
                         eir_idx += (l-1)
-                self.device_discovered(addr, devclass, eir_data.get('tx_power_level', None), rssi)
+                self.device_discovered(timestamp, addr, devclass, eir_data.get('tx_power_level', None), rssi)
             elif event == bluez.EVT_INQUIRY_RESULT:
                 pkt = pkt[3:]
                 nrsp = struct.unpack("B", pkt[0])[0]
@@ -303,7 +304,7 @@ class Discoverer(object):
                     devclass = (devclass_raw[2] << 16) | \
                             (devclass_raw[1] << 8) | \
                             devclass_raw[0]
-                    self.device_discovered(addr, devclass, None, None)
+                    self.device_discovered(timestamp, addr, devclass, None, None)
             elif event == bluez.EVT_INQUIRY_COMPLETE:
                 done = True
             elif event == bluez.EVT_CMD_STATUS:
@@ -332,12 +333,13 @@ class Discoverer(object):
 
         return " (%s)" % end
 
-    def device_discovered(self, address, device_class, tx_pwr, rssi):
+    def device_discovered(self, timestamp, address, device_class, tx_pwr, rssi):
         """
         Called when discovered a device. Get a UNIX timestamp and call the
         update method of Logger to update the timestamp, the address and
         the device_class of the device in the pool.
 
+        @param  timestamp      Timestamp of the inquiry result event.
         @param  address        Hardware address of the Bluetooth device.
         @param  device_class   Device class of the Bluetooth device.
         @param  tx_pwr         The TX power level of the inquiry packet.
@@ -356,8 +358,6 @@ class Discoverer(object):
 
             hwid = self.mgr.privacy_process(address)
             hwid = hwid.replace(':', '')
-
-            timestamp = time.time()
 
             if self.mgr.debug_mode:
                 import tools.deviceclass
