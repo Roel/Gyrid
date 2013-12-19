@@ -212,7 +212,7 @@ class ScanManager(object):
 
         ms = ''
         if '%Q' in self.time_format:
-            ms = ('%0.3f' % float('.' + str(t).split('.')[1]))[1:]
+            ms = ('%0.3f' % float('.' + ("%0.8f" % t).split('.')[1]))[1:]
 
         return time.strftime(self.time_format, time.localtime(t)).replace('%Q', ms)
 
