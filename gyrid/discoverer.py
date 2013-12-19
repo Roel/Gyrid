@@ -180,7 +180,7 @@ class Discoverer(object):
         bluez.hci_filter_set_ptype(flt, bluez.HCI_EVENT_PKT)
         self.sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, flt)
 
-        max_responses = 255
+        max_responses = 0 # unlimited number of responses
         cmd_pkt = struct.pack("BBBBB", 0x33, 0x8b, 0x9e, self.buffer_size,
             max_responses)
 
