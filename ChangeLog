@@ -1,3 +1,18 @@
+gyrid 0.9.4
+	* FIX: Use time formatter in WiFi logger too.
+	* FIX: Time formatting function to correctly show milliseconds.
+	* FIX: Remove limit of 255 detections per inquiry.
+	* FIX: Reset inquiry transmit power to 0 upon initialisation.
+	* FIX: Use more accurate time of inquiry result events.
+	* FIX: Discard inquiry responses that have been queued into a single
+			 result event.
+	* ADD: Add support for inquiry mode 2 and Extended Inquiry Responses.
+	* ADD: WiFi frequency loop logger.
+	* UPD: Bluetooth inquiry logger logs end of inquiry instead of start
+	         and includes number of responses.
+
+-- Roel Huybrechts <roel.huybrechts@ugent.be>  Tue, 07 Jan 2014 12:20:14 +0100
+
 gyrid 0.9.3
 
 	* FIX: Call pushCache in main thread.
