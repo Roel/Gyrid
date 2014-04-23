@@ -564,7 +564,7 @@ class InetClient(Int16StringReceiver):
             elif msg.requestCaching.clearCache:
                 self.clearCache()
 
-            self.factory.config['enable_caching'] = msg.requestCaching.enableCaching
+            self.factory.config['enable_cache'] = msg.requestCaching.enableCaching
 
             msg.success = True
             self.sendMsg(msg, await_ack=False)
