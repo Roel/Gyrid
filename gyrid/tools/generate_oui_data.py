@@ -33,7 +33,7 @@ if __name__ == '__main__':
     output.write("\n#\n#MAC-address\tVendor\n")
     for line in input:
         if '(hex)' in line:
-            mac = line[:8].replace('-', ':')
+            mac = line[2:10].replace('-', ':')
             vendor = line.split('\t\t')[-1].strip(' \r\n')
             output.write('\t'.join([mac, vendor]) + '\n')
 
