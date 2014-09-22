@@ -64,7 +64,7 @@ q_fail() {
 
 case "$1" in
   start)
-    log_daemon_msg "Starting Gyrid Bluetooth device scanner" "gyrid"
+    log_daemon_msg "Starting Gyrid device scanner" "gyrid"
     if is_running; then
         log_progress_msg "(already running)"
         log_end_msg 0
@@ -81,7 +81,7 @@ case "$1" in
     fi
 	;;
   stop)
-    log_daemon_msg "Stopping Gyrid Bluetooth device scanner" "gyrid"
+    log_daemon_msg "Stopping Gyrid device scanner" "gyrid"
     if is_running; then
         start-stop-daemon --stop --quiet --retry 30 --pidfile $PIDFILE
         ok_fail $?
@@ -101,12 +101,12 @@ case "$1" in
   ;;
   status)
     if is_running; then
-        log_success_msg "Gyrid Bluetooth device scanner is running with pid `cat $PIDFILE`"
+        log_success_msg "Gyrid device scanner is running with pid `cat $PIDFILE`"
     elif [ -f $PIDFILE ]; then
-        log_success_msg "Gyrid Bluetooth device scanner is not running, but pid file exists"
+        log_success_msg "Gyrid device scanner is not running, but pid file exists"
         exit 1
     else
-        log_success_msg "Gyrid Bluetooth device scanner is not running"
+        log_success_msg "Gyrid device scanner is not running"
         exit 3
     fi
   ;;
